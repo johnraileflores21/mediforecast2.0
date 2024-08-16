@@ -1,4 +1,4 @@
-import React, { useState, ChangeEvent } from "react";
+import React, { useState, useEffect, ChangeEvent } from "react";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -14,7 +14,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
   const [status, setStatus] = useState<string>("Choose Status");
   const [broughtByDropdown, setBroughtByDropdown] = useState<boolean>(false);
   const [brought, setBrought] = useState<string>("Brought by");
-
+  const [date, setDate] = useState(new Date());
   const [formData, setFormData] = useState({
     familyName: "",
     firstName: "",
@@ -30,6 +30,17 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
     philMember: "",
     philNumber: "",
     phicMemberName: "",
+    date: "",
+    time: "",
+    created_at: "",
+    updated_at: "",
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => setDate(new Date()), 1000);
+    return function cleanup() {
+      clearInterval(timer);
+    };
   });
 
   const handleSexDropdown = () => {
@@ -72,20 +83,25 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
   };
 
   const handleSubmit = async () => {
-    // Remove empty fields from formData
     const cleanedFormData = Object.fromEntries(
       Object.entries(formData).filter(
         ([_, value]) => value !== "" && value !== null
       )
     );
-
+    const currentDate = new Date();
+    cleanedFormData.date = currentDate.toLocaleDateString();
+    cleanedFormData.time = currentDate.toLocaleTimeString();
+    const dateToday = currentDate.toISOString();
+    cleanedFormData.created_at = dateToday;
+    cleanedFormData.updated_at = dateToday;
     try {
       await addDoc(
         collection(db, "IndividualTreatmentRecord"),
         cleanedFormData
       );
       console.log("Document successfully written!");
-      closeModal(); // Close the modal after successful submission
+      closeModal();
+      window.location.reload();
     } catch (error) {
       console.error("Error adding document: ", error);
       alert(
@@ -175,7 +191,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
                             </div>
                             {sexdropdown && (
                               <ul
-                                className="dropdown-content menu rounded-box z-[50] absolute w-52 p-2 shadow-md border"
+                                className="dropdown-content menu rounded-box z-[50] absolute w-52 p-2 shadow-lg bg-white"
                                 tabIndex={0}
                               >
                                 <li className="hover:bg-base-100 rounded-lg hover:text-black">
@@ -220,7 +236,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
                             </div>
                             {statusdropdown && (
                               <ul
-                                className="dropdown-content menu rounded-box z-[50] absolute w-52 p-2 shadow"
+                                className="dropdown-content menu rounded-box z-[50] absolute w-52 p-2 shadow-lg bg-white"
                                 tabIndex={0}
                               >
                                 <li className="hover:bg-base-100 rounded-lg hover:text-black">
@@ -367,7 +383,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
                             </div>
                             {broughtByDropdown && (
                               <ul
-                                className="dropdown-content menu rounded-box z-[50] absolute w-52 p-2 shadow"
+                                className="dropdown-content menu rounded-box z-[50] absolute w-52 p-2 shadow-lg bg-white"
                                 tabIndex={0}
                               >
                                 <li className="hover:bg-base-100 rounded-lg hover:text-black">

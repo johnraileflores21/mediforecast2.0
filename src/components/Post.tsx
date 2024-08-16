@@ -215,7 +215,7 @@ const Post: React.FC<PostProps> = ({ isVisible, closeModal }) => {
                               <video
                                 src={preview}
                                 controls
-                                className="rounded-lg max-h-full max-w-full"
+                                className="rounded-lg max-h-full w-full"
                               >
                                 Your browser does not support the video tag.
                               </video>

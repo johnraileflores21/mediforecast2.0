@@ -23,13 +23,15 @@ import RHU3 from "./components/AdminRHU3";
 import { UserProvider, useUser } from "./components/User";
 import PrivateRoute from "./components/PrivateRoute";
 import PulseLoader from "react-spinners/PulseLoader";
-
+import ForgotPassword from "./components/ForgotPassword";
+import PDFFile from "./components/PDFFile";
 const App = () => {
   return (
     <UserProvider>
       <Routes>
         <Route path="/" element={<AuthRedirect />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/reset-password" element={<ForgotPassword />} />
         <Route element={<PrivateRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/inventory/add" element={<Add />} />

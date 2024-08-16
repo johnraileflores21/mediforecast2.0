@@ -80,7 +80,6 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
   ) => {
     const { id, value } = e.target;
 
-    // Check if the input is a file input
     if (e.target instanceof HTMLInputElement && e.target.files) {
       const selectedFile = e.target.files[0];
       if (id === "medicineImage") {

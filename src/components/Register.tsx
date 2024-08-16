@@ -1,18 +1,6 @@
-import React, {
-  useState,
-  useEffect,
-  ChangeEvent,
-  FormEvent,
-  useRef,
-} from "react";
+import React, { useState, ChangeEvent, useRef } from "react";
 import { auth, db, storage } from "../firebase";
-import {
-  collection,
-  doc,
-  setDoc,
-  getDocs,
-  DocumentData,
-} from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 } from "uuid";
 import { FaCheckCircle } from "react-icons/fa";
@@ -24,17 +12,17 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 
-type FormData = {
-  firstName: string;
-  lastName: string;
-  middleName: string;
-  age: number;
-  email: string;
-  phone: string;
-  password: string;
-  confirmPassword: string;
-  barangay: string;
-};
+// type FormData = {
+//   firstName: string;
+//   lastName: string;
+//   middleName: string;
+//   age: number;
+//   email: string;
+//   phone: string;
+//   password: string;
+//   confirmPassword: string;
+//   barangay: string;
+// };
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -571,9 +559,12 @@ const Register: React.FC = () => {
                     )}
                   </button>
                 </div>
-                <div className="mt-7 ml-5 text-gray-600">
+                <div className="mt-7 ml-10 text-gray-600">
                   Already have an account?
-                  <Link to={"/"} className="font-bold text-green-500">
+                  <Link
+                    to={"/"}
+                    className="font-bold text-teal-700 hover:text-teal-900"
+                  >
                     {" "}
                     Login
                   </Link>

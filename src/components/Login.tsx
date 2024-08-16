@@ -52,12 +52,16 @@ const Login = () => {
 
       if (docSnap.exists()) {
         const userData = docSnap.data();
+
         setUser({
-          firstname: userData.firstname,
-          lastname: userData.lastname,
-          email: userData.email,
-          rhu: userData.rhu,
+          firstname: userData.firstname || "",
+          lastname: userData.lastname || "",
+          email: userData.email || "",
+          rhu: userData.rhu || "",
+          imageUrl: userData.imageUrl || "",
+          barangay: userData.barangay || "",
         });
+
         setTimeout(() => {
           navigate("/dashboard");
         }, 700);
@@ -143,9 +147,12 @@ const Login = () => {
                 />
                 <span className="text-md">Remember Me</span>
               </div>
-              <button className="font-bold text-md text-green-500">
+              <Link
+                to="/reset-password"
+                className="font-bold text-md text-teal-700 hover:text-teal-900"
+              >
                 Forgot password
-              </button>
+              </Link>
             </div>
             <button
               type="submit"
@@ -177,9 +184,12 @@ const Login = () => {
             </button>
             <div className="text-center text-gray-600">
               Don't have an account?
-              <Link to="/register" className="font-bold text-green-500">
+              <Link
+                to="/register"
+                className="font-bold text-teal-700 hover:text-teal-900"
+              >
                 {" "}
-                Sign up Now
+                Sign up
               </Link>
             </div>
           </form>

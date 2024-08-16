@@ -2,11 +2,7 @@ import { useState } from "react";
 import { IoMdNotifications, IoMdMenu } from "react-icons/io";
 import { useUser } from "./User";
 
-interface TopBarProps {
-  toggleSidebar: () => void;
-}
-
-const TopBar = ({ toggleSidebar }: TopBarProps) => {
+const TopBar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useUser();
 
@@ -16,9 +12,6 @@ const TopBar = ({ toggleSidebar }: TopBarProps) => {
 
   return (
     <div className="bg-teal-600 text-white p-2.5 shadow-md flex justify-between items-center relative">
-      <button onClick={toggleSidebar} className="lg:hidden">
-        <IoMdMenu className="h-7 w-7 text-white" />
-      </button>
       <h1 className="text-3xl font-extrabold xl:ml-[30%]">
         Rural Health Unit{" "}
         {user?.rhu === "1" ? (

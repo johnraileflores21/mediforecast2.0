@@ -131,15 +131,10 @@ const ModalDistribute: React.FC<ModalDistributeProps> = ({
                           Quantity
                         </label>
                         <input
-                          type="text"
+                          type="number"
                           id="medicineStock"
-                          value={
-                            medicine.medicineStock > 1
-                              ? `${medicine.medicineStock} boxes`
-                              : `${medicine.medicineStock} box`
-                          }
+                          value={medicine.medicineStock}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                          readOnly
                         />
                       </div>
                       <div className="w-full">
@@ -205,7 +200,7 @@ const ModalDistribute: React.FC<ModalDistributeProps> = ({
                         <input
                           type="text"
                           id="medicineExpiration"
-                          value={medicine.medicineExpiration}
+                          value={formatDate(medicine.medicineExpiration)}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           disabled
                           readOnly

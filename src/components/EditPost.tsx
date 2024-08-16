@@ -170,7 +170,7 @@ const EditPost: React.FC<EditPostProps> = ({
                     Edit Post
                   </h3>
                   <button onClick={closeModal}>
-                    <MdCancel className="absolute w-10 h-10 right-5 top-4 text-gray-500" />
+                    <MdCancel className="absolute w-10 h-10 right-5 top-4 text-red-700 hover:text-red-900" />
                   </button>
                 </div>
                 <div className="w-full border-b border-gray-300 mt-4"></div>
@@ -207,11 +207,21 @@ const EditPost: React.FC<EditPostProps> = ({
                       <div className="w-full border p-2 flex justify-center items-center h-3/6 rounded-lg">
                         <div className="relative flex justify-center items-center bg-gray-100 hover:bg-gray-300 w-full h-48 rounded-lg bg-cover bg-center">
                           {preview ? (
-                            <img
-                              src={preview}
-                              alt="Post"
-                              className="w-full h-full object-center"
-                            />
+                            file?.type.startsWith("image/") ? (
+                              <img
+                                src={preview}
+                                alt="Selected preview"
+                                className="rounded-lg max-h-full max-w-full"
+                              />
+                            ) : (
+                              <video
+                                src={preview}
+                                controls
+                                className="rounded-lg max-h-full w-full"
+                              >
+                                Your browser does not support the video tag.
+                              </video>
+                            )
                           ) : (
                             <>
                               <input
@@ -234,9 +244,9 @@ const EditPost: React.FC<EditPostProps> = ({
                           {preview && (
                             <button
                               onClick={closeUploadImg}
-                              className="absolute z-20 top-2 right-2 rounded-full bg-white hover:bg-gray-300 border border-gray-400 p-1"
+                              className="absolute z-20 top-2 right-2 rounded-full bg-red-700 hover:bg-red-900 p-1"
                             >
-                              <TbLetterX className="w-5 h-5 text-gray-500" />
+                              <TbLetterX className="w-5 h-5 text-white " />
                             </button>
                           )}
                         </div>

@@ -4,7 +4,7 @@ import { useUser } from "./User";
 
 const AdminTopbar = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const { currentUser } = useUser();
+    const { user } = useUser();
 
     const toggleDropdown = () => {
         setIsOpen(!isOpen);
@@ -14,22 +14,22 @@ const AdminTopbar = () => {
         <div className="bg-teal-600 text-white p-2.5 shadow-md flex justify-center items-center relative">
             <h1 className="text-3xl font-extrabold ">
                 Admin{" "}
-                {currentUser?.barangay === "Sulipan" ||
-                currentUser?.barangay === "San Juan" ||
-                currentUser?.barangay === "Capalangan" ||
-                currentUser?.barangay === "Sucad" ? (
+                {user?.barangay === "Sulipan" ||
+                user?.barangay === "San Juan" ||
+                user?.barangay === "Capalangan" ||
+                user?.barangay === "Sucad" ? (
                     <span>I</span>
                 ) : null}
-                {currentUser?.barangay === "Tabuyuc" ||
-                currentUser?.barangay === "Balucuc" ||
-                currentUser?.barangay === "Cansinala" ||
-                currentUser?.barangay === "Calantipe" ? (
+                {user?.barangay === "Tabuyuc" ||
+                user?.barangay === "Balucuc" ||
+                user?.barangay === "Cansinala" ||
+                user?.barangay === "Calantipe" ? (
                     <span>II</span>
                 ) : null}
-                {currentUser?.barangay === "Sampaloc" ||
-                currentUser?.barangay === "Paligui" ||
-                currentUser?.barangay === "San Vicente" ||
-                currentUser?.barangay === "Colgante" ? (
+                {user?.barangay === "Sampaloc" ||
+                user?.barangay === "Paligui" ||
+                user?.barangay === "San Vicente" ||
+                user?.barangay === "Colgante" ? (
                     <span>III</span>
                 ) : null}
             </h1>

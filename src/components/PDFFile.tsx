@@ -227,7 +227,7 @@ const PDFFile = () => {
         <View style={styles.borderContainer}>
           {/* firstrow */}
           <View style={styles.header}>
-            <Image style={styles.logo} src="images/finalelogo.png" />
+            <Image style={styles.logo} src="images/3.jpg" />
             <View style={styles.section}>
               <Text style={styles.headerText}>
                 APALIT RURAL HEALTH UNIT III

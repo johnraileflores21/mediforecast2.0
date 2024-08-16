@@ -14,6 +14,8 @@ interface User {
   lastname: string;
   email: string;
   rhu: string;
+  imageUrl: string;
+  barangay: string;
 }
 
 interface UserContextProps {
@@ -46,6 +48,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
                 lastname: userData.lastname,
                 email: userData.email,
                 rhu: userData.rhu,
+                imageUrl: userData.imageUrl,
+                barangay: userData.barangay,
               });
             } else {
               setUser(null);

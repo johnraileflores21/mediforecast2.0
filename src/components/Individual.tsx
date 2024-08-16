@@ -16,57 +16,32 @@ import {
   MdEdit,
   MdArrowBackIos,
   MdArrowForwardIos,
+  MdLocalPrintshop,
 } from "react-icons/md";
-import { IoMdAddCircle } from "react-icons/io";
+import { IoMdAddCircle, IoMdDownload } from "react-icons/io";
 import { IoSearchOutline } from "react-icons/io5";
-import PDFFile from "./PDFFile";
-import { PDFViewer } from "@react-pdf/renderer";
+import { PDFViewer, PDFDownloadLink } from "@react-pdf/renderer";
 import ScrollToTop from "./ScrollToTop";
-import { UserProvider } from "./User";
+import TryPDF from "./TryPDF";
+import { PatientRecord } from "./type";
 
-interface DataItem {
-  id: number;
-  name: string;
-  address: string;
-  city: string;
-  state: string;
-  zip: string;
-  country: string;
-  phone: string;
-  email: string;
-  created_at: string;
-}
-
-const data: DataItem[] = [
-  {
-    id: 1,
-    name: "John Doe",
-    address: "123 Main Street",
-    city: "Springfield",
-    state: "IL",
-    zip: "62704",
-    country: "USA",
-    phone: "+1 234 567 8901",
-    email: "johndoe@example.com",
-    created_at: "2024-08-11",
-  },
-  {
-    id: 2,
-    name: "Jane Smith",
-    address: "456 Elm Street",
-    city: "Springfield",
-    state: "IL",
-    zip: "62704",
-    country: "USA",
-    phone: "+1 234 567 8902",
-    email: "janesmith@example.com",
-    created_at: "2024-08-11",
-  },
-  // Add more data items as needed
-];
-
+// interface filteredDataProps {
+//   familyName: string;
+//   firstName: string;
+//   middleName: string;
+//   sex: string;
+//   address: string;
+//   mobileno: string;
+//   dateOfBirth: string;
+//   status: string;
+//   nationality: string;
+//   broughtBy: string;
+//   philMember: string;
+//   philNumber: string;
+//   phicMemberName: string;
+// }
 const Individual = () => {
-  const [userData, setUserData] = useState<DocumentData[]>([]);
+  const [userData, setUserData] = useState<PatientRecord[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -74,8 +49,10 @@ const Individual = () => {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [modalEdit, setModalEdit] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [modalView, setModalView] = useState(false);
-  const [viewId, setViewId] = useState<string | null>(null);
+  const [showPDF, setShowPDF] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<PatientRecord | null>(
+    null
+  );
 
   const [selectedOption, setSelectedOption] = useState<string>("All");
   const [sortOrder, setSortOrder] = useState<string>("asc");
@@ -90,7 +67,7 @@ const Individual = () => {
       const data = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-      }));
+      })) as PatientRecord[];
       setUserData(data);
     } catch (error) {
       console.error("Error fetching:", error);
@@ -100,6 +77,13 @@ const Individual = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // const formData = {
+  //   name: "John Doe",
+  //   age: 30,
+  //   email: "john.doe@example.com",
+  // };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -128,12 +112,9 @@ const Individual = () => {
   const closeModalEdit = () => {
     setModalEdit(false);
   };
-  const handleView = (id: string) => {
-    setModalView(true);
-    setViewId(id);
-  };
-  const closeModalView = () => {
-    setModalView(false);
+  const handleView = (user: PatientRecord | undefined) => {
+    setShowPDF(true);
+    setSelectedPatient(user || null);
   };
   const handleDelete = async (id: string) => {
     setDeleteId(id);
@@ -167,24 +148,14 @@ const Individual = () => {
       record.middleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       record.sex.toLowerCase().includes(searchQuery.toLowerCase()) ||
       record.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      record.mobileNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      record.dateOfBirthday.toLowerCase().includes(searchQuery.toLowerCase())
+      record.mobileno.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      record.dateOfBirth.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleSearchInputChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     setSearchQuery(event.target.value);
-  };
-
-  const handleSort = () => {
-    const sortedData = [...userData].sort((a, b) => {
-      if (a.medicineName < b.medicineName) return sortOrder === "asc" ? -1 : 1;
-      if (a.medicineName > b.medicineName) return sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
-    setUserData(sortedData);
-    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
   };
 
   const toggleRowExpansion = (id: string) => {
@@ -236,35 +207,6 @@ const Individual = () => {
       <div className="flex justify-between">
         <h1 className="text-3xl font-bold mb-4">Individual Treatment Record</h1>
         <div className="flex justify-center items-center mb-4">
-          {/* <details className="dropdown w-32">
-                    <summary
-                        className="btn m-1 bg-black text-white "
-                        tabIndex={0}
-                        role="button"
-                    >
-                        {selectedOption}
-                    </summary>
-                    <ul
-                        className="menu dropdown-content bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
-                        tabIndex={0}
-                    >
-                        <li>
-                            <a onClick={() => setSelectedOption("Medicines")}>
-                                Medicines
-                            </a>
-                        </li>
-                        <li>
-                            <a onClick={() => setSelectedOption("Vaccines")}>
-                                Vaccines
-                            </a>
-                        </li>
-                        <li>
-                            <a onClick={() => setSelectedOption("Vitamins")}>
-                                Vitamins
-                            </a>
-                        </li>
-                    </ul>
-                </details> */}
           <div className="dropdown dropdown-end w-28">
             <div
               tabIndex={0}
@@ -292,8 +234,7 @@ const Individual = () => {
           </div>
         </div>
       </div>
-      {/* ************************************Medicine********************************************** */}
-      {/* {selectedOption == "Medicines" && ( */}
+
       <>
         <div className="flex justify-between mb-4">
           <button
@@ -318,7 +259,7 @@ const Individual = () => {
         <div className="border p-2 m-10 rounded-md shadow-lg">
           <div className="overflow-x-auto shadow-lg rounded-lg">
             <table className="min-w-full bg-white divide-y divide-gray-300">
-              <thead className="bg-blue-600 text-white">
+              <thead className="bg-teal-700 text-white">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
                     Family Name
@@ -359,7 +300,7 @@ const Individual = () => {
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
                     PHIC Member Name
                   </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider sticky right-0 bg-blue-600 z-10">
+                  <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider sticky right-0 bg-teal-700 z-10">
                     Actions
                   </th>
                 </tr>
@@ -407,12 +348,19 @@ const Individual = () => {
                       {item.phicMemberName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 sticky right-0 bg-white z-10 flex space-x-2">
+                      <PDFDownloadLink
+                        document={<TryPDF userData={item} />}
+                        fileName={`${item.familyName}_${item.firstName}_record.pdf`}
+                        className="bg-green-600 rounded-md text-white p-2 hover:bg-green-800 flex items-center space-x-1"
+                      >
+                        <IoMdDownload className="w-5 h-5 text-white" />
+                      </PDFDownloadLink>
                       <button
-                        onClick={() => handleView(item.id)}
+                        onClick={() => handleView(item)}
                         className="bg-blue-600 rounded-md text-white p-2 hover:bg-blue-800  flex items-center space-x-1"
                       >
                         <FaEye className="w-5 h-5 text-white" />
-                        {/* <span>Edit</span> */}
+                        {/* PDFViewer */}
                       </button>
                       <button
                         onClick={() => handleEdit(item.id)}
@@ -491,6 +439,26 @@ const Individual = () => {
             // fetchData={fetchData}
           />
         )}
+        {showPDF && selectedPatient && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-4 rounded-lg shadow-lg w-full max-w-4xl h-[80vh] max-h-[90vh] overflow-auto">
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={() => setShowPDF(false)}
+                  className="bg-red-500 text-white p-2 rounded-md hover:bg-red-700"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="w-full h-full">
+                <PDFViewer className="w-full h-full">
+                  <TryPDF userData={selectedPatient} />
+                </PDFViewer>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* {modalEdit && (
           <ModalEditMedicine
             showModal={modalEdit}
@@ -507,6 +475,7 @@ const Individual = () => {
             viewId={viewId}
           />
         )} */}
+
         {showModal && (
           <div className="fixed z-10 inset-0 overflow-y-auto">
             <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -541,11 +510,11 @@ const Individual = () => {
                         className="text-lg leading-6 font-medium text-gray-900"
                         id="modal-headline"
                       >
-                        Delete Medicine Confirmation
+                        Delete ITR Confirmation
                       </h3>
                       <div className="mt-2">
                         <p className="text-sm text-gray-500">
-                          Are you sure you want to delete this medicine?
+                          Are you sure you want to delete this record?
                         </p>
                       </div>
                     </div>
@@ -573,95 +542,44 @@ const Individual = () => {
         )}
         <ScrollToTop />
       </>
-      <div className="mt-10 h-[1240px]">
+      {/* <div className="mt-10 h-[1240px]">
         <PDFViewer className="w-full h-[100%]">
           <PDFFile />
         </PDFViewer>
+      </div>*/}
+      {/* <div>
+        <h1>Generate PDF</h1>
+        <PDFDownloadLink
+          document={<TryPDF userData={userData} />}
+          fileName="ITR.pdf"
+        >
+          {({ loading }) => (loading ? "Loading document..." : "Download PDF")}
+        </PDFDownloadLink>
       </div>
-      <div className="border p-2 m-10 rounded-md shadow-lg">
-        <div className="overflow-x-auto shadow-lg rounded-lg">
-          <table className="min-w-full bg-white divide-y divide-gray-300">
-            <thead className="bg-blue-600 text-white">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
-                  Address
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
-                  City
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
-                  State
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
-                  ZIP
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
-                  Country
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
-                  Phone
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
-                  Created At
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider sticky right-0 bg-blue-600 z-10">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {data.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-100">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {item.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 max-w-xs truncate">
-                    {item.address}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {item.city}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {item.state}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {item.zip}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {item.country}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {item.phone}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {item.email}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {item.created_at}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 sticky right-0 bg-white z-10 flex space-x-2">
-                    <button className="text-blue-600 hover:text-blue-800">
-                      View
-                    </button>
-                    <button className="text-yellow-600 hover:text-yellow-800">
-                      Edit
-                    </button>
-                    <button className="text-red-600 hover:text-red-800">
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <div className="mt-10 h-[1240px]">
+        <PDFViewer className="w-full h-[100%]">
+          <TryPDF userData={userData} />
+        </PDFViewer>
+      </div>  */}
+      {/* <div>
+        {userData.length > 0 ? (
+          userData.map((record) => (
+            <PDFDownloadLink
+              key={record.id}
+              document={<TryPDF userData={record} />}
+              fileName={`${record.familyName}_${record.firstName}_record.pdf`}
+            >
+              {({ loading }) =>
+                loading
+                  ? "Loading document..."
+                  : `Download ${record.familyName} ${record.firstName}'s PDF`
+              }
+            </PDFDownloadLink>
+          ))
+        ) : (
+          <p>No records found</p>
+        )}
+      </div> */}
     </DashboardLayout>
   );
 };

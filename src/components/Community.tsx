@@ -30,6 +30,8 @@ const Community = () => {
   const [deleteItem, setDeleteItem] = useState<CommunityPost | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [collapse, setCollapse] = useState(false);
+  const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
 
   const handleShowModal = () => {
     setShowModal(true);
@@ -153,7 +155,7 @@ const Community = () => {
           <img
             src={postImg}
             alt="Post content"
-            className="rounded-lg h-[600px] max-w-full mt-2 "
+            className="rounded-lg h-[600px] max-w-full  "
           />
         </div>
       );
@@ -163,14 +165,18 @@ const Community = () => {
           src={postImg}
           controls
           loop
-          className="rounded-lg max-h-full w-full mt-2"
+          className="rounded-lg max-h-full w-full"
         >
           Your browser does not support the video tag.
         </video>
       );
     } else {
-      return null; // Handle other file types or unsupported files
+      return null;
     }
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedPostId(expandedPostId === id ? null : id);
   };
 
   return (
@@ -257,9 +263,25 @@ const Community = () => {
                     )}
                   </div>
                 </div>
-                <div className="p-4">
-                  <p>{item.postMessage}</p>
-                  {item.postImg && renderMedia(item.postImg, item.fileType)}
+                <div>
+                  <p className="p-4">
+                    {expandedPostId === item.id
+                      ? item.postMessage
+                      : item.postMessage.length > 100
+                      ? item.postMessage.substring(0, 300) + "...."
+                      : item.postMessage}
+                    {item.postMessage.length > 100 && (
+                      <button
+                        onClick={() => toggleExpand(item.id)}
+                        className="text-blue-500 ml-2 font-bold hover:underline"
+                      >
+                        {expandedPostId === item.id ? "Show less" : "Show more"}
+                      </button>
+                    )}
+                  </p>
+                  <div className="w-full">
+                    {item.postImg && renderMedia(item.postImg, item.fileType)}
+                  </div>
                 </div>
                 {/* <div className="flex p-4 border-t border-gray-300">
                   <AiFillLike className="mr-2 text-xl" />
