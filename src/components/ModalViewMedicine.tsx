@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { collection, onSnapshot } from "firebase/firestore";
-import { MdCancel } from "react-icons/md";
 import { useUser } from "./User";
+import { IoMdClose } from "react-icons/io";
 
 interface ModalViewMedicineProps {
   showModal: boolean;
@@ -57,11 +57,20 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
   };
 
   return (
-    <div className="fixed z-10 inset-0 overflow-y-auto">
+    <div
+      className={`fixed z-10 inset-0 overflow-y-auto transition-all duration-500 ease-out ${
+        showModal ? "opacity-100" : "opacity-0"
+      }`}
+    >
       <div className="flex items-center justify-center min-h-screen px-4 py-6 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
-        <div className="inline-block align-middle bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-lg sm:w-full">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50"></div>
+        <div
+          className={`inline-block align-middle bg-white rounded-lg text-left max-h-[600px] overflow-y-auto shadow-xl transform transition-all sm:my-8 sm:max-w-lg sm:w-full ${
+            showModal ? "animate-slideDown" : "animate-slideUp"
+          }`}
+        >
+          {/* Modal content */}
+          <div className="bg-white px-2 pt-5 pb-4 sm:p-6">
             <div className="flex items-start">
               <div className="w-full">
                 <div className="flex items-center justify-between">
@@ -73,7 +82,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                     type="button"
                     className="text-gray-700 hover:text-gray-900"
                   >
-                    <MdCancel className="w-8 h-8 text-red-900" />
+                    <IoMdClose className="w-6 h-6 text-gray-400 hover:text-red-600" />
                   </button>
                 </div>
 

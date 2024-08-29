@@ -25,6 +25,20 @@ module.exports = withMT( {
       'custom-heavy-shadow': '5px 12px 16px 4px rgba(0, 0, 0, 0.3), 0 12px 40px 4px rgba(0, 0, 0, 0.25)',
       'scroll-to-top': '0 0 40px 5px rgba(0, 0, 0, 0.3), 0 0 40px 5px rgba(0, 0, 0, 0.25)',
     },
+    keyframes: {
+      slideDown: {
+        '0%': { transform: 'translateY(-100%)', opacity: 0 },
+        '100%': { transform: 'translateY(0)', opacity: 1 },
+      },
+      slideUp: {
+        '0%': { transform: 'translateY(0)', opacity: 1 },
+        '100%': { transform: 'translateY(-100%)', opacity: 0 },
+      },
+    },
+    animation: {
+      slideDown: 'slideDown 0.5s ease-out',
+      slideUp: 'slideUp 0.5s ease-out',
+    },
   },
   },
   plugins: [require('daisyui')],

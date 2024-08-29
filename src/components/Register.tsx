@@ -1,31 +1,42 @@
-import React, { useState, ChangeEvent, useRef } from "react";
+import React, { useState, ChangeEvent, useRef, useCallback } from "react";
 import { auth, db, storage } from "../firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useNavigate } from "react-router-dom";
 import { v4 } from "uuid";
 import { FaCheckCircle } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import { z, ZodType } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signOut } from "firebase/auth";
+import bcrypt from "bcryptjs";
 
-// type FormData = {
-//   firstName: string;
-//   lastName: string;
-//   middleName: string;
-//   age: number;
-//   email: string;
-//   phone: string;
-//   password: string;
-//   confirmPassword: string;
-//   barangay: string;
-// };
+// Optional: Define form data types for better type safety
+type FormData = {
+  firstname: string;
+  lastname: string;
+  middlename: string;
+  dateOfBirth: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirmPassword?: string;
+  gender: string;
+  municipality: string;
+  housenoandstreetname: string;
+  barangay: string;
+  imageUrl: string;
+  idFront: string;
+  idBack: string;
+  rhu?: string;
+  role: string;
+  acc_status: string;
+  created_at: string;
+  updated_at: string;
+};
 
 const Register: React.FC = () => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     firstname: "",
     lastname: "",
     middlename: "",
@@ -33,6 +44,7 @@ const Register: React.FC = () => {
     email: "",
     phone: "",
     password: "",
+    confirmPassword: "",
     gender: "",
     municipality: "Apalit, Pampanga",
     housenoandstreetname: "",
@@ -42,60 +54,27 @@ const Register: React.FC = () => {
     idBack: "",
     rhu: "",
     role: "",
+    acc_status: "",
+    created_at: "",
+    updated_at: "",
   });
   const [file, setFile] = useState<File | null>(null);
   const [idFront, setIdFront] = useState<File | null>(null);
-  // const [userData, setUserData] = useState<DocumentData[]>([]);
+  const [idBack, setIdBack] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [idFrontPreview, setIdFrontPreview] = useState<string | null>(null);
-  const [idBack, setIdBack] = useState<File | null>(null);
   const [idBackPreview, setIdBackPreview] = useState<string | null>(null);
   const [showAlertSuccess, setShowAlertSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const idFrontInputRef = useRef<HTMLInputElement>(null);
   const idBackInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
-
-  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const imageUrl = file ? await uploadImage(file, "Image") : "";
-      const idFrontUrl = idFront ? await uploadImage(idFront, "ID/Front") : "";
-      const idBackUrl = idBack ? await uploadImage(idBack, "ID/Back") : "";
-
-      const rhu = determineRhu(formData.barangay);
-
-      await createUserWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
-      const user = auth.currentUser;
-
-      if (user) {
-        const userData = {
-          ...formData,
-          imageUrl,
-          idFront: idFrontUrl,
-          idBack: idBackUrl,
-          rhu,
-        };
-
-        await setDoc(doc(db, "Users", user.uid), userData);
-        toast.success("User Registered Successfully!", {
-          position: "top-center",
-        });
-      }
-    } catch (error) {
-      console.error("Error registering user:", error);
-      toast.error("Registration failed. Please try again.", {
-        position: "top-center",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [errorPassword, setErrorPassword] = useState<string | null>(null);
+  const [errorConfirmPassword, setErrorConfirmPassword] = useState<
+    string | null
+  >(null);
+  const [error, setError] = useState<string | null>(null);
+  const Navigate = useNavigate();
 
   const uploadImage = async (file: File, path: string): Promise<string> => {
     const imageRef = ref(storage, `${path}/-${file.name + v4()}`);
@@ -115,40 +94,248 @@ const Register: React.FC = () => {
     }
   };
 
+  //regex password one uppercase and lowercase letter, one symbol and 8 characters length
+  const passwordValidation = (password: string): string | null => {
+    const upperCaseRegex = /[A-Z]/;
+    const lowerCaseRegex = /[a-z]/;
+    const symbolRegex = /[!@#$%^&*(),.?":{}|<>]/;
+    const isLengthValid = password.length >= 8;
+
+    if (!upperCaseRegex.test(password)) {
+      return "Password must include at least one uppercase letter.";
+    }
+    if (!lowerCaseRegex.test(password)) {
+      return "Password must include at least one lowercase letter.";
+    }
+    if (!symbolRegex.test(password)) {
+      return "Password must include at least one symbol.";
+    }
+    if (!isLengthValid) {
+      return "Password must be at least 8 characters long.";
+    }
+    return null;
+  };
+
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
+    const { id, value } = e.target;
+
+    // Display preview images
     if (e.target instanceof HTMLInputElement && e.target.files) {
       const selectedFile = e.target.files[0];
-      if (e.target.id == "image") {
+      if (id === "image") {
         setFile(selectedFile);
         setPreview(URL.createObjectURL(selectedFile));
-      } else if (e.target.id == "id") {
+      } else if (id === "id") {
         setIdFront(selectedFile);
         setIdFrontPreview(URL.createObjectURL(selectedFile));
-      } else if (e.target.id == "id2") {
+      } else if (id === "id2") {
         setIdBack(selectedFile);
         setIdBackPreview(URL.createObjectURL(selectedFile));
-      } else {
-        setFile(null);
-        setPreview(null);
-        setIdFront(null);
-        setIdFrontPreview(null);
-        setIdBack(null);
-        setIdBackPreview(null);
       }
     } else {
-      setFormData({
-        ...formData,
-        [e.target.id]: e.target.value,
+      setFormData((prevFormData) => {
+        const updatedFormData = {
+          ...prevFormData,
+          [id]: value,
+        };
+
+        // Perform validations after updating formData
+        if (id === "password") {
+          const errorMessage = passwordValidation(value);
+          setErrorPassword(errorMessage);
+
+          // Re-check if confirm password matches the new password value
+          if (
+            updatedFormData.confirmPassword &&
+            updatedFormData.confirmPassword !== value
+          ) {
+            setErrorConfirmPassword("Passwords do not match.");
+          } else {
+            setErrorConfirmPassword(null);
+          }
+        }
+
+        if (id === "confirmPassword") {
+          if (value !== updatedFormData.password) {
+            setErrorConfirmPassword("Passwords do not match.");
+          } else {
+            setErrorConfirmPassword(null); // Clear error if passwords match
+          }
+        }
+
+        return updatedFormData;
       });
     }
+  };
+
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+
+    // Validate the form before proceeding
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
+
+    // Getting current date and time
+    const now = new Date();
+    const dateToday = now.toISOString();
+
+    // Trim and log passwords for debugging
+    const trimmedPassword = formData.password.trim();
+    const trimmedConfirmPassword = formData.confirmPassword?.trim() || "";
+
+    // Password mismatch validation only during form submission
+    if (trimmedPassword !== trimmedConfirmPassword) {
+      setErrorConfirmPassword("Passwords do not match!");
+      toast.error("Passwords do not match!", { position: "top-right" });
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Upload files to Firebase Storage if present
+      const imageUrl = file ? await uploadImage(file, "Image") : "";
+      const idFrontUrl = idFront ? await uploadImage(idFront, "ID/Front") : "";
+      const idBackUrl = idBack ? await uploadImage(idBack, "ID/Back") : "";
+
+      // Determine RHU based on barangay
+      const rhu = determineRhu(formData.barangay);
+      // Create user with email and password in Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+      const user = userCredential.user;
+
+      // Hash the password before storing it in Firestore
+      const hashedPassword = await bcrypt.hash(trimmedPassword, 10);
+
+      // Prepare user data for Firestore
+      const userData = {
+        ...formData,
+        password: hashedPassword,
+        imageUrl,
+        idFront: idFrontUrl,
+        idBack: idBackUrl,
+        rhu,
+        acc_status: "pending", //setting automatic pending and for approval of super admin
+        created_at: dateToday,
+        updated_at: dateToday,
+      };
+
+      // Remove confirmPassword before storing in Firestore
+      delete userData.confirmPassword;
+
+      // Store user data in Firestore
+      await setDoc(doc(db, "Users", user.uid), userData);
+
+      // Sign out the user after registration because it automatic login if not signout
+      await signOut(auth);
+
+      // Show success toast and reset the form
+      toast.success("User Registered Successfully!", {
+        position: "top-right",
+      });
+      resetForm();
+    } catch (error: any) {
+      if (error.code === "auth/email-already-in-use") {
+        toast.error("The email address is already in use by another account.", {
+          position: "top-right",
+        });
+      } else if (error.code === "auth/invalid-email") {
+        toast.error("The email address is not valid.", {
+          position: "top-right",
+        });
+      } else if (error.code === "auth/weak-password") {
+        toast.error(
+          "The password is too weak. Please choose a stronger password.",
+          {
+            position: "top-right",
+          }
+        );
+      } else if (error.code === "auth/network-request-failed") {
+        toast.error(
+          "Network error. Please check your internet connection and try again.",
+          {
+            position: "top-right",
+          }
+        );
+      } else {
+        // Generic error handling for other unexpected errors
+        console.error("Error registering user:", error);
+        toast.error("An unexpected error occurred. Please try again later.", {
+          position: "top-right",
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: any = {};
+    if (!formData.firstname) newErrors.firstname = "First Name is required";
+    if (!formData.middlename) newErrors.middlename = "Middle Name is required";
+    if (!formData.lastname) newErrors.lastname = "Last Name is required";
+    if (!formData.dateOfBirth)
+      newErrors.dateOfBirth = "Date of Birth is required";
+    if (!formData.gender) newErrors.gender = "Gender is required";
+    if (!formData.phone) newErrors.phone = "Phone Number is required";
+    if (!formData.password) newErrors.password = "Password is required";
+    if (!formData.housenoandstreetname) newErrors.phone = "Address is required";
+    if (!formData.barangay) newErrors.barangay = "Barangay is required";
+    if (!fileInputRef) newErrors.imageUrl = "Image is required";
+    if (!idFrontInputRef) newErrors.idFront = "Front ID is required";
+    if (!idBackInputRef) newErrors.idBack = "Back ID is required";
+    if (!formData.role) newErrors.role = "Role is required";
+
+    setError(newErrors);
+
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const resetForm = () => {
+    setFormData({
+      firstname: "",
+      lastname: "",
+      middlename: "",
+      dateOfBirth: "",
+      email: "",
+      phone: "",
+      password: "",
+      confirmPassword: "",
+      gender: "",
+      municipality: "Apalit, Pampanga",
+      housenoandstreetname: "",
+      barangay: "",
+      imageUrl: "",
+      idFront: "",
+      idBack: "",
+      rhu: "",
+      role: "",
+      acc_status: "",
+      created_at: "",
+      updated_at: "",
+    });
+    setFile(null);
+    setIdFront(null);
+    setIdBack(null);
+    setPreview(null);
+    setIdFrontPreview(null);
+    setIdBackPreview(null);
+    setErrorPassword(null);
+    setErrorConfirmPassword(null);
   };
 
   return (
     <>
       <ToastContainer />
-      {showAlertSuccess && (
+      {/* {showAlertSuccess && (
         <div className="flex flex-row-reverse z-10 relative">
           <div
             role="alert"
@@ -163,7 +350,7 @@ const Register: React.FC = () => {
             </span>
           </div>
         </div>
-      )}
+      )} */}
       <div className="bg-gray-100">
         <form className="space-y-4" onSubmit={handleRegister}>
           <div className="flex items-center justify-center min-h-screen bg-gray-100 custom-img">
@@ -186,7 +373,7 @@ const Register: React.FC = () => {
                     <input
                       type="text"
                       id="firstname"
-                      className="input w-full md:w-80 p-2 ml-1 border border-gray-300 rounded-md"
+                      className="input w-full md:w-80 p-2 ml-1 border border-gray-300 rounded-md capitalize"
                       value={formData.firstname}
                       onChange={handleChange}
                       placeholder="Enter Firstname"
@@ -199,7 +386,7 @@ const Register: React.FC = () => {
                     <input
                       type="text"
                       id="middlename"
-                      className="input input-bordered w-full md:w-80 p-2 ml-1 border border-gray-300 rounded-md"
+                      className="input input-bordered w-full md:w-80 p-2 ml-1 border border-gray-300 rounded-md capitalize"
                       value={formData.middlename}
                       onChange={handleChange}
                       placeholder="Enter Middlename"
@@ -212,7 +399,7 @@ const Register: React.FC = () => {
                     <input
                       type="text"
                       id="lastname"
-                      className="input input-bordered w-full md:w-80 p-2 ml-1 border border-gray-300 rounded-md"
+                      className="input input-bordered w-full md:w-80 p-2 ml-1 border border-gray-300 rounded-md capitalize"
                       value={formData.lastname}
                       onChange={handleChange}
                       placeholder="Enter Lastname"
@@ -245,7 +432,6 @@ const Register: React.FC = () => {
                       className="input input-bordered w-full md:w-80 ml-1 border border-gray-300 rounded-md"
                       value={formData.dateOfBirth}
                       onChange={handleChange}
-                      required
                     />
                     {/* {errors.age && (
                       <span className="text-red-600 mt-1">
@@ -264,12 +450,10 @@ const Register: React.FC = () => {
                         className="input input-bordered w-full ml-1 border border-gray-300 rounded-md appearance-none"
                         value={formData.gender}
                         onChange={handleChange}
-                        required
                       >
                         <option value="">Select</option>
                         <option value="male">Male</option>
                         <option value="female">Female</option>
-                        <option value="others">Others</option>
                       </select>
                       <svg
                         className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"
@@ -297,7 +481,6 @@ const Register: React.FC = () => {
                       value={formData.phone}
                       onChange={handleChange}
                       placeholder="Enter Phone Number"
-                      required
                     />
                     {/* {errors.phone && (
                       <span className="text-red-600">
@@ -315,8 +498,8 @@ const Register: React.FC = () => {
                         id="municipality"
                         value="Apalit, Pampanga"
                         onChange={handleChange}
-                        className="input input-bordered w-full md:w-80 p-2 ml-1 border border-gray-300 rounded-md"
-                        disabled
+                        className="input input-bordered w-full md:w-80 p-2 ml-1 border border-gray-300 rounded-md "
+                        readOnly
                       />
                     </div>
                     <input
@@ -324,9 +507,8 @@ const Register: React.FC = () => {
                       id="housenoandstreetname"
                       value={formData.housenoandstreetname}
                       onChange={handleChange}
-                      className="input input-bordered w-full md:w-80 p-2 ml-1 mt-2 border border-gray-300 rounded-md"
+                      className="input input-bordered w-full md:w-80 p-2 ml-1 mt-2 border border-gray-300 rounded-md capitalize"
                       placeholder="House No. & Street Name"
-                      required
                     />
                   </div>
                   <div className="form-control">
@@ -393,7 +575,6 @@ const Register: React.FC = () => {
                           ref={fileInputRef}
                           className="input input-bordered w-full p-2 border mb-5  border-gray-300 rounded-md"
                           onChange={handleChange}
-                          required
                         />
                       </div>
                     </div>
@@ -425,7 +606,6 @@ const Register: React.FC = () => {
                           accept="image/*"
                           className="input input-bordered w-full p-2 border mb-5  border-gray-300 rounded-md"
                           onChange={handleChange}
-                          required
                         />
                       </div>
                     </div>
@@ -454,7 +634,6 @@ const Register: React.FC = () => {
                           accept="image/*"
                           className="input input-bordered w-full p-2 border  border-gray-300 rounded-md"
                           onChange={handleChange}
-                          required
                         />
                       </div>
                     </div>
@@ -469,7 +648,6 @@ const Register: React.FC = () => {
                         className="input input-bordered w-full ml-1 border border-gray-300 rounded-md appearance-none"
                         value={formData.role}
                         onChange={handleChange}
-                        required
                       >
                         <option value="">Select</option>
                         <option value="RHU Staff">
@@ -505,6 +683,11 @@ const Register: React.FC = () => {
                       onChange={handleChange}
                       placeholder="Enter Password"
                     />
+                    {errorPassword && (
+                      <span className="text-red-500 text-sm">
+                        {errorPassword}
+                      </span>
+                    )}
                   </div>
                   <div className="form-control">
                     <label className="label" htmlFor="password">
@@ -513,11 +696,17 @@ const Register: React.FC = () => {
                     <input
                       type="password"
                       // {...register("confirmPassword")}
-                      id="password"
+                      id="confirmPassword"
                       className="input input-bordered w-full md:w-80 p-2 ml-1 border border-gray-300 rounded-md mb-4"
                       placeholder="Enter Confirm Password"
-                      required
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
                     />
+                    {errorConfirmPassword && (
+                      <span className="text-red-500 text-sm">
+                        {errorConfirmPassword}
+                      </span>
+                    )}
                     {/* {errors.confirmPassword && (
                       <span className="text-red-600 mt-1">
                         {errors.confirmPassword.message}

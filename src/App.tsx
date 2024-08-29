@@ -13,9 +13,9 @@ import Add from "./components/Add";
 import Request from "./components/Request";
 import Community from "./components/Community";
 import Individual from "./components/Individual";
-import AdminLogin from "./components/AdminLogin";
+// import AdminLogin from "./components/AdminLogin";
 import Try from "./components/Try";
-import AdminDashboard from "./components/AdminDashboard";
+// import AdminDashboard from "./components/AdminDashboard";
 import AdminRHU1 from "./components/AdminRHU1";
 import RHU2 from "./components/AdminRHU2";
 import RHU3 from "./components/AdminRHU3";
@@ -24,14 +24,25 @@ import { UserProvider, useUser } from "./components/User";
 import PrivateRoute from "./components/PrivateRoute";
 import PulseLoader from "react-spinners/PulseLoader";
 import ForgotPassword from "./components/ForgotPassword";
-import PDFFile from "./components/PDFFile";
+import AdminLogin from "./components/SuperAdmin/Login";
+import AdminDashboard from "./components/SuperAdmin/Dashboard";
+import ResetPassword from "./components/ResetPassword";
+import Rhu1 from "./components/SuperAdmin/RuralHealtUnits/Rhu1";
+import Rhu2 from "./components/SuperAdmin/RuralHealtUnits/Rhu2";
+import Rhu3 from "./components/SuperAdmin/RuralHealtUnits/Rhu3";
 const App = () => {
   return (
     <UserProvider>
       <Routes>
-        <Route path="/" element={<AuthRedirect />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/reset-password" element={<ForgotPassword />} />
+        <Route path="/administrator" element={<AdminLogin />} />
+        <Route path="/administrator/users" element={<AdminDashboard />} />
+        <Route path="/" element={<AuthRedirect />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/administrator/rural-health-units/1" element={<Rhu1 />} />
+        <Route path="/administrator/rural-health-units/2" element={<Rhu2 />} />
+        <Route path="/administrator/rural-health-units/3" element={<Rhu3 />} />
         <Route element={<PrivateRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/inventory/add" element={<Add />} />

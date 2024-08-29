@@ -1,15 +1,11 @@
 import React, { useState } from "react";
-import { HiMenuAlt3 } from "react-icons/hi";
 import { MdOutlineDashboard } from "react-icons/md";
 import { RiSettings4Line } from "react-icons/ri";
-import { TbReportAnalytics } from "react-icons/tb";
-import { AiOutlineUser, AiOutlineHeart } from "react-icons/ai";
-import { FiMessageSquare, FiFolder, FiShoppingCart } from "react-icons/fi";
-import { MdDashboard, MdInventory } from "react-icons/md";
+import { MdInventory } from "react-icons/md";
 import { FaQuestionCircle } from "react-icons/fa";
 import { SiGooglemessages } from "react-icons/si";
 import { FaFileShield } from "react-icons/fa6";
-import { IoLogOut, IoPersonCircleSharp } from "react-icons/io5";
+import { IoLogOut } from "react-icons/io5";
 import { GiHamburgerMenu } from "react-icons/gi";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "./User";

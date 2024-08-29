@@ -5,6 +5,7 @@ import {
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
@@ -12,6 +13,9 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useUser } from "./User";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -22,10 +26,27 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { setUser } = useUser();
   const [error, setError] = useState("");
+  const [errorEmail, setErrorEmail] = useState<string | null>(null);
+  const [errors, setErrors] = useState(false);
+  const [forgotPasswordModalOpen, setForgotPasswordModalOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [errorPass, setErrorPass] = useState<string | null>(null);
+  const MySwal = withReactContent(Swal);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
+    if (!email) {
+      setErrorEmail("This field is required!");
+      setLoading(false);
+      return;
+    }
+    if (!password) {
+      setErrorPass("This field is required!");
+      setLoading(false);
+      return;
+    }
+
     setError("");
 
     try {
@@ -40,10 +61,6 @@ const Login = () => {
         email,
         password
       );
-      toast.success("User Logged In Successfully!", {
-        position: "top-right",
-        autoClose: 1000,
-      });
 
       const user = userCredential.user;
 
@@ -53,24 +70,50 @@ const Login = () => {
       if (docSnap.exists()) {
         const userData = docSnap.data();
 
-        setUser({
-          firstname: userData.firstname || "",
-          lastname: userData.lastname || "",
-          email: userData.email || "",
-          rhu: userData.rhu || "",
-          imageUrl: userData.imageUrl || "",
-          barangay: userData.barangay || "",
-        });
+        // Check user account status
+        if (userData.acc_status === "pending") {
+          toast.error("Your account is pending approval.", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          setError("Your account is pending approval.");
+          setErrors(true);
+        } else if (userData.acc_status === "decline") {
+          toast.error("Your account has been declined.", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          setError("Your account has been declined.");
+          setErrors(true);
+        } else {
+          MySwal.fire({
+            position: "center",
+            icon: "success",
+            title: "User Logged In Successfully!",
+            showConfirmButton: false,
+            timer: 1000,
+          });
+          // Update user context only on successful login
+          setUser({
+            firstname: userData.firstname || "",
+            lastname: userData.lastname || "",
+            email: userData.email || "",
+            rhu: userData.rhu || "",
+            imageUrl: userData.imageUrl || "",
+            barangay: userData.barangay || "",
+          });
 
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 700);
+          setTimeout(() => {
+            navigate("/dashboard");
+          }, 700);
+        }
       } else {
         toast.error("User details not found.", {
           position: "top-right",
           autoClose: 1000,
         });
         setError("Invalid Email or Password!");
+        setErrors(true);
       }
     } catch (error) {
       toast.error("Invalid Email or Password!", {
@@ -78,6 +121,7 @@ const Login = () => {
         autoClose: 1000,
       });
       setError("Invalid Email or Password!");
+      setErrors(true);
     } finally {
       setLoading(false);
     }
@@ -85,6 +129,52 @@ const Login = () => {
 
   const handleShowPassword = () => {
     setShowPassword(!showPassword);
+  };
+
+  const handleForgotPassword = () => {
+    setForgotPasswordModalOpen(true);
+  };
+
+  const handleResetEmailSend = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Check if the email is associated with an existing user
+      const usersCollection = collection(db, "Users");
+      const q = query(usersCollection, where("email", "==", resetEmail));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        toast.error("No user found with this email address.", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        setLoading(false);
+        return;
+      }
+
+      // If the user exists, send the password reset email
+      await sendPasswordResetEmail(auth, resetEmail);
+      MySwal.fire({
+        position: "center",
+        icon: "success",
+        title: "Password reset email sent successfully!",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+
+      // Close the modal
+      setForgotPasswordModalOpen(false);
+    } catch (error) {
+      console.error("Error sending reset email:", error);
+      toast.error("Failed to send password reset email. Please try again.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -109,33 +199,49 @@ const Login = () => {
               <span className="mb-2 text-md">Email</span>
               <input
                 type="email"
-                className="w-full p-2 border border-gray-300 rounded-md placeholder:font-light placeholder:text-gray-500"
+                className={`w-full p-2 border border-gray-300 rounded-md placeholder:font-light placeholder:text-gray-500 ${
+                  errorEmail ? "border-red-800" : "border-gray-300"
+                } ${errors ? "border-red-800" : " border-gray-300"} `}
                 id="email"
+                placeholder="Enter Email Address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
+            {errorEmail && (
+              <span className="text-red-500 text-sm">{errorEmail}</span>
+            )}
             <div className="py-4">
               <span className="mb-2 text-md">Password</span>
               <input
                 type={showPassword ? "password" : "text"}
                 id="password"
-                className="w-full p-2 border border-gray-300 rounded-md placeholder:font-light placeholder:text-gray-500"
+                className={`w-full p-2 border border-gray-300 rounded-md placeholder:font-light placeholder:text-gray-500 ${
+                  errorPass ? "border-red-800" : "border-gray-300"
+                } ${errors ? "border-red-800" : " border-gray-300"}`}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter Password"
               />
               {showPassword ? (
                 <FaEye
                   onClick={handleShowPassword}
-                  className="w-6 h-6 absolute xl:left-[42%] xl:top-[56%] text-teal-800 cursor-pointer"
+                  className={`w-6 h-6 absolute xl:left-[42%] xl:top-[56%] text-teal-800 cursor-pointer ${
+                    errorEmail ? "xl:top-[57%]" : "xl:top-[56%]"
+                  }`}
                 />
               ) : (
                 <FaEyeSlash
                   onClick={handleShowPassword}
-                  className="w-6 h-6 absolute xl:left-[42%] xl:top-[56%] text-teal-800 cursor-pointer"
+                  className={`w-6 h-6 absolute xl:left-[42%] xl:top-[56%] text-teal-800 cursor-pointer ${
+                    errorEmail ? "xl:top-[57%]" : "xl:top-[56%]"
+                  }`}
                 />
               )}
             </div>
+            {errorPass && (
+              <span className="text-red-500 text-sm relative">{errorPass}</span>
+            )}
             <div className="flex justify-between w-full py-4">
               <div className="mr-24">
                 <input
@@ -147,12 +253,13 @@ const Login = () => {
                 />
                 <span className="text-md">Remember Me</span>
               </div>
-              <Link
-                to="/reset-password"
+              <button
+                type="button"
+                onClick={handleForgotPassword}
                 className="font-bold text-md text-teal-700 hover:text-teal-900"
               >
                 Forgot password
-              </Link>
+              </button>
             </div>
             <button
               type="submit"
@@ -202,6 +309,43 @@ const Login = () => {
           </div>
         </div>
       </div>
+
+      {forgotPasswordModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+            <h2 className="text-xl font-semibold mb-4">Forgot Password</h2>
+            <form onSubmit={handleResetEmailSend}>
+              <label htmlFor="reset-email" className="block mb-2 text-md">
+                Enter your email address
+              </label>
+              <input
+                type="email"
+                id="reset-email"
+                className="w-full p-2 border border-gray-300 rounded-md"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                placeholder="Enter Email Address"
+                required
+              />
+              <div className="flex justify-end mt-4">
+                <button
+                  type="button"
+                  onClick={() => setForgotPasswordModalOpen(false)}
+                  className="mr-2 bg-gray-300 p-2 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-teal-700 text-white p-2 rounded"
+                >
+                  Send Reset Link
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 };

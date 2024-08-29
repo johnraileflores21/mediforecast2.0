@@ -21,6 +21,8 @@ import { useUser } from "./User";
 import DistributeVitamin from "./DistributeVitamin";
 import ScrollToTop from "./ScrollToTop";
 import DistributeVaccine from "./DistributeVaccine";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
 
 const Try: React.FC = () => {
   const [items, setItems] = useState<any[]>([]);
@@ -42,6 +44,7 @@ const Try: React.FC = () => {
   const [selectedOption, setSelectedOption] = useState<string>("All");
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
   const { user } = useUser();
+  const MySwal = withReactContent(Swal);
 
   let inventory = "";
 
@@ -68,22 +71,44 @@ const Try: React.FC = () => {
   const closeModalAdd = () => setModalAdd(false);
 
   const handleDelete = async (id: string) => {
-    setShowDeleteModal(true);
-    setDeleteId(id);
+    // setShowDeleteModal(true);
+    MySwal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await deleteDoc(doc(db, inventory, id));
+          Swal.fire({
+            title: "Deleted!",
+            text: "Your file has been deleted.",
+            icon: "success",
+          });
+        } catch (error) {
+          console.error("Error deleting document: ", error);
+        }
+      }
+    });
+    // setDeleteId(id);
   };
 
-  const confirmDelete = async (item: any) => {
-    if (deleteId) {
-      setShowDeleteModal(false);
-      try {
-        await deleteDoc(doc(db, inventory, deleteId));
-      } catch (error) {
-        console.error("Error deleting document: ", error);
-      } finally {
-        setDeleteId(null);
-      }
-    }
-  };
+  // const confirmDelete = async (item: any) => {
+  //   if (deleteId) {
+  //     setShowDeleteModal(false);
+  //     try {
+  //       await deleteDoc(doc(db, inventory, deleteId));
+  //     } catch (error) {
+  //       console.error("Error deleting document: ", error);
+  //     } finally {
+  //       setDeleteId(null);
+  //     }
+  //   }
+  // };
 
   const closeDeleteModal = () => {
     setShowDeleteModal(false);
@@ -384,7 +409,7 @@ const Try: React.FC = () => {
         ))}
       </div>
 
-      {showDeleteModal && (
+      {/* {showDeleteModal && (
         <div className="fixed z-10 inset-0 overflow-y-auto">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div className="fixed inset-0 transition-opacity">
@@ -447,7 +472,7 @@ const Try: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {modalAdd && <ModalAdd showModal={modalAdd} closeModal={closeModalAdd} />}
 

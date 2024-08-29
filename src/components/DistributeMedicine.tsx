@@ -3,7 +3,7 @@ import { db } from "../firebase";
 import { collection, onSnapshot } from "firebase/firestore";
 import { MdCancel } from "react-icons/md";
 import { useUser } from "./User";
-
+import { IoMdClose } from "react-icons/io";
 interface ModalDistributeProps {
   showModal: boolean;
   viewId: string | null;
@@ -53,19 +53,19 @@ const ModalDistribute: React.FC<ModalDistributeProps> = ({
   ) => {};
 
   return (
-    <div className="fixed z-10 inset-0 overflow-y-auto">
-      <div className="flex justify-center items-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 transition-opacity">
-          <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-        </div>
-        <span
-          className="hidden sm:inline-block sm:align-middle sm:h-screen"
-          aria-hidden="true"
+    <div
+      className={`fixed z-10 inset-0 overflow-y-auto transition-all duration-500 ease-out ${
+        showModal ? "opacity-100" : "opacity-0"
+      }`}
+    >
+      <div className="flex items-center justify-center min-h-screen px-4 py-6 text-center sm:block sm:p-0">
+        <div className="fixed inset-0 bg-black bg-opacity-50"></div>
+        <div
+          className={`inline-block align-middle bg-white rounded-lg text-left max-h-[600px] overflow-y-auto shadow-xl transform transition-all sm:my-8 sm:max-w-lg sm:w-full ${
+            showModal ? "animate-slideDown" : "animate-slideUp"
+          }`}
         >
-          &#8203;
-        </span>
-
-        <div className="inline-block align-bottom bg-white rounded-lg text-left max-h-[600px] overflow-y-auto shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          {/* Modal content */}
           <div className="bg-white px- pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="sm:flex sm:items-start">
               <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
@@ -84,7 +84,7 @@ const ModalDistribute: React.FC<ModalDistributeProps> = ({
                   type="button"
                   className="absolute top-3 right-3 rounded-md text-gray-700 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                 >
-                  <MdCancel className="w-10 h-10 text-red-900" />
+                  <IoMdClose className="w-8 h-8 text-gray-400 hover:text-red-600" />
                 </button>
                 <div className="mt-2">
                   <form className="space-y-4">
