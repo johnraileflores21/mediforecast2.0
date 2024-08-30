@@ -5,13 +5,13 @@ import { getFirestore } from "firebase/firestore";
 import {getStorage} from "firebase/storage";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCk6Y_MSza5pHDfhyWvyRDLf_TUy6CIIig",
-    authDomain: "mediforecast.firebaseapp.com",
-    projectId: "mediforecast",
-    storageBucket: "mediforecast.appspot.com",
-    messagingSenderId: "21849469834",
-    appId: "1:21849469834:web:0bf772ebe2b5d49f828e73",
-    measurementId: "G-CXL601F8WV"
+    apiKey: import.meta.env.VITE_API_KEY,
+    authDomain: import.meta.env.VITE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_APP_ID,
+    measurementId: import.meta.env.VITE_MEASUREMENT_ID
   };
 
 const app = initializeApp(firebaseConfig);

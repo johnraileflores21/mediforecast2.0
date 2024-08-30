@@ -32,6 +32,8 @@ const Login = () => {
   const [resetEmail, setResetEmail] = useState("");
   const [errorPass, setErrorPass] = useState<string | null>(null);
   const MySwal = withReactContent(Swal);
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -138,6 +140,21 @@ const Login = () => {
   const handleResetEmailSend = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
+
+    // Regular expression for password validation
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+    // Check if new password meets criteria
+    if (!passwordRegex.test(newPassword)) {
+      setPasswordError(
+        "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character."
+      );
+      setLoading(false);
+      return;
+    } else {
+      setPasswordError(""); // Clear error if password is valid
+    }
 
     try {
       // Check if the email is associated with an existing user
@@ -327,6 +344,24 @@ const Login = () => {
                 placeholder="Enter Email Address"
                 required
               />
+
+              {/* New Password Field */}
+              <label htmlFor="new-password" className="block mb-2 text-md mt-4">
+                New Password
+              </label>
+              <input
+                type="password"
+                id="new-password"
+                className="w-full p-2 border border-gray-300 rounded-md"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter New Password"
+                required
+              />
+              {passwordError && (
+                <span className="text-red-500 text-sm">{passwordError}</span>
+              )}
+
               <div className="flex justify-end mt-4">
                 <button
                   type="button"

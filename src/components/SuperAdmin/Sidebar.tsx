@@ -23,6 +23,8 @@ import Tabuyuc from "../../assets/images/tabuyuc.jpg";
 import Sucad from "../../assets/images/sucad.png";
 import { FaUsers } from "react-icons/fa";
 import { RiSettings4Line } from "react-icons/ri";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
 
 type DropdownItem = {
   name: string;
@@ -37,6 +39,7 @@ const AdminSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [selectMenu, setSelectMenu] = useState<string>("");
+  const MySwal = withReactContent(Swal);
 
   const menus = [
     { name: "All Users", link: "/administrator/users", icon: FaUsers },
@@ -101,7 +104,7 @@ const AdminSidebar = () => {
         },
         {
           name: "Sampaloc",
-          link: "/adminsistrator/barangay/sampaloc",
+          link: "/administrator/barangay/sampaloc",
           icon: Sampaloc,
         },
         {
@@ -114,7 +117,7 @@ const AdminSidebar = () => {
           link: "/administrator/barangay/sanvicente",
           icon: SanVicente,
         },
-        { name: "Sucad", link: "/adminsistrator/barangay/sucad", icon: Sucad },
+        { name: "Sucad", link: "/administrator/barangay/sucad", icon: Sucad },
         {
           name: "Sulipan",
           link: "/administrator/barangay/sulipan",
@@ -139,16 +142,44 @@ const AdminSidebar = () => {
         { name: "Privacy", link: "/administrator/settings/privacy" },
       ] as DropdownItem[],
     },
-    { name: "Logout", link: "#", icon: IoLogOut },
+    { name: "Logout", link: "Logout", icon: IoLogOut },
   ];
 
+  // const handleShowLogoutModal = () => {
+  //   MySwal.fire({
+  //     title: "Do you want to save the changes?",
+  //     showDenyButton: false,
+  //     showCancelButton: true,
+  //     confirmButtonText: "Save",
+  //   }).then(async (result) => {
+  //     if (result.isConfirmed) {
+  //       Swal.fire("Logout Successfully!", "", "success");
+  //       try {
+  //         await auth.signOut();
+  //         navigate("/administrator");
+  //       } catch (error) {
+  //         console.error("Logout failed:", error);
+  //       }
+  //     }
+  //   });
+  // };
   const handleLogout = async () => {
-    try {
-      await auth.signOut();
-      navigate("/");
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
+    MySwal.fire({
+      title: "Do you want to logout?",
+      showDenyButton: false,
+      showCancelButton: true,
+      confirmButtonText: "Logout",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        Swal.fire("Logout Successfully!", "", "success");
+        try {
+          await auth.signOut();
+          navigate("/administrator");
+        } catch (error) {
+          console.error("Logout failed:", error);
+        }
+      }
+    });
   };
 
   const handleMenuClick = (
@@ -256,10 +287,10 @@ const AdminSidebar = () => {
                         <img
                           src={dropdownItem.icon}
                           alt={dropdownItem.name}
-                          className="w-5 h-5 rounded-full"
+                          className="w-6 h-6 rounded-full"
                         />
                       )}
-                      <h3>{dropdownItem.name}</h3>
+                      <span>{dropdownItem.name}</span>
                     </div>
                   ))}
                 </div>

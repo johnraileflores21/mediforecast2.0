@@ -30,19 +30,33 @@ import ResetPassword from "./components/ResetPassword";
 import Rhu1 from "./components/SuperAdmin/RuralHealtUnits/Rhu1";
 import Rhu2 from "./components/SuperAdmin/RuralHealtUnits/Rhu2";
 import Rhu3 from "./components/SuperAdmin/RuralHealtUnits/Rhu3";
+import PrivateRouteAdmin from "./components/SuperAdmin/PrivateRouteAdmin";
 const App = () => {
   return (
     <UserProvider>
       <Routes>
+        {/* Super Admin */}
+        <Route path="/administrator" element={<AdminLogin />} />
+        <Route element={<PrivateRouteAdmin />}>
+          <Route path="/administrator/users" element={<AdminDashboard />} />
+          <Route
+            path="/administrator/rural-health-units/1"
+            element={<Rhu1 />}
+          />
+          <Route
+            path="/administrator/rural-health-units/2"
+            element={<Rhu2 />}
+          />
+          <Route
+            path="/administrator/rural-health-units/3"
+            element={<Rhu3 />}
+          />
+        </Route>
+        {/* Barangay and RHU */}
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/administrator" element={<AdminLogin />} />
-        <Route path="/administrator/users" element={<AdminDashboard />} />
         <Route path="/" element={<AuthRedirect />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/administrator/rural-health-units/1" element={<Rhu1 />} />
-        <Route path="/administrator/rural-health-units/2" element={<Rhu2 />} />
-        <Route path="/administrator/rural-health-units/3" element={<Rhu3 />} />
         <Route element={<PrivateRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/inventory/add" element={<Add />} />
