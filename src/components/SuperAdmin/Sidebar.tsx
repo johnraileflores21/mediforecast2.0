@@ -144,25 +144,6 @@ const AdminSidebar = () => {
     },
     { name: "Logout", link: "Logout", icon: IoLogOut },
   ];
-
-  // const handleShowLogoutModal = () => {
-  //   MySwal.fire({
-  //     title: "Do you want to save the changes?",
-  //     showDenyButton: false,
-  //     showCancelButton: true,
-  //     confirmButtonText: "Save",
-  //   }).then(async (result) => {
-  //     if (result.isConfirmed) {
-  //       Swal.fire("Logout Successfully!", "", "success");
-  //       try {
-  //         await auth.signOut();
-  //         navigate("/administrator");
-  //       } catch (error) {
-  //         console.error("Logout failed:", error);
-  //       }
-  //     }
-  //   });
-  // };
   const handleLogout = async () => {
     MySwal.fire({
       title: "Do you want to logout?",

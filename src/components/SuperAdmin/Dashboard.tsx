@@ -36,6 +36,23 @@ const AdminDashboard: React.FC = () => {
     setViewInfo(false);
   };
 
+  const rhuOrBarangayMap: Record<string, string> = {
+    "1": "RHU1",
+    "2": "RHU2",
+    "3": "RHU3",
+    Balucuc: "Balucuc Health Center",
+    Calantipe: "Calantipe Health Center",
+    Capalangan: "Capalangan Health Center",
+    Colgante: "Colgante Health Center",
+    Paligui: "Paligui Health Center",
+    Sampaloc: "Sampaloc Health Center",
+    "San Juan": "San Juan Health Center",
+    "San Vicente": "San Vicente Health Center",
+    Sucad: "Sucad Health Center",
+    Sulipan: "Sulipan Health Center",
+    Tabuyuc: "Tabuyuc Health Center",
+  };
+
   return (
     <DashboardLayout>
       <h1 className="text-3xl font-bold mb-4">All Users</h1>
@@ -79,8 +96,8 @@ const AdminDashboard: React.FC = () => {
                     {user.acc_status}
                   </td>
                   {/* <td className="px-6 py-4 whitespace-nowrap">{user.role}</td> */}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {user.rhu && <span>RHU {user.rhu}</span>}
+                  <td className="px-6 py-4 whitespace-nowrap max-w-12 overflow-hidden">
+                    {rhuOrBarangayMap[user.rhuOrBarangay] || "Unknown"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button

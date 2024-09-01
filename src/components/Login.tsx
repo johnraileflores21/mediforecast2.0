@@ -100,7 +100,7 @@ const Login = () => {
             firstname: userData.firstname || "",
             lastname: userData.lastname || "",
             email: userData.email || "",
-            rhu: userData.rhu || "",
+            rhuOrBarangay: userData.rhuOrBarangay || "",
             imageUrl: userData.imageUrl || "",
             barangay: userData.barangay || "",
           });
@@ -243,14 +243,14 @@ const Login = () => {
               {showPassword ? (
                 <FaEye
                   onClick={handleShowPassword}
-                  className={`w-6 h-6 absolute xl:left-[42%] xl:top-[56%] text-teal-800 cursor-pointer ${
+                  className={`w-6 h-6 absolute left-[42%] top-[56%] md:left-[42%] md:top-[53%] text-teal-800 cursor-pointer ${
                     errorEmail ? "xl:top-[57%]" : "xl:top-[56%]"
                   }`}
                 />
               ) : (
                 <FaEyeSlash
                   onClick={handleShowPassword}
-                  className={`w-6 h-6 absolute xl:left-[42%] xl:top-[56%] text-teal-800 cursor-pointer ${
+                  className={`w-6 h-6 absolute left-[42%] top-[56%] md:left-[42%] md:top-[53%] text-teal-800 cursor-pointer ${
                     errorEmail ? "xl:top-[57%]" : "xl:top-[56%]"
                   }`}
                 />

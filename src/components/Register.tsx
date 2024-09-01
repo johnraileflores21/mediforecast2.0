@@ -28,7 +28,7 @@ type FormData = {
   imageUrl: string;
   idFront: string;
   idBack: string;
-  rhu?: string;
+  rhuOrBarangay?: string;
   role: string;
   acc_status: string;
   created_at: string;
@@ -52,7 +52,7 @@ const Register: React.FC = () => {
     imageUrl: "",
     idFront: "",
     idBack: "",
-    rhu: "",
+    rhuOrBarangay: "",
     role: "",
     acc_status: "",
     created_at: "",
@@ -82,15 +82,22 @@ const Register: React.FC = () => {
     return await getDownloadURL(snapshot.ref);
   };
 
-  const determineRhu = (barangay: string): string => {
-    if (["Sulipan", "San Juan", "Capalangan", "Sucad"].includes(barangay)) {
-      return "1";
-    } else if (
-      ["Tabuyuc", "Balucuc", "Cansinala", "Calantipe"].includes(barangay)
-    ) {
-      return "2";
+  const determineRhu = (barangay: string, role: string): string => {
+    if (role === "RHU Staff") {
+      if (["Sulipan", "San Juan", "Capalangan", "Sucad"].includes(barangay)) {
+        return "1";
+      } else if (
+        ["Tabuyuc", "Balucuc", "Cansinala", "Calantipe"].includes(barangay)
+      ) {
+        return "2";
+      } else {
+        return "3";
+      }
+    } else if (role === "Barangay Health Center Staff") {
+      return barangay;
     } else {
-      return "3";
+      // Default return for roles that do not match any specific criteria
+      return "";
     }
   };
 
@@ -203,7 +210,7 @@ const Register: React.FC = () => {
       const idBackUrl = idBack ? await uploadImage(idBack, "ID/Back") : "";
 
       // Determine RHU based on barangay
-      const rhu = determineRhu(formData.barangay);
+      const rhuOrBarangay = determineRhu(formData.barangay, formData.role);
       // Create user with email and password in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -222,7 +229,7 @@ const Register: React.FC = () => {
         imageUrl,
         idFront: idFrontUrl,
         idBack: idBackUrl,
-        rhu,
+        rhuOrBarangay,
         acc_status: "pending", //setting automatic pending and for approval of super admin
         created_at: dateToday,
         updated_at: dateToday,
@@ -316,7 +323,7 @@ const Register: React.FC = () => {
       imageUrl: "",
       idFront: "",
       idBack: "",
-      rhu: "",
+      rhuOrBarangay: "",
       role: "",
       acc_status: "",
       created_at: "",
@@ -653,7 +660,7 @@ const Register: React.FC = () => {
                         <option value="RHU Staff">
                           Rural Health Unit Staff
                         </option>
-                        <option value="Health Center Staff">
+                        <option value="Barangay Health Center Staff">
                           Barangay Health Center Staff
                         </option>
                       </select>

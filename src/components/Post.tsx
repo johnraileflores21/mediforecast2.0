@@ -80,7 +80,7 @@ const Post: React.FC<PostProps> = ({ isVisible, closeModal }) => {
         updated_by: dateToday,
         postImg,
         fileType, // Store file type in Firestore
-        rhu: user?.rhu,
+        rhu: user?.rhuOrBarangay,
       };
       const docRef = await addDoc(
         collection(db, "CommunityPost"),
@@ -138,17 +138,17 @@ const Post: React.FC<PostProps> = ({ isVisible, closeModal }) => {
                 <div className="w-full border-b border-gray-300 mt-4"></div>
                 <div className="flex flex-row">
                   <img
-                    src={userImg(user?.rhu)}
+                    src={userImg(user?.rhuOrBarangay)}
                     alt=""
                     className="w-14 h-14 ml-3 mt-3 mr-3"
                   />
                   <h2 className="mt-7 font-semibold">
                     Rural Health{" "}
-                    {user?.rhu === "1" ? (
+                    {user?.rhuOrBarangay === "1" ? (
                       <span>I</span>
-                    ) : user?.rhu === "2" ? (
+                    ) : user?.rhuOrBarangay === "2" ? (
                       <span>II</span>
-                    ) : user?.rhu === "3" ? (
+                    ) : user?.rhuOrBarangay === "3" ? (
                       <span>III</span>
                     ) : null}
                   </h2>

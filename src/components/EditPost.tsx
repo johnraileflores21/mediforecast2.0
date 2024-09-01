@@ -104,10 +104,14 @@ const EditPost: React.FC<EditPostProps> = ({
   ) => {
     if (e.target instanceof HTMLInputElement && e.target.files) {
       const selectedFile = e.target.files[0];
-      if (e.target.id === "postImage") {
-        setFile(selectedFile);
+      if (selectedFile) {
+        console.log("Selected file:", selectedFile);
+        console.log("File type:", selectedFile.type);
+
         const objectUrl = URL.createObjectURL(selectedFile);
+        setFile(selectedFile);
         setPreview(objectUrl);
+
         return () => URL.revokeObjectURL(objectUrl);
       }
     } else {
@@ -134,17 +138,19 @@ const EditPost: React.FC<EditPostProps> = ({
     };
   }, [preview]);
 
-  const userImg = (rhu: string) => {
-    if (rhu === "1") {
+  const userImg = (rhuOrBarangay: string) => {
+    if (rhuOrBarangay === "1") {
       return "/images/1.jpg";
-    } else if (rhu === "2") {
+    } else if (rhuOrBarangay === "2") {
       return "/images/2.jpg";
-    } else if (rhu === "3") {
+    } else if (rhuOrBarangay === "3") {
       return "/images/3.jpg";
     } else {
       return "/images/finalelogo.jpg";
     }
   };
+  console.log("File type:", file?.type);
+  console.log("Object URL:", preview);
 
   return (
     <>
@@ -176,17 +182,17 @@ const EditPost: React.FC<EditPostProps> = ({
                 <div className="w-full border-b border-gray-300 mt-4"></div>
                 <div className="flex flex-row">
                   <img
-                    src={userImg(user?.rhu || "")}
+                    src={userImg(user?.rhuOrBarangay || "")}
                     alt=""
                     className="w-14 h-14 ml-3 mt-3 mr-3"
                   />
                   <h2 className="mt-7 font-semibold">
                     Rural Health{" "}
-                    {user?.rhu === "1" ? (
+                    {user?.rhuOrBarangay === "1" ? (
                       <span>I</span>
-                    ) : user?.rhu === "2" ? (
+                    ) : user?.rhuOrBarangay === "2" ? (
                       <span>II</span>
-                    ) : user?.rhu === "3" ? (
+                    ) : user?.rhuOrBarangay === "3" ? (
                       <span>III</span>
                     ) : null}
                   </h2>
@@ -207,20 +213,53 @@ const EditPost: React.FC<EditPostProps> = ({
                       <div className="w-full border p-2 flex justify-center items-center h-3/6 rounded-lg">
                         <div className="relative flex justify-center items-center bg-gray-100 hover:bg-gray-300 w-full h-48 rounded-lg bg-cover bg-center">
                           {preview ? (
-                            file?.type.startsWith("image/") ? (
-                              <img
-                                src={preview}
-                                alt="Selected preview"
-                                className="rounded-lg max-h-full max-w-full"
-                              />
-                            ) : (
+                            preview.startsWith("data:") ||
+                            preview.startsWith("blob:") ? (
+                              // If the preview URL is a data URL or blob URL (e.g., from a file input)
+                              file?.type.startsWith("video/") ? (
+                                <video
+                                  src={preview}
+                                  controls
+                                  className="rounded-lg max-h-full w-full"
+                                  onError={() =>
+                                    console.error("Error loading video")
+                                  }
+                                >
+                                  Your browser does not support the video tag.
+                                </video>
+                              ) : file?.type.startsWith("image/") ? (
+                                <img
+                                  src={preview}
+                                  alt="Selected preview"
+                                  className="rounded-lg max-h-full max-w-full"
+                                  onError={() =>
+                                    console.error("Error loading image")
+                                  }
+                                />
+                              ) : (
+                                <div>Unsupported file type</div>
+                              )
+                            ) : // If the preview URL is a direct URL (e.g., from Firebase Storage)
+                            preview.endsWith(".mp4") ? (
                               <video
                                 src={preview}
                                 controls
                                 className="rounded-lg max-h-full w-full"
+                                onError={() =>
+                                  console.error("Error loading video")
+                                }
                               >
                                 Your browser does not support the video tag.
                               </video>
+                            ) : (
+                              <img
+                                src={preview}
+                                alt="Selected preview"
+                                className="rounded-lg max-h-full max-w-full"
+                                onError={() =>
+                                  console.error("Error loading image")
+                                }
+                              />
                             )
                           ) : (
                             <>
@@ -241,6 +280,7 @@ const EditPost: React.FC<EditPostProps> = ({
                               <span className="mt-16">Add Photo/Video</span>
                             </>
                           )}
+
                           {preview && (
                             <button
                               onClick={closeUploadImg}

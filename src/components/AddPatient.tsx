@@ -32,6 +32,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
     phicMemberName: "",
     date: "",
     time: "",
+    rhuOrBarangay: " ",
     created_at: "",
     updated_at: "",
   });

@@ -80,20 +80,20 @@ const Community = () => {
 
   let inventory = "";
 
-  if (user?.rhu === "1") {
+  if (user?.rhuOrBarangay === "1") {
     inventory = "RHU1Inventory";
-  } else if (user?.rhu === "2") {
+  } else if (user?.rhuOrBarangay === "2") {
     inventory = "RHU2Inventory";
-  } else {
+  } else if (user?.rhuOrBarangay === "3") {
     inventory = "RHU3Inventory";
   }
 
-  const userImg = (rhu: string | undefined) => {
-    if (rhu === "1") {
+  const userImg = (rhuOrBarangay: string | undefined) => {
+    if (rhuOrBarangay === "1") {
       return "/images/1.jpg";
-    } else if (rhu === "2") {
+    } else if (rhuOrBarangay === "2") {
       return "/images/2.jpg";
-    } else if (rhu === "3") {
+    } else if (rhuOrBarangay === "3") {
       return "/images/3.jpg";
     } else {
       return "/images/finalelogo.jpg";
@@ -188,7 +188,7 @@ const Community = () => {
         <div className="w-full">
           <div className="bg-white w-full mt-4 rounded-lg shadow-md p-4 flex items-center">
             <img
-              src={userImg(user?.rhu)}
+              src={userImg(user?.rhuOrBarangay)}
               alt="Profile"
               className="w-14 h-12 rounded-full"
             />
@@ -214,18 +214,18 @@ const Community = () => {
                 <div className="flex justify-between p-4 border-b border-gray-300">
                   <div className="flex">
                     <img
-                      src={userImg(user?.rhu)}
+                      src={userImg(user?.rhuOrBarangay)}
                       alt="Profile"
                       className="w-12 h-12 rounded-full"
                     />
                     <div>
                       <h2 className="font-semibold ml-4">
                         RURAL HEALTH UNIT{" "}
-                        {user?.rhu === "1" ? (
+                        {user?.rhuOrBarangay === "1" ? (
                           <span>I</span>
-                        ) : user?.rhu === "2" ? (
+                        ) : user?.rhuOrBarangay === "2" ? (
                           <span>II</span>
-                        ) : user?.rhu === "3" ? (
+                        ) : user?.rhuOrBarangay === "3" ? (
                           <span>III</span>
                         ) : (
                           <span>I</span>

@@ -53,6 +53,22 @@ const UserInfo: React.FC<UserInfoProps> = ({
       year: "numeric",
     });
   };
+  const rhuOrBarangayMap: Record<string, string> = {
+    "1": "RHU1",
+    "2": "RHU2",
+    "3": "RHU3",
+    Balucuc: "Balucuc Health Center",
+    Calantipe: "Calantipe Health Center",
+    Capalangan: "Capalangan Health Center",
+    Colgante: "Colgante Health Center",
+    Paligui: "Paligui Health Center",
+    Sampaloc: "Sampaloc Health Center",
+    "San Juan": "San Juan Health Center",
+    "San Vicente": "San Vicente Health Center",
+    Sucad: "Sucad Health Center",
+    Sulipan: "Sulipan Health Center",
+    Tabuyuc: "Tabuyuc Health Center",
+  };
 
   return (
     <div
@@ -139,7 +155,9 @@ const UserInfo: React.FC<UserInfoProps> = ({
                 </div>
                 <div className="flex justify-between mb-4">
                   <h1 className="font-bold">RHU/Barangay:</h1>
-                  <p className="text-gray-800 capitalize">RHU {user.rhu}</p>
+                  <p className="text-gray-800 capitalize">
+                    {rhuOrBarangayMap[user.rhuOrBarangay] || "Unknown"}
+                  </p>
                 </div>
                 <div className="flex justify-between mb-4">
                   <h1 className="font-bold">Account Status:</h1>

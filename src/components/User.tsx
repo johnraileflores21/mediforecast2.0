@@ -13,7 +13,7 @@ interface User {
   firstname: string;
   lastname: string;
   email: string;
-  rhu: string;
+  rhuOrBarangay: string;
   imageUrl: string;
   barangay: string;
 }
@@ -47,7 +47,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
                 firstname: userData.firstname,
                 lastname: userData.lastname,
                 email: userData.email,
-                rhu: userData.rhu,
+                rhuOrBarangay: userData.rhuOrBarangay,
                 imageUrl: userData.imageUrl,
                 barangay: userData.barangay,
               });

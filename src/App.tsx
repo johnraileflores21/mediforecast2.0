@@ -13,12 +13,10 @@ import Add from "./components/Add";
 import Request from "./components/Request";
 import Community from "./components/Community";
 import Individual from "./components/Individual";
-// import AdminLogin from "./components/AdminLogin";
 import Try from "./components/Try";
-// import AdminDashboard from "./components/AdminDashboard";
-import AdminRHU1 from "./components/AdminRHU1";
-import RHU2 from "./components/AdminRHU2";
-import RHU3 from "./components/AdminRHU3";
+import AdminRHU1 from "./components/bin/AdminRHU1";
+import RHU2 from "./components/bin/AdminRHU2";
+import RHU3 from "./components/bin/AdminRHU3";
 // import { FormProvider } from "./components/FormContext";
 import { UserProvider, useUser } from "./components/User";
 import PrivateRoute from "./components/PrivateRoute";
@@ -30,6 +28,19 @@ import ResetPassword from "./components/ResetPassword";
 import Rhu1 from "./components/SuperAdmin/RuralHealtUnits/Rhu1";
 import Rhu2 from "./components/SuperAdmin/RuralHealtUnits/Rhu2";
 import Rhu3 from "./components/SuperAdmin/RuralHealtUnits/Rhu3";
+import Balucuc from "./components/SuperAdmin/BarangayHealthCenter/Balucuc";
+import Calantipe from "./components/SuperAdmin/BarangayHealthCenter/Calantipe";
+import Cansinala from "./components/SuperAdmin/BarangayHealthCenter/Cansinala";
+import Capalangan from "./components/SuperAdmin/BarangayHealthCenter/Capalangan";
+import Colgante from "./components/SuperAdmin/BarangayHealthCenter/Colgante";
+import Paligui from "./components/SuperAdmin/BarangayHealthCenter/Paligui";
+import Sampaloc from "./components/SuperAdmin/BarangayHealthCenter/Sampaloc";
+import SanJuan from "./components/SuperAdmin/BarangayHealthCenter/SanJuan";
+import SanVicente from "./components/SuperAdmin/BarangayHealthCenter/SanVicente";
+import Sucad from "./components/SuperAdmin/BarangayHealthCenter/Sucad";
+import Sulipan from "./components/SuperAdmin/BarangayHealthCenter/Sulipan";
+import Tabuyuc from "./components/SuperAdmin/BarangayHealthCenter/Tabuyuc";
+
 import PrivateRouteAdmin from "./components/SuperAdmin/PrivateRouteAdmin";
 const App = () => {
   return (
@@ -51,6 +62,36 @@ const App = () => {
             path="/administrator/rural-health-units/3"
             element={<Rhu3 />}
           />
+          <Route path="/administrator/barangay/balucuc" element={<Balucuc />} />
+          <Route
+            path="/administrator/barangay/calantipe"
+            element={<Calantipe />}
+          />
+          <Route
+            path="/administrator/barangay/cansinala"
+            element={<Cansinala />}
+          />
+          <Route
+            path="/administrator/barangay/capalangan"
+            element={<Capalangan />}
+          />
+          <Route
+            path="/administrator/barangay/colgante"
+            element={<Colgante />}
+          />
+          <Route path="/administrator/barangay/paligui" element={<Paligui />} />
+          <Route
+            path="/administrator/barangay/sampaloc"
+            element={<Sampaloc />}
+          />
+          <Route path="/administrator/barangay/sanjuan" element={<SanJuan />} />
+          <Route
+            path="/administrator/barangay/sanvicente"
+            element={<SanVicente />}
+          />
+          <Route path="/administrator/barangay/sucad" element={<Sucad />} />
+          <Route path="/administrator/barangay/sulipan" element={<Sulipan />} />
+          <Route path="/administrator/barangay/tabuyuc" element={<Tabuyuc />} />
         </Route>
         {/* Barangay and RHU */}
         <Route path="/reset-password" element={<ResetPassword />} />

@@ -23,7 +23,7 @@ interface UserDetails {
   firstname: string;
   lastname: string;
   email: string;
-  rhu: string;
+  rhuOrBarangay: string;
   imageUrl: string;
   barangay: string;
 }
@@ -56,7 +56,7 @@ const Dashboard: React.FC = () => {
                 firstname: data.firstname,
                 lastname: data.lastname,
                 email: data.email,
-                rhu: data.rhu,
+                rhuOrBarangay: data.rhuOrBarangay,
                 imageUrl: data.imageUrl,
                 barangay: data.barangay,
               });

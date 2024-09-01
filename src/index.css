@@ -12,9 +12,18 @@
     height: 100vh;
     width: 100vw;
 }
-.custom-popup{
-    font-size: 2rem; /* Adjust this value to change the icon size */
-    width: 50px; /* Optionally adjust width */
-    height: 50px; /* Optionally adjust height */
-    line-height: 50px; 
-}
+/* SweetAlert2 Custom Styles */
+.custom-popup {
+    display: flex;
+    align-items: center; /* Center-align items */
+    padding: 20px; /* Add some padding */
+  }
+  
+  .custom-icon {
+    margin-right: 10px; /* Space between icon and title */
+  }
+  
+  .custom-title {
+    display: inline-block;
+  }
+  

@@ -16,10 +16,10 @@ import withReactContent from "sweetalert2-react-content";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../../firebase";
 
-interface TableProps {
-  rhu: string;
+interface BarangayTableProps {
+  barangay: string;
 }
-const Table: React.FC<TableProps> = ({ rhu }) => {
+const BarangayTable: React.FC<BarangayTableProps> = ({ barangay }) => {
   const [users, setUsers] = useState<any[]>([]);
   const [viewInfo, setViewInfo] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -29,7 +29,7 @@ const Table: React.FC<TableProps> = ({ rhu }) => {
   useEffect(() => {
     const usersQuery = query(
       collection(db, "Users"),
-      where("rhuOrBarangay", "==", rhu),
+      where("rhuOrBarangay", "==", barangay),
       where("acc_status", "==", "pending")
     );
     const unsub = onSnapshot(usersQuery, (snapshot) => {
@@ -40,7 +40,7 @@ const Table: React.FC<TableProps> = ({ rhu }) => {
       setUsers(fetch);
     });
     return () => unsub();
-  }, [rhu]);
+  }, [barangay]);
 
   //view UserInfo
   const handleViewUserInfo = (user: any) => {
@@ -181,4 +181,4 @@ const Table: React.FC<TableProps> = ({ rhu }) => {
     </>
   );
 };
-export default Table;
+export default BarangayTable;

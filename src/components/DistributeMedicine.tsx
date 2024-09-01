@@ -19,11 +19,11 @@ const ModalDistribute: React.FC<ModalDistributeProps> = ({
 
   let inventory = "";
 
-  if (user?.rhu === "1") {
+  if (user?.rhuOrBarangay === "1") {
     inventory = "RHU1Inventory";
-  } else if (user?.rhu === "2") {
+  } else if (user?.rhuOrBarangay === "2") {
     inventory = "RHU2Inventory";
-  } else {
+  } else if (user?.rhuOrBarangay === "3") {
     inventory = "RHU3Inventory";
   }
   useEffect(() => {
