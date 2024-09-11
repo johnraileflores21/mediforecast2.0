@@ -26,13 +26,13 @@ import { useUser } from "./User";
 
 interface ModalEditVitaminsProps {
   showModal: boolean;
-  closeModal: () => void;
-  editId: string | null;
+  closeModal: (bool: any) => void;
+  data: any;
 }
 const ModalEditVitamins: React.FC<ModalEditVitaminsProps> = ({
   showModal,
   closeModal,
-  editId,
+  data,
 }) => {
   const [showModalSuccess, setShowModalSucces] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -44,6 +44,7 @@ const ModalEditVitamins: React.FC<ModalEditVitaminsProps> = ({
     vitaminImg: "",
     vitaminGenericName: "",
     vitaminBrandName: "",
+    medicineDosageForm: "",
     vitaminStock: "",
     vitaminLotNo: "",
     vitaminDosageForm: "",
@@ -55,50 +56,13 @@ const ModalEditVitamins: React.FC<ModalEditVitaminsProps> = ({
   });
   const { user } = useUser();
 
-  let inventory = "";
-
-  if (user?.rhuOrBarangay === "1") {
-    inventory = "RHU1Inventory";
-  } else if (user?.rhuOrBarangay === "2") {
-    inventory = "RHU2Inventory";
-  } else if (user?.rhuOrBarangay === "3") {
-    inventory = "RHU3Inventory";
-  }
-
   useEffect(() => {
-    if (editId) {
-      const unsub = onSnapshot(doc(db, inventory, editId), (doc) => {
-        try {
-          if (doc.exists()) {
-            const vitaminData = doc.data() as DocumentData;
-            // console.log(
-            //     "vitamin Image URL:",
-            //     vitaminData.vitaminImg
-            // );
-            setFormData({
-              vitaminImg: vitaminData.vitaminImg || "",
-              vitaminGenericName: vitaminData.vitaminGenericName || "",
-              vitaminBrandName: vitaminData.vitaminBrandName || "",
-              vitaminStock: vitaminData.vitaminStock || "",
-              vitaminLotNo: vitaminData.vitaminLotNo || "",
-              vitaminDosageForm: vitaminData.vitaminDosageForm || "",
-              vitaminDosageStrength: vitaminData.vitaminDosageStrength || "",
-              vitaminExpiration: vitaminData.vitaminExpiration || "",
-              vitaminRegulatoryClassification:
-                vitaminData.vitaminRegulatoryClassification || "",
-              vitaminDescription: vitaminData.vitaminDescription || "",
-              updated_at: vitaminData.updated_at || "",
-            });
-            setSelectedOption(vitaminData.vitaminDosageForm || null);
-            setPreview(vitaminData.vitaminImg || null);
-          }
-        } catch (error) {
-          console.error("Error fetching document:", error);
-        }
-      });
-      return () => unsub();
+    if(data) {
+      setFormData(data);
+      setSelectedOption(data.vitaminDosageForm || null);
+      setPreview(data.vitaminImg || null);
     }
-  }, [editId]);
+  }, [data]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -127,7 +91,7 @@ const ModalEditVitamins: React.FC<ModalEditVitaminsProps> = ({
     try {
       let imageUrl = formData.vitaminImg;
 
-      if (file) {
+      if(file) {
         const storageReference = storageRef(
           storage,
           `Vitamins/${file.name + v4()}`
@@ -135,20 +99,19 @@ const ModalEditVitamins: React.FC<ModalEditVitaminsProps> = ({
         await uploadBytes(storageReference, file);
         imageUrl = await getDownloadURL(storageReference);
       }
-      if (editId) {
-        await updateDoc(doc(db, inventory, editId), {
+      if(data) {
+        if(selectedOption) formData.medicineDosageForm = selectedOption;
+        await updateDoc(doc(db, "Inventory", data.id), {
           ...formData,
-
-          vitaminDosageForm: selectedOption,
           vitaminImg: imageUrl,
           updated_at: dateToday,
-        });
+        });``
       }
       console.log("Document successfully updated!");
       notify();
       setTimeout(() => {
         setShowModalSucces(false);
-        closeModal();
+        closeModal(true);
       }, 1000);
     } catch (error) {
       console.error("Error updating document:", error);

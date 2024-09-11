@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db, storage } from "../firebase";
-import { collection, onSnapshot, deleteDoc, doc } from "firebase/firestore";
+import { collection, onSnapshot, deleteDoc, doc, query, where, getDocs, getDoc } from "firebase/firestore";
 import DashboardLayout from "./DashboardLayout";
 import { IoMdAddCircle } from "react-icons/io";
 import ModalAdd from "./ModalAdd";
@@ -30,7 +30,7 @@ const Try: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [modalView, setModalView] = useState(false);
-  const [viewId, setViewId] = useState<string | null>(null);
+  const [form, setForm] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [modalEdit, setModalEdit] = useState(false);
   const [modalViewVaccine, setModalViewVaccine] = useState(false);
@@ -46,26 +46,39 @@ const Try: React.FC = () => {
   const { user } = useUser();
   const MySwal = withReactContent(Swal);
 
-  let inventory = "";
+  // let inventory = "";
 
-  if (user?.rhuOrBarangay === "1") {
-    inventory = "RHU1Inventory";
-  } else if (user?.rhuOrBarangay === "2") {
-    inventory = "RHU2Inventory";
-  } else if (user?.rhuOrBarangay === "3") {
-    inventory = "RHU3Inventory";
-  }
+  // if (user?.rhuOrBarangay === "1") {
+  //   inventory = "RHU1Inventory";
+  // } else if (user?.rhuOrBarangay === "2") {
+  //   inventory = "RHU2Inventory";
+  // } else if (user?.rhuOrBarangay === "3") {
+  //   inventory = "RHU3Inventory";
+  // }
 
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, inventory), (snapshot) => {
-      const itemsData = snapshot.docs.map((doc) => ({
+  const fetchData = async () => {
+    try {
+      const inventoryQuery = query(
+        collection(db, user?.role.includes("Barangay") ? "BarangayInventory" : "Inventory"),
+        where("userId", "==", user?.uid)
+      );
+
+      const inventorySnap = await getDocs(inventoryQuery);
+      const inventoryItems = inventorySnap.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
       }));
-      setItems(itemsData);
-    });
-    return () => unsub();
-  }, [inventory]);
+      setItems(inventoryItems);
+      console.log("inventoryItems :>> ", inventoryItems);
+    } catch (error) {
+      console.error("Error fetching data: ", error);
+    }
+  };
+
+  useEffect(() => {
+    console.log('user :>> ', user);
+    fetchData();
+  }, [user?.rhuOrBarangay]);
 
   const handleAdd = () => setModalAdd(true);
   const closeModalAdd = () => setModalAdd(false);
@@ -83,40 +96,23 @@ const Try: React.FC = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await deleteDoc(doc(db, inventory, id));
+          await deleteDoc(doc(db, "Inventory", id));
           Swal.fire({
             title: "Deleted!",
-            text: "Your file has been deleted.",
+            text: "Item has been deleted.",
             icon: "success",
           });
+          fetchData();
         } catch (error) {
           console.error("Error deleting document: ", error);
         }
       }
     });
-    // setDeleteId(id);
-  };
-
-  // const confirmDelete = async (item: any) => {
-  //   if (deleteId) {
-  //     setShowDeleteModal(false);
-  //     try {
-  //       await deleteDoc(doc(db, inventory, deleteId));
-  //     } catch (error) {
-  //       console.error("Error deleting document: ", error);
-  //     } finally {
-  //       setDeleteId(null);
-  //     }
-  //   }
-  // };
-
-  const closeDeleteModal = () => {
-    setShowDeleteModal(false);
-    setDeleteId(null);
   };
 
   const handleView = (item: any) => {
-    setViewId(item.id);
+    console.log("item :>> ", item)
+    setForm(item);
     if (item.type === "Medicine") {
       setModalView(true);
     } else if (item.type === "Vaccine") {
@@ -124,6 +120,7 @@ const Try: React.FC = () => {
     } else if (item.type === "Vitamin") {
       setModalViewVitamin(true);
     }
+    console.log("modalView :>> ", modalView)
   };
 
   const closeModalView = () => setModalView(false);
@@ -131,7 +128,8 @@ const Try: React.FC = () => {
   const closeModalViewVitamin = () => setModalViewVitamin(false);
 
   const handleEdit = (item: any) => {
-    setEditId(item.id);
+    console.log("edit item :>> ", item)
+    setForm(item);
     if (item.type === "Medicine") {
       setModalEdit(true);
     } else if (item.type === "Vaccine") {
@@ -141,13 +139,19 @@ const Try: React.FC = () => {
     }
   };
 
-  const closeModalEdit = () => setModalEdit(false);
+  const closeModalEdit = (bool: any) => {
+    if(bool) fetchData();
+    setModalEdit(false);
+  };
   const closeModalEditVaccine = () => setModalEditVaccine(false);
-  const closeModalEditVitamin = () => setModalEditVitamin(false);
+  const closeModalEditVitamin = (bool: any) => {
+    if(bool) fetchData();
+    setModalEditVitamin(false);
+  }
 
   const handleDistribute = (item: any) => {
-    setViewId(item.id);
-    if (item.type === "Medicine") {
+    setForm(item);
+    if(item.type === "Medicine") {
       setModalDistribute(true);
     } else if (item.type === "Vaccine") {
       return;
@@ -156,10 +160,11 @@ const Try: React.FC = () => {
     }
   };
 
-  const closeDistribute = () => {
+  const closeDistribute = (bool: any) => {
+    if(bool) fetchData();
     setModalDistribute(false);
     setDistributeVitamin(false);
-    setViewId(null);
+    setForm(null);
   };
 
   const handleSearchInputChange = (
@@ -180,35 +185,6 @@ const Try: React.FC = () => {
     setSelectedOption(select);
     setDropdownOpen(false);
   };
-  // const getUniqueItems = (items: any[]) => {
-  //     const uniqueItems = new Map();
-  //     for (const item of items) {
-  //         const key =
-  //             item.medicineBrandName || item.vitaminBrandName || item.vaccineName;
-  //         if (!uniqueItems.has(key)) {
-  //             uniqueItems.set(key, item);
-  //         }
-  //     }
-  //     return Array.from(uniqueItems.values());
-  // };
-
-  // const filteredAndSortedItems = getUniqueItems(
-  //     items
-  //         .filter(
-  //             (item) =>
-  //                 selectedOption === "All" ||
-  //                 (selectedOption === "Medicines" && item.type === "Medicine") ||
-  //                 (selectedOption === "Vaccines" && item.type === "Vaccine") ||
-  //                 (selectedOption === "Vitamins" && item.type === "Vitamin")
-  //         )
-  //         .filter(
-  //             (item) =>
-  //                 item.medicineBrandName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //                 item.medicineGenericName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //                 item.vaccineName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //                 item.vitaminBrandName?.toLowerCase().includes(searchQuery.toLowerCase())
-  //         )
-  // );
   const filteredAndSortedItems = items
     .filter(
       (item) =>
@@ -324,49 +300,46 @@ const Try: React.FC = () => {
                       item.vaccineStock ||
                       item.vitaminStock) && (
                       <div>
-                        {item.medicineStock && (
-                          <>
-                            {item.medicineStock > 1 ? (
-                              <span>{item.medicineStock} boxes</span>
-                            ) : (
-                              <span>{item.medicineStock} box</span>
-                            )}
-                          </>
-                        )}
+                          <span>Stock: {item.medicineStock || item.vitaminStock || item.vaccineStock}</span>
                         <div>
                           <span>
-                            ({item.medicineClassification}{" "}
-                            {item.medicineDosageForm}
-                            {item.medicineClassification > 1 ? "s" : null} per
-                            box)
+                            {item.medicineClassification &&
+                              `${item.medicineClassification}
+                              ${(item.medicineDosageForm || "").toLowerCase()}${parseInt(item.medicineClassification) > 1 && "s"}
+                              per item`
+                            }
                           </span>
                         </div>
                         {/* Add similar conditions for vaccineStock and vitaminStock if needed */}
                         {item.vaccineStock && (
                           <>
-                            {item.vaccineStock > 1 ? (
-                              <span>{item.vaccineStock} boxes</span>
-                            ) : (
-                              <span>{item.vaccineStock} box</span>
-                            )}
-                            {/* <span> ({item.medicineClassification})</span> */}
+                            {
+                                item.vaccineClassification.includes('ml') ?
+                                <>{item.vaccineClassification} per item</> :
+                                <>
+                                  {item.vaccineClassification} {`${item.vaccineDosageForm.toLowerCase()}${parseInt(item.vaccineClassification) > 1 && "s"} per item`}
+                                </>
+                              }
                           </>
                         )}
                         {item.vitaminStock && (
                           <>
-                            {item.vitaminStock > 1 ? (
-                              <span>{item.vitaminStock} boxes</span>
-                            ) : (
-                              <span>{item.vitaminStock} box</span>
-                            )}
-                            {/* <span> ({item.medicineClassification})</span> */}
+                            <span>
+                              {
+                                item.vitaminClassification.includes('ml') ?
+                                <>{item.vitaminClassification} per item</> :
+                                <>
+                                  {item.vitaminClassification} {`${item.vitaminDosageForm.toLowerCase()}${parseInt(item.vitaminClassification) > 1 && "s"} per item`}
+                                </>
+                              }
+                            </span>
                           </>
                         )}
                       </div>
                     )}
                   </div>
                   <span className="">
-                    {formatDate(
+                    Expiration: {formatDate(
                       item.medicineExpiration ||
                         item.vaccineExpiration ||
                         item.vitaminExpiration
@@ -389,19 +362,19 @@ const Try: React.FC = () => {
                   >
                     <FaEye className="w-5 h-5 text-white" />
                   </button>
-                  <button
+                  {!user?.role.includes('Barangay') && <button
                     onClick={() => handleEdit(item)}
                     className="bg-yellow-800 rounded-md text-white p-2 hover:bg-yellow-600 mr-4"
                   >
                     <MdEdit className="w-5 h-5" />
-                  </button>
+                  </button>}
 
-                  <button
+                  {!user?.role.includes('Barangay') && <button
                     onClick={() => handleDelete(item.id)}
                     className="bg-red-600 rounded-md text-white p-2 hover:bg-red-800 mr-4"
                   >
                     <MdDelete className="w-5 h-5" />
-                  </button>
+                  </button>}
                 </div>
               </div>
             </div>
@@ -409,86 +382,21 @@ const Try: React.FC = () => {
         ))}
       </div>
 
-      {/* {showDeleteModal && (
-        <div className="fixed z-10 inset-0 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity">
-              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
-            <span
-              className="hidden sm:inline-block sm:align-middle sm:h-screen"
-              aria-hidden="true"
-            >
-              &#8203;
-            </span>
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <svg
-                    className="h-12 w-12 text-red-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth="1.5"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-                    />
-                  </svg>
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                    <h3
-                      className="text-lg leading-6 font-medium text-gray-900"
-                      id="modal-headline"
-                    >
-                      Delete Item Confirmation
-                    </h3>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500">
-                        Are you sure you want to delete this item?
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button
-                  onClick={confirmDelete}
-                  type="button"
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={closeDeleteModal}
-                  type="button"
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )} */}
-
       {modalAdd && <ModalAdd showModal={modalAdd} closeModal={closeModalAdd} />}
 
-      {modalView && viewId && (
+      {modalView && form && (
         <ModalViewMedicine
           showModal={modalView}
           closeModal={closeModalView}
-          viewId={viewId}
+          data={form}
         />
       )}
 
-      {modalEdit && editId && (
+      {modalEdit && form && (
         <ModalEditMedicine
           showModal={modalEdit}
           closeModal={closeModalEdit}
-          editId={editId}
+          data={form}
         />
       )}
 
@@ -500,39 +408,39 @@ const Try: React.FC = () => {
         />
       )}
 
-      {modalViewVaccine && viewId && (
+      {modalViewVaccine && form && (
         <ModalViewVaccine
           showModal={modalViewVaccine}
           closeModal={closeModalViewVaccine}
-          viewId={viewId}
+          viewId={null}
         />
       )}
-      {modalViewVitamin && viewId && (
+      {modalViewVitamin && form && (
         <ModalViewVitamins
           showModal={modalViewVitamin}
           closeModal={closeModalViewVitamin}
-          viewId={viewId}
+          data={form}
         />
       )}
-      {modalEditVitamin && editId && (
+      {modalEditVitamin && form && (
         <ModalEditVitamins
           showModal={modalEditVitamin}
           closeModal={closeModalEditVitamin}
-          editId={editId}
+          data={form}
         />
       )}
-      {modalDistribute && (
+      {modalDistribute && form && (
         <ModalDistribute
           showModal={modalDistribute}
           closeModal={closeDistribute}
-          viewId={viewId}
+          data={form}
         />
       )}
-      {distributeVitamin && (
+      {distributeVitamin && form && (
         <DistributeVitamin
           showModal={distributeVitamin}
           closeModal={closeDistribute}
-          viewId={viewId}
+          data={form}
         />
       )}
 

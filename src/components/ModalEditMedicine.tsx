@@ -26,14 +26,14 @@ import { useUser } from "./User";
 
 interface ModalEditMedicineProps {
   showModal: boolean;
-  closeModal: () => void;
-  editId: string | null;
+  closeModal: (bool: any) => void;
+  data: any;
 }
 
 const ModalEditMedicine: React.FC<ModalEditMedicineProps> = ({
   showModal,
   closeModal,
-  editId,
+  data,
 }) => {
   const [showModalSuccess, setShowModalSucces] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -45,7 +45,7 @@ const ModalEditMedicine: React.FC<ModalEditMedicineProps> = ({
     medicineImg: "",
     medicineGenericName: "",
     medicineBrandName: "",
-    medicineStock: "",
+    medicineStock: 0,
     medicineLotNo: "",
     medicineDosageForm: "",
     medicineDosageStrength: "",
@@ -56,49 +56,42 @@ const ModalEditMedicine: React.FC<ModalEditMedicineProps> = ({
   });
   const { user } = useUser();
 
-  let inventory = "";
-
-  if (user?.rhuOrBarangay === "1") {
-    inventory = "RHU1Inventory";
-  } else if (user?.rhuOrBarangay === "2") {
-    inventory = "RHU2Inventory";
-  } else if (user?.rhuOrBarangay === "3") {
-    inventory = "RHU3Inventory";
-  }
-
   //real time update fetch
 
   useEffect(() => {
-    if (editId) {
-      const unsub = onSnapshot(doc(db, inventory, editId), (doc) => {
-        try {
-          if (doc.exists()) {
-            const medicineData = doc.data() as DocumentData;
-            console.log("Medicine Image URL:", medicineData.medicineImg);
-            setFormData({
-              medicineImg: medicineData.medicineImg || "",
-              medicineGenericName: medicineData.medicineGenericName || "",
-              medicineBrandName: medicineData.medicineBrandName || "",
-              medicineStock: medicineData.medicineStock || "",
-              medicineLotNo: medicineData.medicineLotNo || "",
-              medicineDosageForm: medicineData.medicineDosageForm || "",
-              medicineDosageStrength: medicineData.medicineDosageStrength || "",
-              medicineExpiration: medicineData.medicineExpiration || "",
-              medicineRegulatoryClassification:
-                medicineData.medicineRegulatoryClassification || "",
-              medicineDescription: medicineData.medicineDescription || "",
-              updated_at: medicineData.updated_at || "",
-            });
-            setSelectedOption(medicineData.medicineDosageForm || null);
-            setPreview(medicineData.medicineImg || null);
-          }
-        } catch (error) {
-          console.error("Error fetching document:", error);
-        }
-      });
-      return () => unsub();
+    if(data) {
+      setFormData(data);
+      setSelectedOption(data.medicineDosageForm || null);
+      setPreview(data.medicineImg || null);
+      // const unsub = onSnapshot(doc(db, inventory, editId), (doc) => {
+      //   try {
+      //     if (doc.exists()) {
+      //       const medicineData = doc.data() as DocumentData;
+      //       console.log("Medicine Image URL:", medicineData.medicineImg);
+      //       setFormData({
+      //         medicineImg: medicineData.medicineImg || "",
+      //         medicineGenericName: medicineData.medicineGenericName || "",
+      //         medicineBrandName: medicineData.medicineBrandName || "",
+      //         medicineStock: medicineData.medicineStock || 0,
+      //         medicineLotNo: medicineData.medicineLotNo || "",
+      //         medicineDosageForm: medicineData.medicineDosageForm || "",
+      //         medicineDosageStrength: medicineData.medicineDosageStrength || "",
+      //         medicineExpiration: medicineData.medicineExpiration || "",
+      //         medicineRegulatoryClassification:
+      //           medicineData.medicineRegulatoryClassification || "",
+      //         medicineDescription: medicineData.medicineDescription || "",
+      //         updated_at: medicineData.updated_at || "",
+      //       });
+      //       setSelectedOption(medicineData.medicineDosageForm || null);
+      //       setPreview(medicineData.medicineImg || null);
+      //     }
+      //   } catch (error) {
+      //     console.error("Error fetching document:", error);
+      //   }
+      // });
+      // return () => unsub();
     }
-  }, [editId]);
+  }, [data]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -135,11 +128,10 @@ const ModalEditMedicine: React.FC<ModalEditMedicineProps> = ({
         await uploadBytes(storageReference, file);
         imageUrl = await getDownloadURL(storageReference);
       }
-      if (editId) {
-        await updateDoc(doc(db, inventory, editId), {
+      if(data) {
+        if(selectedOption) formData.medicineDosageForm = selectedOption;
+        await updateDoc(doc(db, "Inventory", data.id), {
           ...formData,
-
-          medicineDosageForm: selectedOption,
           medicineImg: imageUrl,
           updated_at: dateToday,
         });
@@ -149,7 +141,7 @@ const ModalEditMedicine: React.FC<ModalEditMedicineProps> = ({
       notify();
       setTimeout(() => {
         setShowModalSucces(false);
-        closeModal();
+        closeModal(true);
       }, 1000);
     } catch (error) {
       console.error("Error updating document:", error);

@@ -7,43 +7,36 @@ import { IoMdClose } from "react-icons/io";
 interface ModalViewMedicineProps {
   showModal: boolean;
   closeModal: () => void;
-  viewId: string | null;
+  data: any;
 }
 
 const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
   showModal,
   closeModal,
-  viewId,
+  data,
 }) => {
   const [medicine, setMedicine] = useState<any | null>(null);
   const { user } = useUser();
 
-  let inventory = "";
-
-  if (user?.rhuOrBarangay === "1") {
-    inventory = "RHU1Inventory";
-  } else if (user?.rhuOrBarangay === "2") {
-    inventory = "RHU2Inventory";
-  } else if (user?.rhuOrBarangay === "3") {
-    inventory = "RHU3Inventory";
-  }
-
   useEffect(() => {
-    if (!viewId) return;
+    console.log('data 123 :>> ', data)
+    if(!data) return;
+    setMedicine(data);
 
-    const unsub = onSnapshot(collection(db, inventory), (snapshot) => {
-      const medicinesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      const selectedMedicine = medicinesData.find((med) => med.id === viewId);
-      setMedicine(selectedMedicine);
-    });
+    // const unsub = onSnapshot(collection(db, "Inventory"), (snapshot) => {
+    //   const medicinesData = snapshot.docs.map((doc) => ({
+    //     id: doc.id,
+    //     ...doc.data(),
+    //   }));
+    //   const selectedMedicine = medicinesData.find((med) => med.id === data);
+    //   setMedicine(selectedMedicine);
+    //   console.log("selectedMedicine :>> ", selectedMedicine);
+    // });
 
-    return () => unsub();
-  }, [viewId, inventory]);
+    // return () => unsub();
+  }, [data]);
 
-  if (!showModal || !medicine) {
+  if(!showModal || !data) {
     return null;
   }
 
@@ -99,7 +92,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         <input
                           type="text"
                           id="medicineBrandName"
-                          value={medicine.medicineBrandName}
+                          value={medicine?.medicineBrandName}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />
@@ -114,7 +107,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         <input
                           type="text"
                           id="medicineGenericName"
-                          value={medicine.medicineGenericName}
+                          value={medicine?.medicineGenericName}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />
@@ -131,11 +124,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         <input
                           type="text"
                           id="medicineStock"
-                          value={
-                            medicine.medicineStock > 1
-                              ? `${medicine.medicineStock} boxes`
-                              : `${medicine.medicineStock} box`
-                          }
+                          value={medicine?.medicineStock}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />
@@ -150,7 +139,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         <input
                           type="text"
                           id="medicineClassification"
-                          value={`${medicine.medicineClassification} ${medicine.medicineDosageForm} per box`}
+                          value={`${medicine?.medicineClassification} ${medicine?.medicineDosageForm}`}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />
@@ -167,7 +156,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         <input
                           type="text"
                           id="medicineLotNo"
-                          value={medicine.medicineLotNo}
+                          value={medicine?.medicineLotNo}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />
@@ -182,7 +171,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         <input
                           type="text"
                           id="medicineDosageStrength"
-                          value={medicine.medicineDosageStrength}
+                          value={medicine?.medicineDosageStrength}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />
@@ -199,7 +188,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         <input
                           type="text"
                           id="medicineDosageForm"
-                          value={medicine.medicineDosageForm}
+                          value={medicine?.medicineDosageForm}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />
@@ -217,7 +206,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         <input
                           type="text"
                           id="medicineExpiration"
-                          value={formatDate(medicine.medicineExpiration)}
+                          value={formatDate(medicine?.medicineExpiration)}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />
@@ -232,7 +221,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         <input
                           type="text"
                           id="medicineRegulatoryClassification"
-                          value={medicine.medicineRegulatoryClassification}
+                          value={medicine?.medicineRegulatoryClassification}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />
@@ -247,7 +236,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                       </label>
                       <textarea
                         id="medicineDescription"
-                        value={medicine.medicineDescription}
+                        value={medicine?.medicineDescription}
                         className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                         rows={4}
                         readOnly

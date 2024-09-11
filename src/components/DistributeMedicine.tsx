@@ -1,42 +1,26 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { db } from "../firebase";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, getDoc, setDoc, getDocs, query, where, addDoc } from "firebase/firestore";
 import { MdCancel } from "react-icons/md";
 import { useUser } from "./User";
 import { IoMdClose } from "react-icons/io";
+import Swal from "sweetalert2";
+
 interface ModalDistributeProps {
   showModal: boolean;
-  viewId: string | null;
-  closeModal: () => void;
+  data: any;
+  closeModal: (bool: any) => void;
 }
-const ModalDistribute: React.FC<ModalDistributeProps> = ({
-  showModal,
-  closeModal,
-  viewId,
-}) => {
+export default function ModalDistribute({ showModal, closeModal, data }: ModalDistributeProps): any {
   const [medicine, setMedicine] = useState<any | null>(null);
+  const [loading, setLoading] = useState<any | null>(false);
   const { user } = useUser();
 
-  let inventory = "";
-
-  if (user?.rhuOrBarangay === "1") {
-    inventory = "RHU1Inventory";
-  } else if (user?.rhuOrBarangay === "2") {
-    inventory = "RHU2Inventory";
-  } else if (user?.rhuOrBarangay === "3") {
-    inventory = "RHU3Inventory";
-  }
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, inventory), (snapshot) => {
-      const medicinesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      const selectedMedicine = medicinesData.find((med) => med.id === viewId);
-      setMedicine(selectedMedicine);
-    });
-    return () => unsub();
-  }, [viewId]);
+    console.log('showModal :>> ', showModal);
+    if(data) setMedicine(data);
+    console.log("distribute :>> ", data);
+  }, [data]);
   if (!medicine) {
     return null;
   }
@@ -48,14 +32,115 @@ const ModalDistribute: React.FC<ModalDistributeProps> = ({
       year: "numeric",
     });
   };
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {};
+  const handleChange = (e: any, field: string) => {
+    setMedicine({ ...medicine, [field]: e.target.value });
+    console.log("medicine :>> ", { ...medicine, [field]: e.target.value });
+  };
+
+
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+      let payload = {
+        ...medicine,
+        medicineStock: parseInt(medicine.medicineStock)
+      };
+
+      if(!payload.barangay) return Swal.fire({
+        position: "center",
+        icon: "error",
+        title: `Barangay is required`,
+        showConfirmButton: false,
+        timer: 1000,
+      });
+
+      console.log("payload :>> ", payload);
+      const itemDocRef = doc(db, "Inventory", medicine.id);
+      const itemSnap = await getDoc(itemDocRef);
+      if(!itemSnap.exists()) throw new Error("Item not found");
+
+      const itemData = itemSnap.data();
+      const currentStock = itemData.medicineStock;
+
+      if(payload.medicineStock > currentStock) throw new Error("Insufficient stock.");
+
+      const userQuery = query(
+        collection(db, "Users"),
+        where("barangay", "==", payload.barangay)
+      );
+
+      const userSnap = await getDocs(userQuery);
+      console.log("userSnap :>> ", userSnap);
+      const userData = userSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      console.log("userData :>> ", userData);
+      
+      const filteredUser = userData.filter((x: any) => x?.role.includes('Barangay'));
+      if(filteredUser.length > 0) {
+        await updateDoc(itemDocRef, { medicineStock: currentStock - payload.medicineStock });
+
+        const _user = filteredUser[0];
+
+        const barangayInventoryRef = doc(db, "BarangayInventory", payload.id);
+        const barangayInventorySnap = await getDoc(barangayInventoryRef);
+        const existingData = barangayInventorySnap.data();
+
+        const _currentStock = existingData?.medicineStock || 0;
+        const newStock = parseInt(payload.medicineStock) + _currentStock;
+
+        const barangayInventoryData = {
+          ...itemData,
+          medicineStock: newStock,
+          totalQuantity: (existingData?.totalQuantity + newStock) || newStock,
+          created_at: new Date().toISOString(),
+          userId: _user?.id
+        };
+
+        if(barangayInventorySnap.exists()) {
+          await setDoc(barangayInventoryRef, barangayInventoryData, { merge: true });
+        } else await setDoc(barangayInventoryRef, barangayInventoryData);
+
+        Swal.fire({
+          position: "center",
+          icon: "success",
+          title: `${payload.medicineBrandName} has been distributed to ${payload.barangay}`,
+          showConfirmButton: false,
+          timer: 1500,
+        });
+
+        closeModal(true);
+
+      } else {
+        Swal.fire({
+          position: "center",
+          icon: "error",
+          title: `No existing user for ${payload.barangay}`,
+          showConfirmButton: false,
+          timer: 1000,
+        });
+      }
+
+    } catch(error: any) {
+      Swal.fire({
+        position: "center",
+        icon: "error",
+        title: `Distribution error`,
+        showConfirmButton: false,
+        timer: 1000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
 
   return (
     <div
       className={`fixed z-10 inset-0 overflow-y-auto transition-all duration-500 ease-out ${
-        showModal ? "opacity-100" : "opacity-0"
+        showModal ? "opacity-100" : "opacity-100"
       }`}
     >
       <div className="flex items-center justify-center min-h-screen px-4 py-6 text-center sm:block sm:p-0">
@@ -134,6 +219,7 @@ const ModalDistribute: React.FC<ModalDistributeProps> = ({
                           type="number"
                           id="medicineStock"
                           value={medicine.medicineStock}
+                          onChange={(e) => handleChange(e, 'medicineStock')}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                         />
                       </div>
@@ -250,7 +336,7 @@ const ModalDistribute: React.FC<ModalDistributeProps> = ({
                       <div className="relative mt-1">
                         <select
                           id="barangay"
-                          onChange={handleChange}
+                          onChange={(e) => handleChange(e, 'barangay')}
                           className="block appearance-none w-full p-3 border border-gray-300 rounded-md bg-white focus:outline-none focus:black focus:border-black sm:text-base"
                         >
                           <option value="">Barangay</option>
@@ -284,7 +370,9 @@ const ModalDistribute: React.FC<ModalDistributeProps> = ({
                     <div className="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse w-full">
                       <button
                         type="button"
-                        className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"
+                        disabled={loading}
+                        onClick={handleSubmit}
+                        className={`${loading && 'opacity-[0.5]'} w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm`}
                       >
                         Submit
                       </button>
@@ -306,5 +394,3 @@ const ModalDistribute: React.FC<ModalDistributeProps> = ({
     </div>
   );
 };
-
-export default ModalDistribute;

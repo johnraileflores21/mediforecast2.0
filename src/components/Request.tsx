@@ -1,17 +1,27 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import DashboardLayout from "./DashboardLayout";
 import { FaEye, FaCaretDown } from "react-icons/fa";
 import { IoMdAddCircle } from "react-icons/io";
+import { useUser } from "./User";
 import { IoSearchOutline } from "react-icons/io5";
+import { collection, onSnapshot, updateDoc, addDoc, doc, query, where, getDoc, setDoc } from "firebase/firestore";
+import { db } from "../firebase";
+import Swal from "sweetalert2";
+import RequestAdd from "../components/Request/RequestAdd";
+
 
 const Request = () => {
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [selectedOption, setSelectedOption] = useState<string>("All");
     const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
     const [items, setItems] = useState<any[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
     const [modalAdd, setModalAdd] = useState(false);
+    const { user } = useUser();
 
-    const handleAdd = () => setModalAdd(true);
+    const handleAdd = () => {
+        setModalAdd(true);
+    }
     const closeModalAdd = () => setModalAdd(false);
     const handleSearchInputChange = (
         event: React.ChangeEvent<HTMLInputElement>
@@ -44,246 +54,321 @@ const Request = () => {
                     ?.toLowerCase()
                     .includes(searchQuery.toLowerCase())
         );
+
+    const loadData = async () => {
+        try {
+            setLoading(true);
+
+            const q = query(
+                collection(db, "Requests"),
+                where(user?.role.includes('Barangay') ? "userId" : "rhuId", "==", user?.uid)
+            );
+
+            onSnapshot(q, async (snapshot: any) => {
+                const itemsData = await Promise.all(
+                    snapshot.docs.map(async (docSnapshot: any) => {
+                        const requestData = docSnapshot.data();
+
+                        const itemRef = doc(db, "Inventory", requestData.itemId);
+                        const itemSnap = await getDoc(itemRef);
+    
+                        let itemData = null;
+                        if(itemSnap.exists())
+                            itemData = { id: itemSnap.id, ...itemSnap.data() };
+    
+                        return {
+                            id: docSnapshot.id,
+                            ...requestData,
+                            item: itemData
+                        };
+                    })
+                );
+    
+                setItems(itemsData);
+                console.log(itemsData);
+            });
+        } catch(error) {
+            Swal.fire({
+                title: "Error!",
+                text: "Unable to get Requests. Please try again.",
+                icon: "error",
+            });
+        } finally {
+            setLoading(false);
+        }
+    }
+    
+    useEffect(() => {
+        loadData();
+    }, [])
+
+    const handleDecline = (id: string) => {
+
+    }
+
+    const handleApprove = async (id: string) => {
+        try {
+            setLoading(true);
+
+            const requestDocRef = doc(db, "Requests", id);
+            const requestSnap = await getDoc(requestDocRef);
+    
+            if(!requestSnap.exists()) throw new Error("Request not found");
+    
+            const requestData = requestSnap.data();
+            const { rhuId, userId: barangayId, itemId, requestedQuantity } = requestData;
+
+            const itemDocRef = doc(db, "Inventory", itemId);
+            const itemSnap = await getDoc(itemDocRef);
+            if(!itemSnap.exists()) throw new Error("Item not found");
+    
+            const itemData = itemSnap.data();
+            const currentStock = itemData.medicineStock;
+    
+            if(requestedQuantity > currentStock) throw new Error("Insufficient stock.");
+
+            await updateDoc(itemDocRef, { medicineStock: currentStock - requestedQuantity });
+
+            const barangayInventoryData = {
+                ...itemData,
+                medicineStock: requestedQuantity,
+                totalQuantity: requestedQuantity,
+                created_at: new Date().toISOString(),
+                userId: barangayId
+            };
+
+            const barangayInventoryRef = doc(db, "BarangayInventory", itemId);
+            const barangayInventorySnap = await getDoc(barangayInventoryRef);
+
+            if(barangayInventorySnap.exists())
+                await updateDoc(barangayInventoryRef, barangayInventoryData);
+            else await setDoc(barangayInventoryRef, barangayInventoryData);
+
+            await addDoc(collection(db, "Distributions"), {
+                barangayId,
+                created_at: new Date().toISOString(),
+                itemId,
+                quantity: requestedQuantity,
+                rhuId
+            });
+
+            await updateDoc(requestDocRef, { status: "approved" });
+
+            Swal.fire({
+                position: "center",
+                icon: "success",
+                title: "Request approved!",
+                showConfirmButton: false,
+                timer: 1000,
+            });
+
+            setLoading(false);
+
+        } catch (error: any) {
+            console.log(error);
+            Swal.fire({
+                position: "center",
+                icon: "error",
+                title: "Unable to distribute item",
+                showConfirmButton: false,
+                timer: 1000,
+            });
+        } finally {
+            await loadData();
+        }
+    }    
+
     const handleDropdown = () => setDropdownOpen(!dropdownOpen);
     return (
         <DashboardLayout>
             <h1 className="text-3xl font-bold mb-4">Request</h1>
             <div className="flex justify-between mb-2 mt-10">
-                <div className="relative">
-                    <input
-                        type="text"
-                        placeholder="Search..."
-                        value={searchQuery}
-                        onChange={handleSearchInputChange}
-                        className="border border-gray-300 rounded-md p-2 pl-8 shadow-md"
-                    />
-                    <IoSearchOutline className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                </div>
+                <div className="flex items-middle gap-3">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchQuery}
+                            onChange={handleSearchInputChange}
+                            className="border border-gray-300 rounded-md p-2 pl-8 shadow-md"
+                        />
+                        <IoSearchOutline className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    </div>
+                    <div className="dropdown w-28 relative">
+                        <div
+                            tabIndex={0}
+                            role="button"
+                            className="bg-teal-600 text-white text-sm rounded-lg py-3 mb-2 text-center font-bold flex justify-center items-center"
+                            onClick={handleDropdown}
+                        >
+                            {selectedOption}
+                            <FaCaretDown className="w-4 h-4 text-white ml-1" />
+                        </div>
 
-                {/* <button
+                        {dropdownOpen && (
+                            <ul
+                                tabIndex={0}
+                                className="dropdown-content menu rounded-box z-[50] absolute w-52 p-2 shadow bg-teal-600 text-white"
+                            >
+                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                    <a onClick={() => handleOptionSelect("All")}>
+                                        All
+                                    </a>
+                                </li>
+                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                    <a
+                                        onClick={() =>
+                                            handleOptionSelect("Medicines")
+                                        }
+                                    >
+                                        Medicines
+                                    </a>
+                                </li>
+                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                    <a
+                                        onClick={() =>
+                                            handleOptionSelect("Vaccines")
+                                        }
+                                    >
+                                        Vaccines
+                                    </a>
+                                </li>
+                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                    <a
+                                        onClick={() =>
+                                            handleOptionSelect("Vitamins")
+                                        }
+                                    >
+                                        Vitamins
+                                    </a>
+                                </li>
+                            </ul>
+                        )}
+                        
+                    </div>
+                </div>
+                {user?.role.includes('Barangay') && <button
                     onClick={handleAdd}
                     className="bg-green-500 text-white p-2 hover:bg-green-700 rounded-md font-bold flex items-center space-x-1"
                 >
                     <IoMdAddCircle className="w-5 h-5" />
-                    <span>Add</span>
-                </button> */}
-                <div className="dropdown w-28 relative">
-                    <div
-                        tabIndex={0}
-                        role="button"
-                        className="bg-teal-600 text-white text-sm rounded-lg py-3 mb-2 text-center font-bold flex justify-center items-center"
-                        onClick={handleDropdown}
-                    >
-                        {selectedOption}
-                        <FaCaretDown className="w-4 h-4 text-white ml-1" />
-                    </div>
-
-                    {dropdownOpen && (
-                        <ul
-                            tabIndex={0}
-                            className="dropdown-content menu rounded-box z-[50] absolute w-52 p-2 shadow bg-teal-600 text-white"
-                        >
-                            <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                <a onClick={() => handleOptionSelect("All")}>
-                                    All
-                                </a>
-                            </li>
-                            <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                <a
-                                    onClick={() =>
-                                        handleOptionSelect("Medicines")
-                                    }
-                                >
-                                    Medicines
-                                </a>
-                            </li>
-                            <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                <a
-                                    onClick={() =>
-                                        handleOptionSelect("Vaccines")
-                                    }
-                                >
-                                    Vaccines
-                                </a>
-                            </li>
-                            <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                <a
-                                    onClick={() =>
-                                        handleOptionSelect("Vitamins")
-                                    }
-                                >
-                                    Vitamins
-                                </a>
-                            </li>
-                        </ul>
-                    )}
-                </div>
+                    <span>Request</span>
+                </button>}
             </div>
-
-            {/* <div className="bg-white p-6 rounded-lg shadow-md mt-8 w-full overflow-x-auto overflow-scroll ">
-                <div className="flex items-center justify-center mt-5 max-w-max">
-                    <div className="w-full xl:w-full max-w-max">
-                        <table className="min-w-full divide-y divide-gray-200 ">
-                            <thead className="bg-gray-300 sticky">
-                                <tr>
-                                    <th className="px-6 text-left text-xs font-medium text-black uppercase tracking-wider">
-                                        First Name
-                                    </th>
-                                    <th className="px-6  text-left text-xs font-medium text-black uppercase tracking-wider">
-                                        Middle Name
-                                    </th>
-                                    <th className="px-6  text-left text-xs font-medium text-black uppercase tracking-wider">
-                                        Last Name
-                                    </th>
-                                    <th className="px-6  text-left text-xs font-medium text-black uppercase tracking-wider">
-                                        Contact
-                                    </th>
-                                    <th className="px-6 left text-xs font-medium text-black uppercase tracking-wider">
-                                        Barangay
-                                    </th>
-                                    <th className="px-6 text-left text-xs font-medium text-black uppercase tracking-wider">
-                                        Medicine Name
-                                    </th>
-                                    <th className="px-6  text-left text-xs font-medium text-black uppercase tracking-wider">
-                                        Medicine Quantity
-                                    </th>
-                                    <th className="px-6  text-left text-xs font-medium text-black uppercase tracking-wider">
-                                        Action
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                <tr>
-                                    <td className="pl-4 py-2 whitespace-nowrap">
-                                        John Raile
-                                    </td>
-                                    <td className="pl-4 py-2 whitespace-nowrap">
-                                        Esguerra
-                                    </td>
-                                    <td className="pl-4 py-2 whitespace-nowrap">
-                                        Flores
-                                    </td>
-                                    <td className="pl-4 py-2 whitespace-nowrap">
-                                        123441241
-                                    </td>
-                                    <td className="pl-4 py-2 whitespace-nowrap">
-                                        San Vicente
-                                    </td>
-                                    <td className="pl-4 py-2 whitespace-nowrap">
-                                        Biogesic
-                                    </td>
-                                    <td className="pl-4 py-2 whitespace-nowrap">
-                                        20 box
-                                    </td>
-                                    <td className="py-2 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            <button className="bg-blue-500 rounded-md text-white p-2 hover:bg-blue-700 mr-2 flex items-center">
-                                                <img
-                                                    src="/images/check.png"
-                                                    alt="Approve Icon"
-                                                    className="w-5 h-5 mr-1"
-                                                />
-                                                <span className="mr-4">
-                                                    Approve
-                                                </span>
-                                            </button>
-                                            <button className="bg-red-500 rounded-md text-white p-2 hover:bg-red-700 flex items-center ">
-                                                <img
-                                                    src="/images/wrong.png"
-                                                    alt="Decline Icon"
-                                                    className="w-5 h-5 mr-1"
-                                                />
-                                                <span className="mr-4">
-                                                    Decline
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div> */}
             <div className="bg-white p-6 rounded-lg  mt-8 w-full overflow-x-auto overflow-scroll ">
                 <div className="relative overflow-x-auto  sm:rounded-lg mt-3">
                     <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                         <thead className="text-xs text-gray-700 uppercase bg-gray-300 dark:bg-gray-700 dark:text-gray-400">
                             <tr>
-                                <th
+                                {!user?.role.includes('Barangay') && <th
                                     scope="col"
-                                    className="px-6 py-3 text-center border text-xs font-bold text-black"
+                                    className="px-6 py-3 border text-xs font-bold text-black"
                                 >
                                     Barangay
-                                </th>
+                                </th>}
                                 <th
                                     scope="col"
-                                    className="px-6 py-3 text-center border text-xs font-bold text-black"
+                                    className="px-6 py-3 border text-xs font-bold text-black"
                                 >
                                     Item Name
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-6 py-3 border text-center text-xs font-bold text-black"
+                                    className="px-6 py-3 border text-xs font-bold text-black"
                                 >
                                     Quantity
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-6 py-3 border text-center text-xs font-bold text-black"
+                                    className="px-6 py-3 border text-xs font-bold text-black"
                                 >
                                     Reason
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-6 py-3 border text-center text-xs font-bold text-black"
+                                    className="px-6 py-3 border text-xs font-bold text-black"
+                                >
+                                    Status
+                                </th>
+                                {!user?.role.includes('Barangay') && <th
+                                    scope="col"
+                                    className="px-6 py-3 border text-xs font-bold text-black"
                                 >
                                     Action
-                                </th>
+                                </th>}
                             </tr>
                         </thead>
                         <tbody>
-                            <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                <td className="px-6 py-4 text-gray-900">
-                                    Sulipan
-                                </td>
-                                <td className="px-6 py-4 text-gray-900">
-                                    Biogesic(Paracetamol)
-                                </td>
-                                <td className="px-6 py-4 text-gray-900">100</td>
-                                <td className="px-6 py-4 text-gray-900">
-                                    Low Stock
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center">
-                                        <button className="bg-blue-500 rounded-md text-white p-2 hover:bg-blue-700 mr-2 flex items-center">
-                                            <img
-                                                src="/images/check.png"
-                                                alt="Approve Icon"
-                                                className="w-5 h-5"
-                                            />
-                                            <span className="mr-5">
-                                                Approve
-                                            </span>
-                                        </button>
-                                        <button className="bg-red-500 rounded-md text-white p-2 hover:bg-red-700 flex items-center">
-                                            <img
-                                                src="/images/wrong.png"
-                                                alt="Decline Icon"
-                                                className="w-5 h-5"
-                                            />
-                                            <span className="mr-5">
-                                                Decline
-                                            </span>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
+                            {items.map((itemData, index) => (
+                                <tr
+                                    key={index}
+                                    className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                                >
+                                    {!user?.role.includes('Barangay') && <td className="px-6 py-4 text-gray-900">
+                                        {itemData.barangay}
+                                    </td>}
+                                    <td className="px-6 py-4 text-gray-900">
+                                        {`${itemData.item.medicineBrandName} (${itemData.item.medicineGenericName})`}
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-900">
+                                        {itemData.requestedQuantity}
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-900">
+                                        {itemData.reason || 'N/A'}
+                                    </td>
+                                    <td className="px-5 py-2">
+                                        <span
+                                            className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
+                                                itemData.status === 'approved' 
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : itemData.status === 'pending'
+                                                    ? 'bg-yellow-100 text-yellow-800'
+                                                    : itemData.status === 'rejected'
+                                                    ? 'bg-red-100 text-red-800'
+                                                    : 'bg-gray-100 text-gray-800'
+                                            }`}
+                                        >
+                                            {itemData.status.toUpperCase()}
+                                        </span>
+                                    </td>
+                                    {!user?.role.includes('Barangay') && <td className="px-6 py-4">
+                                        <div className="flex items-center">
+                                            <button
+                                                className={`bg-blue-500 rounded-md text-white p-2 hover:bg-blue-700 mr-2 flex items-center ${(loading || itemData.status !== 'pending') && 'opacity-[0.5]'}`}
+                                                onClick={() => handleApprove(itemData.id)}
+                                                disabled={loading || itemData.status !== 'pending'}
+                                            >
+                                                <img
+                                                    src="/images/check.png"
+                                                    alt="Approve Icon"
+                                                    className="w-5 h-5"
+                                                />
+                                                <span className="mr-5">Approve</span>
+                                            </button>
+                                            <button
+                                                className={`bg-red-500 rounded-md text-white p-2 hover:bg-red-700 mr-2 flex items-center ${(loading || itemData.status !== 'pending') && 'opacity-[0.5]'}`}
+                                                onClick={() => handleDecline(itemData.id)}
+                                                disabled={loading || itemData.status !== 'pending'}
+                                            >
+                                                <img
+                                                    src="/images/wrong.png"
+                                                    alt="Decline Icon"
+                                                    className="w-5 h-5"
+                                                />
+                                                <span className="mr-5">Decline</span>
+                                            </button>
+                                        </div>
+                                    </td>}
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>
+                
+
+                {modalAdd && <RequestAdd showModal={modalAdd} closeModal={closeModalAdd} />}
             </div>
+
         </DashboardLayout>
     );
 };

@@ -24,7 +24,8 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
   const [formData, setFormData] = useState({
     medicineGenericName: "",
     medicineBrandName: "",
-    medicineStock: "",
+    medicineStock: 0,
+    totalQuantity: 0,
     medicineLotNo: "",
     medicineDosageForm: "",
     medicineDosageStrength: "",
@@ -32,21 +33,22 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
     medicineRegulatoryClassification: "",
     medicineDescription: "",
     medicineClassification: "",
+    userId: ""
   });
   const [errors, setErrors] = useState<any>({});
   const [activeTab, setActiveTab] = useState("Medicine");
   const tabs = ["Medicine", "Vitamin", "Vaccine"];
   const { user } = useUser();
 
-  let inventory = "";
+  // let inventory = "";
 
-  if (user?.rhuOrBarangay === "1") {
-    inventory = "RHU1Inventory";
-  } else if (user?.rhuOrBarangay === "2") {
-    inventory = "RHU2Inventory";
-  } else if (user?.rhuOrBarangay === "3") {
-    inventory = "RHU3Inventory";
-  }
+  // if (user?.rhuOrBarangay === "1") {
+  //   inventory = "RHU1Inventory";
+  // } else if (user?.rhuOrBarangay === "2") {
+  //   inventory = "RHU2Inventory";
+  // } else if (user?.rhuOrBarangay === "3") {
+  //   inventory = "RHU3Inventory";
+  // }
 
   const validateForm = () => {
     const newErrors: any = {};
@@ -128,6 +130,9 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
         medicineImg = await getDownloadURL(imageRef);
       }
 
+      formData.totalQuantity = formData.medicineStock;
+      formData.userId = user?.uid || "";
+
       const formDataWithImage = {
         ...formData,
         medicineImg,
@@ -135,15 +140,16 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
         created_at: dateToday,
         updated_at: dateToday,
         medicineDosageForm: selectedOption,
+        created_by_unit: user?.rhuOrBarangay
       };
 
-      const docRef = await addDoc(collection(db, inventory), formDataWithImage);
+      const docRef = await addDoc(collection(db, "Inventory"), formDataWithImage);
       console.log("Document written with ID: ", docRef.id);
 
       setFormData({
         medicineGenericName: "",
         medicineBrandName: "",
-        medicineStock: "",
+        medicineStock: 0,
         medicineLotNo: "",
         medicineDosageForm: "",
         medicineDosageStrength: "",
@@ -151,6 +157,8 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
         medicineRegulatoryClassification: "",
         medicineDescription: "",
         medicineClassification: "",
+        totalQuantity: 0,
+        userId: ""
       });
       setFile(null);
       setPreview(null);

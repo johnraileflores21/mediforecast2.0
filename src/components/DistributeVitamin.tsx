@@ -1,46 +1,132 @@
 import React, { useState, useEffect, ChangeEvent } from "react";
 import { db } from "../firebase";
-import { collection, doc, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, getDoc, setDoc, getDocs, query, where, addDoc } from "firebase/firestore";
 import { IoMdClose } from "react-icons/io";
 import { useUser } from "./User";
+import Swal from "sweetalert2";
 
 interface DistributeVitaminProps {
   showModal: boolean;
-  closeModal: () => void;
-  viewId: string | null;
+  closeModal: (bool: any) => void;
+  data: any;
 }
 
 const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
   showModal,
   closeModal,
-  viewId,
+  data,
 }) => {
   const [vitamin, setVitamin] = useState<any | null>(null);
   const [barangay, setBarangay] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
   const { user } = useUser();
 
-  let inventory = "";
-
-  if (user?.rhuOrBarangay === "1") {
-    inventory = "RHU1Inventory";
-  } else if (user?.rhuOrBarangay === "2") {
-    inventory = "RHU2Inventory";
-  } else if (user?.rhuOrBarangay === "3") {
-    inventory = "RHU3Inventory";
-  }
-
   useEffect(() => {
-    if (!viewId) return;
-
-    const unsub = onSnapshot(doc(db, inventory, viewId), (doc) => {
-      setVitamin({ id: doc.id, ...doc.data() });
-    });
-
-    return () => unsub();
-  }, [viewId, inventory]);
+    if(data) {
+      setVitamin(data);
+    }
+  }, [data]);
 
   if (!showModal || !vitamin) {
     return null;
+  }
+
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+      let payload = {
+        ...vitamin,
+        vitaminStock: parseInt(vitamin.vitaminStock)
+      };
+
+      if(!payload.barangay) return Swal.fire({
+        position: "center",
+        icon: "error",
+        title: `Barangay is required`,
+        showConfirmButton: false,
+        timer: 1000,
+      });
+
+      console.log("payload :>> ", payload);
+      const itemDocRef = doc(db, "Inventory", vitamin.id);
+      const itemSnap = await getDoc(itemDocRef);
+      if(!itemSnap.exists()) throw new Error("Item not found");
+
+      const itemData = itemSnap.data();
+      const currentStock = itemData.vitaminStock;
+
+      if(payload.vitaminStock > currentStock) throw new Error("Insufficient stock.");
+
+      const userQuery = query(
+        collection(db, "Users"),
+        where("barangay", "==", payload.barangay)
+      );
+
+      const userSnap = await getDocs(userQuery);
+      console.log("userSnap :>> ", userSnap);
+      const userData = userSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      console.log("userData :>> ", userData);
+      
+      const filteredUser = userData.filter((x: any) => x?.role.includes('Barangay'));
+      if(filteredUser.length > 0) {
+        await updateDoc(itemDocRef, { vitaminStock: currentStock - payload.vitaminStock });
+
+        const _user = filteredUser[0];
+
+        const barangayInventoryRef = doc(db, "BarangayInventory", payload.id);
+        const barangayInventorySnap = await getDoc(barangayInventoryRef);
+        const existingData = barangayInventorySnap.data();
+
+        const _currentStock = existingData?.vitaminStock || 0;
+        const newStock = parseInt(payload.vitaminStock) + _currentStock;
+
+        const barangayInventoryData = {
+          ...itemData,
+          vitaminStock: newStock,
+          totalQuantity: (existingData?.totalQuantity + newStock) || newStock,
+          created_at: new Date().toISOString(),
+          userId: _user?.id
+        };
+
+        if(barangayInventorySnap.exists()) {
+          await setDoc(barangayInventoryRef, barangayInventoryData, { merge: true });
+        } else await setDoc(barangayInventoryRef, barangayInventoryData);
+
+        Swal.fire({
+          position: "center",
+          icon: "success",
+          title: `${payload.vitaminBrandName} has been distributed to ${payload.barangay}`,
+          showConfirmButton: false,
+          timer: 1500,
+        });
+
+        closeModal(true);
+
+      } else {
+        Swal.fire({
+          position: "center",
+          icon: "error",
+          title: `No existing user for ${payload.barangay}`,
+          showConfirmButton: false,
+          timer: 1000,
+        });
+      }
+
+    } catch(error: any) {
+      Swal.fire({
+        position: "center",
+        icon: "error",
+        title: `Distribution error`,
+        showConfirmButton: false,
+        timer: 1000,
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -52,8 +138,9 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
     });
   };
 
-  const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    setBarangay(e.target.value);
+  const handleChange = (e: any, field: string) => {
+    setVitamin({ ...vitamin, [field]: e.target.value });
+    console.log("vitamin :>> ", { ...vitamin, [field]: e.target.value });
   };
 
   return (
@@ -133,15 +220,11 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                           Quantity
                         </label>
                         <input
-                          type="text"
+                          type="number"
                           id="vitaminStock"
-                          value={
-                            vitamin.vitaminStock > 1
-                              ? `${vitamin.vitaminStock} boxes`
-                              : `${vitamin.vitaminStock} box`
-                          }
+                          value={vitamin.vitaminStock}
+                          onChange={(e) => handleChange(e, 'vitaminStock')}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                          disabled
                         />
                       </div>
                       <div className="w-full">
@@ -251,8 +334,7 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                       <div className="relative mt-1">
                         <select
                           id="barangay"
-                          value={barangay}
-                          onChange={handleChange}
+                          onChange={(e) => handleChange(e, 'barangay')}
                           className="block appearance-none w-full p-3 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-black focus:border-black sm:text-base"
                         >
                           <option value="">Barangay</option>
@@ -285,8 +367,10 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                     </div>
                     <div className="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse w-full">
                       <button
+                        disabled={loading}
                         type="button"
-                        className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"
+                        onClick={handleSubmit}
+                        className={`${loading && 'opacity-[0.5]'} w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm`}
                       >
                         Submit
                       </button>

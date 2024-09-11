@@ -69,6 +69,8 @@ const Login = () => {
       const docRef = doc(db, "Users", user.uid);
       const docSnap = await getDoc(docRef);
 
+      console.log("login user :>> ", user);
+
       if (docSnap.exists()) {
         const userData = docSnap.data();
 
@@ -96,14 +98,17 @@ const Login = () => {
             timer: 1000,
           });
           // Update user context only on successful login
-          setUser({
+          const payload = {
             firstname: userData.firstname || "",
             lastname: userData.lastname || "",
             email: userData.email || "",
             rhuOrBarangay: userData.rhuOrBarangay || "",
             imageUrl: userData.imageUrl || "",
             barangay: userData.barangay || "",
-          });
+            uid: user.uid || ""
+          };
+          console.log("payload :>> ", payload)
+          setUser(payload);
 
           setTimeout(() => {
             navigate("/dashboard");

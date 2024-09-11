@@ -9,7 +9,7 @@ const Edit = () => {
 
     const [formData, setFormData] = useState({
         medicineName: "",
-        medicineStock: "",
+        medicineStock: 0,
         medicineDescription: "",
         medicineExpiration: "",
     });

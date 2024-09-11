@@ -16,6 +16,8 @@ interface User {
   rhuOrBarangay: string;
   imageUrl: string;
   barangay: string;
+  uid: string;
+  role: string;
 }
 
 interface UserContextProps {
@@ -40,17 +42,23 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
           try {
             const docRef = doc(db, "Users", authUser.uid);
             const docSnap = await getDoc(docRef);
+            console.log("uid :>> ", authUser.uid);
 
             if (docSnap.exists()) {
               const userData = docSnap.data();
-              setUser({
+              const userPayload = {
                 firstname: userData.firstname,
                 lastname: userData.lastname,
                 email: userData.email,
                 rhuOrBarangay: userData.rhuOrBarangay,
                 imageUrl: userData.imageUrl,
                 barangay: userData.barangay,
-              });
+                uid: authUser.uid,
+                role: userData.role
+              };
+              console.log("userPayload :>> ", userPayload);
+
+              setUser(userPayload);
             } else {
               setUser(null);
             }

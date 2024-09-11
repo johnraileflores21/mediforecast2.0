@@ -26,6 +26,8 @@ interface UserDetails {
   rhuOrBarangay: string;
   imageUrl: string;
   barangay: string;
+  uid: string;
+  role: string
 }
 ChartJS.register(
   CategoryScale,
@@ -59,6 +61,8 @@ const Dashboard: React.FC = () => {
                 rhuOrBarangay: data.rhuOrBarangay,
                 imageUrl: data.imageUrl,
                 barangay: data.barangay,
+                uid: user.uid,
+                role: data.role,
               });
             } else {
               setError("No user details found.");

@@ -7,13 +7,13 @@ import { useUser } from "./User";
 interface ModalViewVitaminsProps {
   showModal: boolean;
   closeModal: () => void;
-  viewId: string | null;
+  data: any;
 }
 
 const ModalViewVitamins: React.FC<ModalViewVitaminsProps> = ({
   showModal,
   closeModal,
-  viewId,
+  data,
 }) => {
   const [vitamin, setVitamin] = useState<any | null>(null);
   const { user } = useUser();
@@ -29,19 +29,10 @@ const ModalViewVitamins: React.FC<ModalViewVitaminsProps> = ({
   }
 
   useEffect(() => {
-    if (!viewId) return;
-
-    const unsub = onSnapshot(collection(db, inventory), (snapshot) => {
-      const vitaminsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      const selectedVitamin = vitaminsData.find((vit) => vit.id === viewId);
-      setVitamin(selectedVitamin);
-    });
-
-    return () => unsub();
-  }, [viewId, inventory]);
+    if(data) {
+      setVitamin(data);
+    }
+  }, [data]);
 
   if (!showModal || !vitamin) {
     return null;
@@ -129,11 +120,7 @@ const ModalViewVitamins: React.FC<ModalViewVitaminsProps> = ({
                     <input
                       type="text"
                       id="vitaminStock"
-                      value={
-                        vitamin.vitaminStock > 1
-                          ? `${vitamin.vitaminStock} boxes`
-                          : `${vitamin.vitaminStock} box`
-                      }
+                      value={vitamin.vitaminStock}
                       className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                       disabled
                     />

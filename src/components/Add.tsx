@@ -13,7 +13,7 @@ import { Link } from "react-router-dom";
 const Add = () => {
     const [formData, setFormData] = useState({
         medicineName: "",
-        medicineStock: "",
+        medicineStock: 0,
         medicineDescription: "",
         medicineExpiration: "",
     });
@@ -61,7 +61,7 @@ const Add = () => {
             console.log("Document written with ID: ", docId);
             setFormData({
                 medicineName: "",
-                medicineStock: "",
+                medicineStock: 0,
                 medicineDescription: "",
                 medicineExpiration: "",
             });
