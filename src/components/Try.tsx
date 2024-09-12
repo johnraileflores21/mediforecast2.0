@@ -46,21 +46,11 @@ const Try: React.FC = () => {
   const { user } = useUser();
   const MySwal = withReactContent(Swal);
 
-  // let inventory = "";
-
-  // if (user?.rhuOrBarangay === "1") {
-  //   inventory = "RHU1Inventory";
-  // } else if (user?.rhuOrBarangay === "2") {
-  //   inventory = "RHU2Inventory";
-  // } else if (user?.rhuOrBarangay === "3") {
-  //   inventory = "RHU3Inventory";
-  // }
-
   const fetchData = async () => {
     try {
       const inventoryQuery = query(
         collection(db, user?.role.includes("Barangay") ? "BarangayInventory" : "Inventory"),
-        where("userId", "==", user?.uid)
+        where("created_by_unit", "==", user?.rhuOrBarangay)
       );
 
       const inventorySnap = await getDocs(inventoryQuery);
@@ -303,11 +293,32 @@ const Try: React.FC = () => {
                           <span>Stock: {item.medicineStock || item.vitaminStock || item.vaccineStock}</span>
                         <div>
                           <span>
-                            {item.medicineClassification &&
+                            {
+                              (item.medicineClassification)
+                                ? (item.medicineClassification.includes('ml')
+                                    ? `${item.medicineClassification} per ${item.medicinePackaging}`
+                                    : `${item.medicineClassification}
+                                      ${(item.medicineDosageForm || "").toLowerCase()}${parseInt(item.medicineClassification) > 1 && "s"}
+                                      per ${item.medicinePackaging}`)
+                                
+                                : (item.vitaminClassification)
+                                  ? (item.vitaminClassification.includes('ml')
+                                      ? `${item.vitaminClassification} per ${item.vitaminPackaging}`
+                                      : `${item.vitaminClassification}
+                                        ${(item.vitaminDosageForm || "").toLowerCase()}${parseInt(item.vitaminClassification) > 1 && "s"}
+                                        per ${item.vitaminPackaging}`)
+
+                                : (item.vaccineClassification.includes('ml')
+                                  ? `${item.vaccineClassification} per ${item.vaccinePackaging}`
+                                  : `${item.vaccineClassification}
+                                    ${(item.vaccineDosageForm || "").toLowerCase()}${parseInt(item.vaccineClassification) > 1 && "s"}
+                                    per ${item.vaccinePackaging}`)
+                            }
+                            {/* {item.medicineClassification && item.vaccineClassification.includes('ml') &&
                               `${item.medicineClassification}
                               ${(item.medicineDosageForm || "").toLowerCase()}${parseInt(item.medicineClassification) > 1 && "s"}
-                              per item`
-                            }
+                              per ${item.medicinePackaging}`
+                            } */}
                           </span>
                         </div>
                         {/* Add similar conditions for vaccineStock and vitaminStock if needed */}
@@ -315,24 +326,11 @@ const Try: React.FC = () => {
                           <>
                             {
                                 item.vaccineClassification.includes('ml') ?
-                                <>{item.vaccineClassification} per item</> :
+                                <>{item.vaccineClassification} per ${item.vaccinePackaging}</> :
                                 <>
-                                  {item.vaccineClassification} {`${item.vaccineDosageForm.toLowerCase()}${parseInt(item.vaccineClassification) > 1 && "s"} per item`}
+                                  {item.vaccineClassification} {`${item.vaccineDosageForm.toLowerCase()}${parseInt(item.vaccineClassification) > 1 && "s"} per ${item.vaccinePackaging}`}
                                 </>
                               }
-                          </>
-                        )}
-                        {item.vitaminStock && (
-                          <>
-                            <span>
-                              {
-                                item.vitaminClassification.includes('ml') ?
-                                <>{item.vitaminClassification} per item</> :
-                                <>
-                                  {item.vitaminClassification} {`${item.vitaminDosageForm.toLowerCase()}${parseInt(item.vitaminClassification) > 1 && "s"} per item`}
-                                </>
-                              }
-                            </span>
                           </>
                         )}
                       </div>

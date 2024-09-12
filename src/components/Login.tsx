@@ -7,7 +7,7 @@ import {
   browserSessionPersistence,
   sendPasswordResetEmail,
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import bcrypt from "bcryptjs";
 import { auth, db } from "../firebase";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -35,6 +35,16 @@ const Login = () => {
   const [newPassword, setNewPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
+  const showCommonToast = (message: string) => {
+    const errMessage = !message.includes('Invalid')
+      ? `Your account ${message}.`
+      : 'Invalid Email or Password';
+      
+    toast.error(errMessage, { position: "top-right", autoClose: 3000 });
+    setError(errMessage);
+    setErrors(true);
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -58,71 +68,125 @@ const Login = () => {
 
       await setPersistence(auth, persistence);
 
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const userQuery = query(collection(db, "Users"), where("email", "==", email));
+      const querySnapshot = await getDocs(userQuery);
 
-      const user = userCredential.user;
+      if(querySnapshot.empty)
+        return showCommonToast('Invalid');
 
-      const docRef = doc(db, "Users", user.uid);
-      const docSnap = await getDoc(docRef);
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data();
 
-      console.log("login user :>> ", user);
+      const isPasswordValid = await bcrypt.compare(password, userData.password);
 
-      if (docSnap.exists()) {
-        const userData = docSnap.data();
+      if(!isPasswordValid) 
+        return showCommonToast('Invalid');
 
-        // Check user account status
-        if (userData.acc_status === "pending") {
-          toast.error("Your account is pending approval.", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-          setError("Your account is pending approval.");
-          setErrors(true);
-        } else if (userData.acc_status === "decline") {
-          toast.error("Your account has been declined.", {
-            position: "top-right",
-            autoClose: 3000,
-          });
-          setError("Your account has been declined.");
-          setErrors(true);
-        } else {
-          MySwal.fire({
-            position: "center",
-            icon: "success",
-            title: "User Logged In Successfully!",
-            showConfirmButton: false,
-            timer: 1000,
-          });
-          // Update user context only on successful login
-          const payload = {
-            firstname: userData.firstname || "",
-            lastname: userData.lastname || "",
-            email: userData.email || "",
-            rhuOrBarangay: userData.rhuOrBarangay || "",
-            imageUrl: userData.imageUrl || "",
-            barangay: userData.barangay || "",
-            uid: user.uid || ""
-          };
-          console.log("payload :>> ", payload)
-          setUser(payload);
-
-          setTimeout(() => {
-            navigate("/dashboard");
-          }, 700);
-        }
+      if(userData.acc_status === "pending") {
+        return showCommonToast('is pending approval');
+      } else if (userData.acc_status === "decline") {
+        return showCommonToast('has been declined');
       } else {
-        toast.error("User details not found.", {
-          position: "top-right",
-          autoClose: 1000,
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+
+        const user = userCredential.user;
+
+        MySwal.fire({
+          position: "center",
+          icon: "success",
+          title: "User Logged In Successfully!",
+          showConfirmButton: false,
+          timer: 1000,
         });
-        setError("Invalid Email or Password!");
-        setErrors(true);
+
+        const payload = {
+          firstname: userData.firstname || "",
+          lastname: userData.lastname || "",
+          email: userData.email || "",
+          rhuOrBarangay: userData.rhuOrBarangay || "",
+          imageUrl: userData.imageUrl || "",
+          barangay: userData.barangay || "",
+          uid: user.uid || "",
+          role: userData.role
+        };
+
+        setUser(payload);
+
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 700);
       }
+
+      // const user = userCredential.user;
+
+      // const docRef = doc(db, "Users", user.uid);
+      // const docSnap = await getDoc(docRef);
+
+      // console.log("login user :>> ", user);
+
+      // if (docSnap.exists()) {
+      //   const userData = docSnap.data();
+
+      //   console.log('userData :>> ', userData);
+
+      //   // Check user account status
+      //   if (userData.acc_status === "pending") {
+      //     toast.error("Your account is pending approval.", {
+      //       position: "top-right",
+      //       autoClose: 3000,
+      //     });
+      //     setError("Your account is pending approval.");
+      //     setErrors(true);
+
+      //     return;
+      //   } else if (userData.acc_status === "decline") {
+      //     toast.error("Your account has been declined.", {
+      //       position: "top-right",
+      //       autoClose: 3000,
+      //     });
+      //     setError("Your account has been declined.");
+      //     setErrors(true);
+
+      //     return;
+      //   } else {
+      //     MySwal.fire({
+      //       position: "center",
+      //       icon: "success",
+      //       title: "User Logged In Successfully!",
+      //       showConfirmButton: false,
+      //       timer: 1000,
+      //     });
+      //     // Update user context only on successful login
+      //     const payload = {
+      //       firstname: userData.firstname || "",
+      //       lastname: userData.lastname || "",
+      //       email: userData.email || "",
+      //       rhuOrBarangay: userData.rhuOrBarangay || "",
+      //       imageUrl: userData.imageUrl || "",
+      //       barangay: userData.barangay || "",
+      //       uid: user.uid || ""
+      //     };
+      //     console.log("payload :>> ", payload)
+      //     setUser(payload);
+
+      //     setTimeout(() => {
+      //       navigate("/dashboard");
+      //     }, 700);
+      //   }
+      // } else {
+      //   toast.error("User details not found.", {
+      //     position: "top-right",
+      //     autoClose: 1000,
+      //   });
+      //   setError("Invalid Email or Password!");
+      //   setErrors(true);
+      // }
     } catch (error) {
+      console.log('error :>> ', error);
       toast.error("Invalid Email or Password!", {
         position: "top-right",
         autoClose: 1000,

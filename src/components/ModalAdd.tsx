@@ -10,6 +10,7 @@ import { FaUpload } from "react-icons/fa";
 import AddVaccine from "./AddVaccine";
 import ModalAddVitamin from "./ModalAddVitamin";
 import { useUser } from "./User";
+import { medical_packaging, dosage_forms, medicineFormData } from "../assets/common/constants";
 
 interface ModalAddProps {
   showModal: boolean;
@@ -21,59 +22,30 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string>("Dosage Form");
-  const [formData, setFormData] = useState({
-    medicineGenericName: "",
-    medicineBrandName: "",
-    medicineStock: 0,
-    totalQuantity: 0,
-    medicineLotNo: "",
-    medicineDosageForm: "",
-    medicineDosageStrength: "",
-    medicineExpiration: "",
-    medicineRegulatoryClassification: "",
-    medicineDescription: "",
-    medicineClassification: "",
-    userId: ""
-  });
+  const [selectedPackaging, setSelectedPackaging] = useState<string>("Medical Packaging");
+  const [formData, setFormData] = useState(medicineFormData);
   const [errors, setErrors] = useState<any>({});
   const [activeTab, setActiveTab] = useState("Medicine");
   const tabs = ["Medicine", "Vitamin", "Vaccine"];
   const { user } = useUser();
-
-  // let inventory = "";
-
-  // if (user?.rhuOrBarangay === "1") {
-  //   inventory = "RHU1Inventory";
-  // } else if (user?.rhuOrBarangay === "2") {
-  //   inventory = "RHU2Inventory";
-  // } else if (user?.rhuOrBarangay === "3") {
-  //   inventory = "RHU3Inventory";
-  // }
-
+  
   const validateForm = () => {
     const newErrors: any = {};
-    if (!formData.medicineGenericName)
-      newErrors.medicineGenericName = "Generic Name is required";
-    if (!formData.medicineBrandName)
-      newErrors.medicineBrandName = "Brand Name is required";
-    if (!formData.medicineStock) newErrors.medicineStock = "Stock is required";
-    if (!formData.medicineLotNo)
-      newErrors.medicineLotNo = "Lot No. is required";
-    if (!formData.medicineDosageStrength)
-      newErrors.medicineDosageStrength = "Dosage Strength is required";
-    if (!formData.medicineExpiration)
-      newErrors.medicineExpiration = "Expiration Date is required";
-    if (!formData.medicineRegulatoryClassification)
-      newErrors.medicineRegulatoryClassification =
-        "Regulatory Classification is required";
-    if (!formData.medicineDescription)
-      newErrors.medicineDescription = "Description is required";
-    if (!file) newErrors.medicineImage = "Image is required";
-    if (!formData.medicineClassification)
-      newErrors.medicineClassification = "Stock Classification is required";
+    const fields = Object.keys(formData) as Array<keyof typeof formData>;
+
+    fields.forEach(field => {
+      if(!formData[field] && field !== 'userId') {
+        const types = ['medicine', 'vitamin', 'vaccine'];
+        const getType = types.find(type => field.includes(type));
+        if(getType) {
+          const fieldName = field.split(getType)[1];
+          const formatted = fieldName.replace(/([a-z])([A-Z])/g, '$1 $2');
+          newErrors[field] = `${formatted} is required`;
+        }
+      }
+    });
 
     setErrors(newErrors);
-
     return Object.keys(newErrors).length === 0;
   };
 
@@ -140,33 +112,24 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
         created_at: dateToday,
         updated_at: dateToday,
         medicineDosageForm: selectedOption,
+        medicinePackaging: selectedPackaging,
         created_by_unit: user?.rhuOrBarangay
       };
 
       const docRef = await addDoc(collection(db, "Inventory"), formDataWithImage);
       console.log("Document written with ID: ", docRef.id);
 
-      setFormData({
-        medicineGenericName: "",
-        medicineBrandName: "",
-        medicineStock: 0,
-        medicineLotNo: "",
-        medicineDosageForm: "",
-        medicineDosageStrength: "",
-        medicineExpiration: "",
-        medicineRegulatoryClassification: "",
-        medicineDescription: "",
-        medicineClassification: "",
-        totalQuantity: 0,
-        userId: ""
-      });
+      setFormData(medicineFormData);
+
       setFile(null);
       setPreview(null);
       setShowModalSucces(true);
+
       setTimeout(() => {
         setShowModalSucces(false);
         closeModal();
       }, 1000);
+      
     } catch (error) {
       console.error("Error adding document: ", error);
     } finally {
@@ -447,76 +410,63 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
                                   )}
                                 </div>
                               </div>
-                              <div className="w-full flex justify-center items-center">
-                                <details className="dropdown dropdown-end ">
-                                  <summary
-                                    className="btn m-1 bg-black text-white w-52 flex justify-between"
-                                    tabIndex={0}
-                                    role="button"
-                                  >
-                                    {selectedOption}
-                                    <FaCaretDown className="w-4 h-4 text-white ml-1" />
-                                  </summary>
-                                  <ul
-                                    className="menu dropdown-content  bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
-                                    tabIndex={0}
-                                  >
-                                    <li className="hover:text-black hover:bg-white rounded-lg">
-                                      <a
-                                        onClick={() => {
-                                          setSelectedOption("Tablet");
-                                        }}
-                                      >
-                                        Tablet
-                                      </a>
-                                    </li>
-                                    <li className="hover:text-black hover:bg-white rounded-lg">
-                                      <a
-                                        onClick={() => {
-                                          setSelectedOption("Syrup");
-                                        }}
-                                      >
-                                        Syrup
-                                      </a>
-                                    </li>
-                                    <li className="hover:text-black hover:bg-white rounded-lg">
-                                      <a
-                                        onClick={() => {
-                                          setSelectedOption("Capsule");
-                                        }}
-                                      >
-                                        Capsule
-                                      </a>
-                                    </li>
-                                    <li className="hover:text-black hover:bg-white rounded-lg">
-                                      <a
-                                        onClick={() => {
-                                          setSelectedOption("Suspension");
-                                        }}
-                                      >
-                                        Suspension
-                                      </a>
-                                    </li>
-                                    <li className="hover:text-black hover:bg-white rounded-lg">
-                                      <a
-                                        onClick={() => {
-                                          setSelectedOption("Cream");
-                                        }}
-                                      >
-                                        Cream
-                                      </a>
-                                    </li>
-                                    <li className="hover:text-black hover:bg-white rounded-lg">
-                                      <a
-                                        onClick={() => {
-                                          setSelectedOption("Ointment");
-                                        }}
-                                      >
-                                        Ointment
-                                      </a>
-                                    </li>
-                                  </ul>
-                                </details>
+                              <div className="flex flex-row">
+                                <div className="w-[1/2] flex justify-center items-center">
+                                  <details className="dropdown dropdown-end ">
+                                    <summary
+                                      className="btn m-1 bg-black text-white w-52 flex justify-between"
+                                      tabIndex={0}
+                                      role="button"
+                                    >
+                                      {selectedOption}
+                                      <FaCaretDown className="w-4 h-4 text-white ml-1" />
+                                    </summary>
+                                    <ul
+                                      className="menu dropdown-content  bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
+                                      tabIndex={0}
+                                    >
+                                      {dosage_forms.map((label: string) => (
+                                        <li key={label} className="hover:text-black hover:bg-white rounded-lg">
+                                          <a
+                                            onClick={() => {
+                                              setSelectedOption(label);
+                                            }}
+                                          >
+                                            {label}
+                                          </a>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </details>
+                                </div>
+                                <div className="w-[1/2] flex justify-center items-center">
+                                  <details className="dropdown dropdown-end ">
+                                    <summary
+                                      className="btn m-1 bg-black text-white w-52 flex justify-between"
+                                      tabIndex={0}
+                                      role="button"
+                                    >
+                                      {selectedPackaging}
+                                      <FaCaretDown className="w-4 h-4 text-white ml-1" />
+                                    </summary>
+                                    <ul
+                                      className="menu dropdown-content  bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
+                                      tabIndex={0}
+                                    >
+                                      {medical_packaging.map((label: string) => (
+                                        <li key={label} className="hover:text-black hover:bg-white rounded-lg">
+                                          <a
+                                            onClick={() => {
+                                              setSelectedPackaging(label);
+                                            }}
+                                          >
+                                            {label}
+                                          </a>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </details>
+                                </div>
                               </div>
                               <div className="flex flex-row">
                                 <div className="w-1/2">
