@@ -10,7 +10,11 @@ import { FaUpload } from "react-icons/fa";
 import AddVaccine from "./AddVaccine";
 import ModalAddVitamin from "./ModalAddVitamin";
 import { useUser } from "./User";
-import { medical_packaging, dosage_forms, medicineFormData } from "../assets/common/constants";
+import {
+  medical_packaging,
+  dosage_forms,
+  medicineFormData,
+} from "../assets/common/constants";
 
 interface ModalAddProps {
   showModal: boolean;
@@ -22,24 +26,25 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string>("Dosage Form");
-  const [selectedPackaging, setSelectedPackaging] = useState<string>("Medical Packaging");
+  const [selectedPackaging, setSelectedPackaging] =
+    useState<string>("Medical Packaging");
   const [formData, setFormData] = useState(medicineFormData);
   const [errors, setErrors] = useState<any>({});
   const [activeTab, setActiveTab] = useState("Medicine");
   const tabs = ["Medicine", "Vitamin", "Vaccine"];
   const { user } = useUser();
-  
+
   const validateForm = () => {
     const newErrors: any = {};
     const fields = Object.keys(formData) as Array<keyof typeof formData>;
 
-    fields.forEach(field => {
-      if(!formData[field] && field !== 'userId') {
-        const types = ['medicine', 'vitamin', 'vaccine'];
-        const getType = types.find(type => field.includes(type));
-        if(getType) {
+    fields.forEach((field) => {
+      if (!formData[field] && field !== "userId") {
+        const types = ["medicine", "vitamin", "vaccine"];
+        const getType = types.find((type) => field.includes(type));
+        if (getType) {
           const fieldName = field.split(getType)[1];
-          const formatted = fieldName.replace(/([a-z])([A-Z])/g, '$1 $2');
+          const formatted = fieldName.replace(/([a-z])([A-Z])/g, "$1 $2");
           newErrors[field] = `${formatted} is required`;
         }
       }
@@ -113,10 +118,13 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
         updated_at: dateToday,
         medicineDosageForm: selectedOption,
         medicinePackaging: selectedPackaging,
-        created_by_unit: user?.rhuOrBarangay
+        created_by_unit: user?.rhuOrBarangay,
       };
 
-      const docRef = await addDoc(collection(db, "Inventory"), formDataWithImage);
+      const docRef = await addDoc(
+        collection(db, "Inventory"),
+        formDataWithImage
+      );
       console.log("Document written with ID: ", docRef.id);
 
       setFormData(medicineFormData);
@@ -129,7 +137,6 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
         setShowModalSucces(false);
         closeModal();
       }, 1000);
-      
     } catch (error) {
       console.error("Error adding document: ", error);
     } finally {
@@ -414,19 +421,22 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
                                 <div className="w-[1/2] flex justify-center items-center">
                                   <details className="dropdown dropdown-end ">
                                     <summary
-                                      className="btn m-1 bg-black text-white w-52 flex justify-between"
+                                      className="btn mr-1 bg-white text-gray-700 w-52 flex justify-between border-gray-300"
                                       tabIndex={0}
                                       role="button"
                                     >
                                       {selectedOption}
-                                      <FaCaretDown className="w-4 h-4 text-white ml-1" />
+                                      <FaCaretDown className="w-4 h-4 text-gray-700 ml-1" />
                                     </summary>
                                     <ul
-                                      className="menu dropdown-content  bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
+                                      className="menu dropdown-content bg-white text-black rounded-box z-[1] w-52 p-2 shadow-lg mt-1 border-gray-300"
                                       tabIndex={0}
                                     >
                                       {dosage_forms.map((label: string) => (
-                                        <li key={label} className="hover:text-black hover:bg-white rounded-lg">
+                                        <li
+                                          key={label}
+                                          className="hover:text-black hover:bg-white rounded-lg"
+                                        >
                                           <a
                                             onClick={() => {
                                               setSelectedOption(label);
@@ -442,28 +452,33 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
                                 <div className="w-[1/2] flex justify-center items-center">
                                   <details className="dropdown dropdown-end ">
                                     <summary
-                                      className="btn m-1 bg-black text-white w-52 flex justify-between"
+                                      className="btn bg-white text-gray-700 w-52 flex justify-between border-gray-300"
                                       tabIndex={0}
                                       role="button"
                                     >
                                       {selectedPackaging}
-                                      <FaCaretDown className="w-4 h-4 text-white ml-1" />
+                                      <FaCaretDown className="w-4 h-4 text-gray-700 ml-1" />
                                     </summary>
                                     <ul
-                                      className="menu dropdown-content  bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
+                                      className="menu dropdown-content bg-white text-black rounded-box z-[1] w-52 p-2 shadow-lg mt-1 border-gray-300"
                                       tabIndex={0}
                                     >
-                                      {medical_packaging.map((label: string) => (
-                                        <li key={label} className="hover:text-black hover:bg-white rounded-lg">
-                                          <a
-                                            onClick={() => {
-                                              setSelectedPackaging(label);
-                                            }}
+                                      {medical_packaging.map(
+                                        (label: string) => (
+                                          <li
+                                            key={label}
+                                            className="hover:text-black hover:bg-white rounded-lg"
                                           >
-                                            {label}
-                                          </a>
-                                        </li>
-                                      ))}
+                                            <a
+                                              onClick={() => {
+                                                setSelectedPackaging(label);
+                                              }}
+                                            >
+                                              {label}
+                                            </a>
+                                          </li>
+                                        )
+                                      )}
                                     </ul>
                                   </details>
                                 </div>

@@ -17,7 +17,8 @@ interface CommunityPost {
   created_by: string;
   postMessage: string;
   postImg?: string;
-  fileType?: string; // Add fileType to store media type
+  fileType?: string;
+  rhu: string;
 }
 
 const Community = () => {
@@ -60,23 +61,28 @@ const Community = () => {
   };
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "CommunityPost"), (snapshot) => {
-      const itemsData: CommunityPost[] = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<CommunityPost, "id">),
-      }));
+    if (user?.rhuOrBarangay) {
+      const unsub = onSnapshot(collection(db, "CommunityPost"), (snapshot) => {
+        const itemsData: CommunityPost[] = snapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...(doc.data() as Omit<CommunityPost, "id">),
+          }))
+          // Filter posts based on the user rhuOrBarangay
+          .filter((item) => item.rhu === user.rhuOrBarangay);
 
-      itemsData.sort(
-        (a, b) =>
-          new Date(b.created_by).getTime() - new Date(a.created_by).getTime()
-      );
+        // Sort posts by creation date
+        itemsData.sort(
+          (a, b) =>
+            new Date(b.created_by).getTime() - new Date(a.created_by).getTime()
+        );
 
-      setItems(itemsData);
-    });
-    return () => unsub();
-  }, []);
+        setItems(itemsData);
+      });
 
-  useEffect(() => {}, [user]);
+      return () => unsub();
+    }
+  }, [user?.rhuOrBarangay]);
 
   let inventory = "";
 

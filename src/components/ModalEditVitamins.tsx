@@ -57,7 +57,7 @@ const ModalEditVitamins: React.FC<ModalEditVitaminsProps> = ({
   const { user } = useUser();
 
   useEffect(() => {
-    if(data) {
+    if (data) {
       setFormData(data);
       setSelectedOption(data.vitaminDosageForm || null);
       setPreview(data.vitaminImg || null);
@@ -91,7 +91,7 @@ const ModalEditVitamins: React.FC<ModalEditVitaminsProps> = ({
     try {
       let imageUrl = formData.vitaminImg;
 
-      if(file) {
+      if (file) {
         const storageReference = storageRef(
           storage,
           `Vitamins/${file.name + v4()}`
@@ -99,13 +99,14 @@ const ModalEditVitamins: React.FC<ModalEditVitaminsProps> = ({
         await uploadBytes(storageReference, file);
         imageUrl = await getDownloadURL(storageReference);
       }
-      if(data) {
-        if(selectedOption) formData.medicineDosageForm = selectedOption;
+      if (data) {
+        if (selectedOption) formData.medicineDosageForm = selectedOption;
         await updateDoc(doc(db, "Inventory", data.id), {
           ...formData,
           vitaminImg: imageUrl,
           updated_at: dateToday,
-        });``
+        });
+        ``;
       }
       console.log("Document successfully updated!");
       notify();
@@ -322,17 +323,17 @@ const ModalEditVitamins: React.FC<ModalEditVitaminsProps> = ({
                           />
                         </div>
 
-                        <details className="dropdown dropdown-end w-52 mt-4">
+                        <details className="dropdown dropdown-end w-52 mt-5">
                           <summary
-                            className="btn m-1 bg-black text-white w-52 flex justify-between"
+                            className="btn ml-1 bg-white text-gray-700 w-52 flex justify-between border-gray-300"
                             tabIndex={0}
                             role="button"
                           >
                             {selectedOption || "Select Dosage Form"}
-                            <FaCaretDown className="w-4 h-4 text-white ml-1" />
+                            <FaCaretDown className="w-4 h-4 text-gray-700 ml-1" />
                           </summary>
                           <ul
-                            className="menu dropdown-content bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
+                            className="menu dropdown-content bg-white text-black rounded-box z-[1] w-52 p-2 shadow-lg mt-1 border-gray-300"
                             tabIndex={0}
                           >
                             {[
@@ -433,7 +434,7 @@ const ModalEditVitamins: React.FC<ModalEditVitaminsProps> = ({
                       viewBox="0 0 16 16"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
-                      className="animate-spin h-5 w-5 mr-3 text-white"
+                      className="animate-spin h-5 w-5 text-white"
                       clipRule="evenodd"
                     >
                       <g fill="#000000" fillRule="evenodd" clipRule="evenodd">

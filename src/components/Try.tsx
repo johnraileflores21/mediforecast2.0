@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { db, storage } from "../firebase";
-import { collection, onSnapshot, deleteDoc, doc, query, where, getDocs, getDoc } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  deleteDoc,
+  doc,
+  query,
+  where,
+  getDocs,
+  getDoc,
+} from "firebase/firestore";
 import DashboardLayout from "./DashboardLayout";
 import { IoMdAddCircle } from "react-icons/io";
 import ModalAdd from "./ModalAdd";
@@ -49,12 +58,15 @@ const Try: React.FC = () => {
   const fetchData = async () => {
     try {
       const inventoryQuery = query(
-        collection(db, user?.role.includes("Barangay") ? "BarangayInventory" : "Inventory"),
+        collection(
+          db,
+          user?.role.includes("Barangay") ? "BarangayInventory" : "Inventory"
+        ),
         where("created_by_unit", "==", user?.rhuOrBarangay)
       );
 
       const inventorySnap = await getDocs(inventoryQuery);
-      const inventoryItems = inventorySnap.docs.map(doc => ({
+      const inventoryItems = inventorySnap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
@@ -66,7 +78,7 @@ const Try: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log('user :>> ', user);
+    console.log("user :>> ", user);
     fetchData();
   }, [user?.rhuOrBarangay]);
 
@@ -101,7 +113,7 @@ const Try: React.FC = () => {
   };
 
   const handleView = (item: any) => {
-    console.log("item :>> ", item)
+    console.log("item :>> ", item);
     setForm(item);
     if (item.type === "Medicine") {
       setModalView(true);
@@ -110,7 +122,7 @@ const Try: React.FC = () => {
     } else if (item.type === "Vitamin") {
       setModalViewVitamin(true);
     }
-    console.log("modalView :>> ", modalView)
+    console.log("modalView :>> ", modalView);
   };
 
   const closeModalView = () => setModalView(false);
@@ -118,7 +130,7 @@ const Try: React.FC = () => {
   const closeModalViewVitamin = () => setModalViewVitamin(false);
 
   const handleEdit = (item: any) => {
-    console.log("edit item :>> ", item)
+    console.log("edit item :>> ", item);
     setForm(item);
     if (item.type === "Medicine") {
       setModalEdit(true);
@@ -130,18 +142,18 @@ const Try: React.FC = () => {
   };
 
   const closeModalEdit = (bool: any) => {
-    if(bool) fetchData();
+    if (bool) fetchData();
     setModalEdit(false);
   };
   const closeModalEditVaccine = () => setModalEditVaccine(false);
   const closeModalEditVitamin = (bool: any) => {
-    if(bool) fetchData();
+    if (bool) fetchData();
     setModalEditVitamin(false);
-  }
+  };
 
   const handleDistribute = (item: any) => {
     setForm(item);
-    if(item.type === "Medicine") {
+    if (item.type === "Medicine") {
       setModalDistribute(true);
     } else if (item.type === "Vaccine") {
       return;
@@ -151,7 +163,7 @@ const Try: React.FC = () => {
   };
 
   const closeDistribute = (bool: any) => {
-    if(bool) fetchData();
+    if (bool) fetchData();
     setModalDistribute(false);
     setDistributeVitamin(false);
     setForm(null);
@@ -290,30 +302,46 @@ const Try: React.FC = () => {
                       item.vaccineStock ||
                       item.vitaminStock) && (
                       <div>
-                          <span>Stock: {item.medicineStock || item.vitaminStock || item.vaccineStock}</span>
+                        <span>
+                          Stock:{" "}
+                          {item.medicineStock ||
+                            item.vitaminStock ||
+                            item.vaccineStock}
+                        </span>
                         <div>
                           <span>
-                            {
-                              (item.medicineClassification)
-                                ? (item.medicineClassification.includes('ml')
-                                    ? `${item.medicineClassification} per ${item.medicinePackaging}`
-                                    : `${item.medicineClassification}
-                                      ${(item.medicineDosageForm || "").toLowerCase()}${parseInt(item.medicineClassification) > 1 && "s"}
-                                      per ${item.medicinePackaging}`)
-                                
-                                : (item.vitaminClassification)
-                                  ? (item.vitaminClassification.includes('ml')
-                                      ? `${item.vitaminClassification} per ${item.vitaminPackaging}`
-                                      : `${item.vitaminClassification}
-                                        ${(item.vitaminDosageForm || "").toLowerCase()}${parseInt(item.vitaminClassification) > 1 && "s"}
-                                        per ${item.vitaminPackaging}`)
-
-                                : (item.vaccineClassification.includes('ml')
-                                  ? `${item.vaccineClassification} per ${item.vaccinePackaging}`
-                                  : `${item.vaccineClassification}
-                                    ${(item.vaccineDosageForm || "").toLowerCase()}${parseInt(item.vaccineClassification) > 1 && "s"}
-                                    per ${item.vaccinePackaging}`)
-                            }
+                            {item.medicineClassification
+                              ? item.medicineClassification.includes("ml")
+                                ? `${item.medicineClassification} per ${item.medicinePackaging}`
+                                : `${item.medicineClassification}
+                                      ${(
+                                        item.medicineDosageForm || ""
+                                      ).toLowerCase()}${
+                                    parseInt(item.medicineClassification) > 1 &&
+                                    "s"
+                                  }
+                                      per ${item.medicinePackaging}`
+                              : item.vitaminClassification
+                              ? item.vitaminClassification.includes("ml")
+                                ? `${item.vitaminClassification} per ${item.vitaminPackaging}`
+                                : `${item.vitaminClassification}
+                                        ${(
+                                          item.vitaminDosageForm || ""
+                                        ).toLowerCase()}${
+                                    parseInt(item.vitaminClassification) > 1 &&
+                                    "s"
+                                  }
+                                        per ${item.vitaminPackaging}`
+                              : item.vaccineClassification.includes("ml")
+                              ? `${item.vaccineClassification} per ${item.vaccinePackaging}`
+                              : `${item.vaccineClassification}
+                                    ${(
+                                      item.vaccineDosageForm || ""
+                                    ).toLowerCase()}${
+                                  parseInt(item.vaccineClassification) > 1 &&
+                                  "s"
+                                }
+                                    per ${item.vaccinePackaging}`}
                             {/* {item.medicineClassification && item.vaccineClassification.includes('ml') &&
                               `${item.medicineClassification}
                               ${(item.medicineDosageForm || "").toLowerCase()}${parseInt(item.medicineClassification) > 1 && "s"}
@@ -324,20 +352,28 @@ const Try: React.FC = () => {
                         {/* Add similar conditions for vaccineStock and vitaminStock if needed */}
                         {item.vaccineStock && (
                           <>
-                            {
-                                item.vaccineClassification.includes('ml') ?
-                                <>{item.vaccineClassification} per ${item.vaccinePackaging}</> :
-                                <>
-                                  {item.vaccineClassification} {`${item.vaccineDosageForm.toLowerCase()}${parseInt(item.vaccineClassification) > 1 && "s"} per ${item.vaccinePackaging}`}
-                                </>
-                              }
+                            {item.vaccineClassification.includes("ml") ? (
+                              <>
+                                {item.vaccineClassification} per $
+                                {item.vaccinePackaging}
+                              </>
+                            ) : (
+                              <>
+                                {item.vaccineClassification}{" "}
+                                {`${item.vaccineDosageForm.toLowerCase()}${
+                                  parseInt(item.vaccineClassification) > 1 &&
+                                  "s"
+                                } per ${item.vaccinePackaging}`}
+                              </>
+                            )}
                           </>
                         )}
                       </div>
                     )}
                   </div>
                   <span className="">
-                    Expiration: {formatDate(
+                    <span className="font-bold text-black">Exp.</span>{" "}
+                    {formatDate(
                       item.medicineExpiration ||
                         item.vaccineExpiration ||
                         item.vitaminExpiration
@@ -360,19 +396,23 @@ const Try: React.FC = () => {
                   >
                     <FaEye className="w-5 h-5 text-white" />
                   </button>
-                  {!user?.role.includes('Barangay') && <button
-                    onClick={() => handleEdit(item)}
-                    className="bg-yellow-800 rounded-md text-white p-2 hover:bg-yellow-600 mr-4"
-                  >
-                    <MdEdit className="w-5 h-5" />
-                  </button>}
+                  {!user?.role.includes("Barangay") && (
+                    <button
+                      onClick={() => handleEdit(item)}
+                      className="bg-yellow-800 rounded-md text-white p-2 hover:bg-yellow-600 mr-4"
+                    >
+                      <MdEdit className="w-5 h-5" />
+                    </button>
+                  )}
 
-                  {!user?.role.includes('Barangay') && <button
-                    onClick={() => handleDelete(item.id)}
-                    className="bg-red-600 rounded-md text-white p-2 hover:bg-red-800 mr-4"
-                  >
-                    <MdDelete className="w-5 h-5" />
-                  </button>}
+                  {!user?.role.includes("Barangay") && (
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      className="bg-red-600 rounded-md text-white p-2 hover:bg-red-800 mr-4"
+                    >
+                      <MdDelete className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

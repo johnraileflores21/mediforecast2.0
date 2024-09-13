@@ -318,15 +318,15 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
                         </div>
                         <details className="dropdown dropdown-end w-52 mt-4">
                           <summary
-                            className="btn m-1 bg-black text-white w-52 flex justify-between"
+                            className="btn ml-1 bg-white text-gray-700 w-52 flex justify-between border-gray-300"
                             tabIndex={0}
                             role="button"
                           >
                             {selectedOption || "Select Vaccine Form"}
-                            <FaCaretDown className="w-4 h-4 text-white ml-1" />
+                            <FaCaretDown className="w-4 h-4 text-gray-700 ml-1" />
                           </summary>
                           <ul
-                            className="menu dropdown-content bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
+                            className="menu dropdown-content bg-white text-black rounded-box z-[1] w-52 p-2 shadow-lg mt-1 border-gray-300"
                             tabIndex={0}
                           >
                             {["Vial", "Ampoule"].map((option) => (
@@ -403,7 +403,7 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
                       viewBox="0 0 16 16"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
-                      className="animate-spin h-5 w-5 mr-3 text-white"
+                      className="animate-spin h-5 w-5 text-white"
                       clipRule="evenodd"
                     >
                       <g fill="#000000" fillRule="evenodd" clipRule="evenodd">

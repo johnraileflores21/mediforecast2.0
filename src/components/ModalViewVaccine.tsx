@@ -4,6 +4,7 @@ import { collection, onSnapshot } from "firebase/firestore";
 import { MdCancel } from "react-icons/md";
 import { IoMdClose } from "react-icons/io";
 import { useUser } from "./User";
+import { HiInformationCircle } from "react-icons/hi2";
 
 interface ModalViewVaccineProps {
   showModal: boolean;
@@ -72,17 +73,19 @@ const ModalViewVaccine: React.FC<ModalViewVaccineProps> = ({
         >
           {/* Modal content */}
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="ml-40 text-xl font-medium text-gray-900">
-                View Vaccine
+            <button
+              onClick={closeModal}
+              type="button"
+              className="text-gray-700 hover:text-gray-900 float-right"
+            >
+              <IoMdClose className="w-6 h-6 text-gray-400 hover:text-red-600" />
+            </button>
+
+            <div className="flex flex-row justify-center items-center mt-2 mb-3">
+              <HiInformationCircle size={40} className="text-blue-600" />
+              <h3 className="ml-1 mt-1 font-semibold text-2xl text-center flex items-center justify-center">
+                Vaccine Information
               </h3>
-              <button
-                onClick={closeModal}
-                type="button"
-                className="text-gray-700 hover:text-gray-900"
-              >
-                <IoMdClose className="w-8 h-8 text-gray-400 hover:text-red-600" />
-              </button>
             </div>
 
             <div className="mt-4">

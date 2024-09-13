@@ -113,10 +113,13 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
         updated_at: dateToday,
         vitaminDosageForm: selectedOption,
         userId: user?.uid,
-        created_by_unit: user?.rhuOrBarangay
+        created_by_unit: user?.rhuOrBarangay,
       };
 
-      const docRef = await addDoc(collection(db, "Inventory"), formDataWithImage);
+      const docRef = await addDoc(
+        collection(db, "Inventory"),
+        formDataWithImage
+      );
       console.log("Document written with ID: ", docRef.id);
 
       setFormData({
@@ -336,15 +339,15 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
           <div className="w-full flex justify-center items-center">
             <details className="dropdown dropdown-end ">
               <summary
-                className="btn m-1 bg-black text-white w-52 flex justify-between"
+                className="btn mr-1 bg-white text-gray-700 w-52 flex justify-between border-gray-300"
                 tabIndex={0}
                 role="button"
               >
                 {selectedOption}
-                <FaCaretDown className="w-4 h-4 text-white ml-1" />
+                <FaCaretDown className="w-4 h-4 text-gray-700 ml-1" />
               </summary>
               <ul
-                className="menu dropdown-content  bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
+                className="menu dropdown-content bg-white text-black rounded-box z-[1] w-52 p-2 shadow-lg mt-1 border-gray-300"
                 tabIndex={0}
               >
                 <li className="hover:text-black hover:bg-white rounded-lg">

@@ -3,7 +3,7 @@ import DashboardLayout from "../DashboardLayout";
 import BarangayTable from "../BarangayTable";
 
 const SanJuan = () => {
-  const barangay = "San Juan";
+  const barangay = "San juan";
   return (
     <DashboardLayout>
       <h1 className="text-3xl font-bold mb-4">San Juan Health Center</h1>

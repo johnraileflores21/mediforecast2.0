@@ -3,7 +3,7 @@ import { db } from "../firebase";
 import { collection, onSnapshot } from "firebase/firestore";
 import { useUser } from "./User";
 import { IoMdClose } from "react-icons/io";
-
+import { HiInformationCircle } from "react-icons/hi2";
 interface ModalViewMedicineProps {
   showModal: boolean;
   closeModal: () => void;
@@ -19,8 +19,8 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
   const { user } = useUser();
 
   useEffect(() => {
-    console.log('data 123 :>> ', data)
-    if(!data) return;
+    console.log("data 123 :>> ", data);
+    if (!data) return;
     setMedicine(data);
 
     // const unsub = onSnapshot(collection(db, "Inventory"), (snapshot) => {
@@ -36,7 +36,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
     // return () => unsub();
   }, [data]);
 
-  if(!showModal || !data) {
+  if (!showModal || !data) {
     return null;
   }
 
@@ -66,17 +66,19 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
           <div className="bg-white px-2 pt-5 pb-4 sm:p-6">
             <div className="flex items-start">
               <div className="w-full">
-                <div className="flex items-center justify-between">
-                  <h3 className="ml-40 text-xl font-medium text-gray-900">
-                    View Medicine
+                <button
+                  onClick={closeModal}
+                  type="button"
+                  className="text-gray-700 hover:text-gray-900 float-right"
+                >
+                  <IoMdClose className="w-6 h-6 text-gray-400 hover:text-red-600" />
+                </button>
+
+                <div className="flex flex-row justify-center items-center mt-2 mb-3">
+                  <HiInformationCircle size={40} className="text-blue-600" />
+                  <h3 className="ml-1 mt-1 font-semibold text-2xl text-center flex items-center justify-center">
+                    Medicine Information
                   </h3>
-                  <button
-                    onClick={closeModal}
-                    type="button"
-                    className="text-gray-700 hover:text-gray-900"
-                  >
-                    <IoMdClose className="w-6 h-6 text-gray-400 hover:text-red-600" />
-                  </button>
                 </div>
 
                 <div className="mt-2">
