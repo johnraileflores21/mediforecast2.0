@@ -48,9 +48,20 @@ const Try: React.FC = () => {
 
   const fetchData = async () => {
     try {
+
+      const isBarangay = user?.role.includes("Barangay");
+
+      const RHUs = [
+        {"barangays": ["Sulipan", "San Juan", "Capalangan", "Sucad", "Colgante"]},
+        {"barangays": ["Tabuyuc", "Balucuc", "Cansinala", "Calantipe"]},
+        {"barangays": ["San Vicente", "Sampaloc", "Paligui"]}
+      ]
+
+      const unit = RHUs.findIndex((x: any) => x['barangays'].includes(user?.barangay)) + 1;
+
       const inventoryQuery = query(
-        collection(db, user?.role.includes("Barangay") ? "BarangayInventory" : "Inventory"),
-        where("created_by_unit", "==", user?.rhuOrBarangay)
+        collection(db, isBarangay ? "BarangayInventory" : "Inventory"),
+        where("created_by_unit", "==", isBarangay ? unit.toString() : user?.rhuOrBarangay)
       );
 
       const inventorySnap = await getDocs(inventoryQuery);

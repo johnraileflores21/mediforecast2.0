@@ -16,6 +16,8 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
   const [loading, setLoading] = useState<any | null>(false);
   const { user } = useUser();
 
+  const isBarangay = user?.role.includes('Barangay');
+
   useEffect(() => {
     console.log('showModal :>> ', showModal);
     if(data) setMedicine(data);
@@ -46,81 +48,85 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
         medicineStock: parseInt(medicine.medicineStock)
       };
 
-      if(!payload.barangay) return Swal.fire({
-        position: "center",
-        icon: "error",
-        title: `Barangay is required`,
-        showConfirmButton: false,
-        timer: 1000,
-      });
-
-      console.log("payload :>> ", payload);
-      const itemDocRef = doc(db, "Inventory", medicine.id);
-      const itemSnap = await getDoc(itemDocRef);
-      if(!itemSnap.exists()) throw new Error("Item not found");
-
-      const itemData = itemSnap.data();
-      const currentStock = itemData.medicineStock;
-
-      if(payload.medicineStock > currentStock) throw new Error("Insufficient stock.");
-
-      const userQuery = query(
-        collection(db, "Users"),
-        where("barangay", "==", payload.barangay)
-      );
-
-      const userSnap = await getDocs(userQuery);
-      console.log("userSnap :>> ", userSnap);
-      const userData = userSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      console.log("userData :>> ", userData);
-      
-      const filteredUser = userData.filter((x: any) => x?.role.includes('Barangay'));
-      if(filteredUser.length > 0) {
-        await updateDoc(itemDocRef, { medicineStock: currentStock - payload.medicineStock });
-
-        const _user = filteredUser[0];
-
-        const barangayInventoryRef = doc(db, "BarangayInventory", payload.id);
-        const barangayInventorySnap = await getDoc(barangayInventoryRef);
-        const existingData = barangayInventorySnap.data();
-
-        const _currentStock = existingData?.medicineStock || 0;
-        const newStock = parseInt(payload.medicineStock) + _currentStock;
-
-        const barangayInventoryData = {
-          ...itemData,
-          medicineStock: newStock,
-          totalQuantity: (existingData?.totalQuantity + newStock) || newStock,
-          created_at: new Date().toISOString(),
-          userId: _user?.id
-        };
-
-        if(barangayInventorySnap.exists()) {
-          await setDoc(barangayInventoryRef, barangayInventoryData, { merge: true });
-        } else await setDoc(barangayInventoryRef, barangayInventoryData);
-
-        Swal.fire({
-          position: "center",
-          icon: "success",
-          title: `${payload.medicineBrandName} has been distributed to ${payload.barangay}`,
-          showConfirmButton: false,
-          timer: 1500,
-        });
-
-        closeModal(true);
-
-      } else {
-        Swal.fire({
+      if(!isBarangay) {
+        if(!payload.barangay) return Swal.fire({
           position: "center",
           icon: "error",
-          title: `No existing user for ${payload.barangay}`,
+          title: `Barangay is required`,
           showConfirmButton: false,
           timer: 1000,
         });
+  
+        console.log("payload :>> ", payload);
+        const itemDocRef = doc(db, "Inventory", medicine.id);
+        const itemSnap = await getDoc(itemDocRef);
+        if(!itemSnap.exists()) throw new Error("Item not found");
+  
+        const itemData = itemSnap.data();
+        const currentStock = itemData.medicineStock;
+  
+        if(payload.medicineStock > currentStock) throw new Error("Insufficient stock.");
+  
+        const userQuery = query(
+          collection(db, "Users"),
+          where("barangay", "==", payload.barangay)
+        );
+  
+        const userSnap = await getDocs(userQuery);
+        console.log("userSnap :>> ", userSnap);
+        const userData = userSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+  
+        console.log("userData :>> ", userData);
+        
+        const filteredUser = userData.filter((x: any) => x?.role.includes('Barangay'));
+        if(filteredUser.length > 0) {
+          await updateDoc(itemDocRef, { medicineStock: currentStock - payload.medicineStock });
+  
+          const _user = filteredUser[0];
+  
+          const barangayInventoryRef = doc(db, "BarangayInventory", payload.id);
+          const barangayInventorySnap = await getDoc(barangayInventoryRef);
+          const existingData = barangayInventorySnap.data();
+  
+          const _currentStock = existingData?.medicineStock || 0;
+          const newStock = parseInt(payload.medicineStock) + _currentStock;
+  
+          const barangayInventoryData = {
+            ...itemData,
+            medicineStock: newStock,
+            totalQuantity: (existingData?.totalQuantity + newStock) || newStock,
+            created_at: new Date().toISOString(),
+            userId: _user?.id
+          };
+  
+          if(barangayInventorySnap.exists()) {
+            await setDoc(barangayInventoryRef, barangayInventoryData, { merge: true });
+          } else await setDoc(barangayInventoryRef, barangayInventoryData);
+  
+          Swal.fire({
+            position: "center",
+            icon: "success",
+            title: `${payload.medicineBrandName} has been distributed to ${payload.barangay}`,
+            showConfirmButton: false,
+            timer: 1500,
+          });
+  
+          closeModal(true);
+  
+        } else {
+          Swal.fire({
+            position: "center",
+            icon: "error",
+            title: `No existing user for ${payload.barangay}`,
+            showConfirmButton: false,
+            timer: 1000,
+          });
+        }
+      } else {
+        // process barangay distribution for resident
       }
 
     } catch(error: any) {
@@ -326,47 +332,86 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                       />
                     </div>
 
-                    <div className="relative">
-                      <label
-                        htmlFor="barangay"
-                        className="block text-sm font-medium text-gray-700"
-                      >
-                        Where to Distribute
-                      </label>
-                      <div className="relative mt-1">
-                        <select
-                          id="barangay"
-                          onChange={(e) => handleChange(e, 'barangay')}
-                          className="block appearance-none w-full p-3 border border-gray-300 rounded-md bg-white focus:outline-none focus:black focus:border-black sm:text-base"
+                    {!isBarangay ? (
+                      <div className="relative">
+                        <label
+                          htmlFor="barangay"
+                          className="block text-sm font-medium text-gray-700"
                         >
-                          <option value="">Barangay</option>
-                          <option value="Balucuc">Balucuc</option>
-                          <option value="Calantipe">Calantipe</option>
-                          <option value="Cansinala">Cansinala</option>
-                          <option value="Capalangan">Capalangan</option>
-                          <option value="Colgante">Colgante</option>
-                          <option value="Paligui">Paligui</option>
-                          <option value="Sampaloc">Sampaloc</option>
-                          <option value="San juan">San Juan</option>
-                          <option value="San vicente">San Vicente</option>
-                          <option value="Sucad">Sucad</option>
-                          <option value="Sulipan">Sulipan</option>
-                          <option value="Tabuyuc">Tabuyuc</option>
-                        </select>
-                        <svg
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                          aria-hidden="true"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                          Where to Distribute
+                        </label>
+                        <div className="relative mt-1">
+                          <select
+                            id="barangay"
+                            onChange={(e) => handleChange(e, 'barangay')}
+                            className="block appearance-none w-full p-3 border border-gray-300 rounded-md bg-white focus:outline-none focus:black focus:border-black sm:text-base"
+                          >
+                            <option value="">Barangay</option>
+                            <option value="Balucuc">Balucuc</option>
+                            <option value="Calantipe">Calantipe</option>
+                            <option value="Cansinala">Cansinala</option>
+                            <option value="Capalangan">Capalangan</option>
+                            <option value="Colgante">Colgante</option>
+                            <option value="Paligui">Paligui</option>
+                            <option value="Sampaloc">Sampaloc</option>
+                            <option value="San juan">San Juan</option>
+                            <option value="San vicente">San Vicente</option>
+                            <option value="Sucad">Sucad</option>
+                            <option value="Sulipan">Sulipan</option>
+                            <option value="Tabuyuc">Tabuyuc</option>
+                          </select>
+                          <svg
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div>
+                        <div className="relative">
+                          <label
+                            htmlFor="address"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Full Name
+                          </label>
+                          <div className="relative mt-1">
+                            <input
+                              type="text"
+                              id="address"
+                              value={medicine.fullName}
+                              onChange={(e) => handleChange(e, 'address')}
+                              className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="relative mt-4">
+                          <label
+                            htmlFor="address"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Full Address
+                          </label>
+                          <div className="relative mt-1">
+                            <input
+                              type="text"
+                              id="address"
+                              value={medicine.address}
+                              onChange={(e) => handleChange(e, 'address')}
+                              className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div className="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse w-full">
                       <button
                         type="button"
