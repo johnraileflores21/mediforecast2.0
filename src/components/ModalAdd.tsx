@@ -111,6 +111,7 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
         type: "Medicine",
         created_at: dateToday,
         updated_at: dateToday,
+        userId: user?.uid,
         medicineDosageForm: selectedOption,
         medicinePackaging: selectedPackaging,
         created_by_unit: user?.rhuOrBarangay
@@ -296,8 +297,8 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
                                 </div>
                               </div>
 
-                              <div className="flex flex-row">
-                                <div className="w-1/2">
+                              <div className="flex flex-row gap-2">
+                                <div className="w-1/3">
                                   <label
                                     htmlFor="medicineStock"
                                     className="block text-sm font-medium text-gray-700"
@@ -318,7 +319,7 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
                                     </span>
                                   )}
                                 </div>
-                                <div className="w-1/2">
+                                <div className="w-1/3">
                                   <label
                                     htmlFor="medicineClassification"
                                     className="block text-sm font-medium text-gray-700 ml-1"
@@ -336,6 +337,27 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
                                   {errors.medicineClassification && (
                                     <span className="text-red-600">
                                       {errors.medicineClassification}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="w-1/3">
+                                  <label
+                                    htmlFor="medicinePiecesPerItem"
+                                    className="block text-sm font-medium text-gray-700 ml-1"
+                                  >
+                                    Piece/s
+                                  </label>
+                                  <input
+                                    type="number"
+                                    id="medicinePiecesPerItem"
+                                    value={formData.medicinePiecesPerItem}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
+                                    required
+                                  />
+                                  {errors.medicinePiecesPerItem && (
+                                    <span className="text-red-600">
+                                      {errors.medicinePiecesPerItem}
                                     </span>
                                   )}
                                 </div>

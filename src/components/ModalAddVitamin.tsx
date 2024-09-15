@@ -15,6 +15,7 @@ import { MdCancel } from "react-icons/md";
 import { FaCaretDown } from "react-icons/fa";
 import { FaUpload } from "react-icons/fa";
 import { useUser } from "./User";
+import { dosage_forms, medical_packaging } from "../assets/common/constants";
 
 interface ModalAddVitaminProps {
   showModal: boolean;
@@ -28,6 +29,7 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [selectedOption, setSelectedOption] = useState<string>("Dosage Form");
+  const [selectedPackaging, setSelectedPackaging] = useState<string>("Medical Packaging");
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     vitaminGenericName: "",
@@ -40,6 +42,7 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
     vitaminExpiration: "",
     vitaminRegulatoryClassification: "",
     vitaminDescription: "",
+    vitaminPiecesPerItem: "",
   });
   const [errors, setErrors] = useState<any>({});
   const { user } = useUser();
@@ -113,6 +116,7 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
         updated_at: dateToday,
         vitaminDosageForm: selectedOption,
         userId: user?.uid,
+        medicinePackaging: selectedPackaging,
         created_by_unit: user?.rhuOrBarangay
       };
 
@@ -130,6 +134,7 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
         vitaminExpiration: "",
         vitaminRegulatoryClassification: "",
         vitaminDescription: "",
+        vitaminPiecesPerItem: ""
       });
       setFile(null);
       setPreview(null);
@@ -254,8 +259,8 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
             </div>
           </div>
 
-          <div className="flex flex-row">
-            <div className="w-1/2">
+          <div className="flex flex-row gap-2">
+            <div className="w-1/3">
               <label
                 htmlFor="vitaminStock"
                 className="block text-sm font-medium text-gray-700"
@@ -274,7 +279,7 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
                 <span className="text-red-600">{errors.vitaminStock}</span>
               )}
             </div>
-            <div className="w-1/2">
+            <div className="w-1/3">
               <label
                 htmlFor="vitaminStock"
                 className="block text-sm font-medium text-gray-700 ml-1"
@@ -289,6 +294,27 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
                 required
               />
+            </div>
+            <div className="w-1/3">
+              <label
+                htmlFor="vitaminPiecesPerItem"
+                className="block text-sm font-medium text-gray-700 ml-1"
+              >
+                Piece/s
+              </label>
+              <input
+                type="number"
+                id="vitaminPiecesPerItem"
+                value={formData.vitaminPiecesPerItem}
+                onChange={handleChange}
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
+                required
+              />
+              {errors.vitaminPiecesPerItem && (
+                <span className="text-red-600">
+                  {errors.vitaminPiecesPerItem}
+                </span>
+              )}
             </div>
           </div>
           <div className="flex flex-row">
@@ -333,79 +359,63 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
               )}
             </div>
           </div>
-          <div className="w-full flex justify-center items-center">
-            <details className="dropdown dropdown-end ">
-              <summary
-                className="btn m-1 bg-black text-white w-52 flex justify-between"
-                tabIndex={0}
-                role="button"
-              >
-                {selectedOption}
-                <FaCaretDown className="w-4 h-4 text-white ml-1" />
-              </summary>
-              <ul
-                className="menu dropdown-content  bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
-                tabIndex={0}
-              >
-                <li className="hover:text-black hover:bg-white rounded-lg">
-                  <a
-                    onClick={() => {
-                      setSelectedOption("Tablet");
-                    }}
-                  >
-                    Tablet
-                  </a>
-                </li>
-                <li className="hover:text-black hover:bg-white rounded-lg">
-                  <a
-                    onClick={() => {
-                      setSelectedOption("Syrup");
-                    }}
-                  >
-                    Syrup
-                  </a>
-                </li>
-                <li className="hover:text-black hover:bg-white rounded-lg">
-                  <a
-                    onClick={() => {
-                      setSelectedOption("Capsule");
-                    }}
-                  >
-                    Capsule
-                  </a>
-                </li>
-                <li className="hover:text-black hover:bg-white rounded-lg">
-                  <a
-                    onClick={() => {
-                      setSelectedOption("Suspension");
-                    }}
-                  >
-                    Suspension
-                  </a>
-                </li>
-                <li className="hover:text-black hover:bg-white rounded-lg">
-                  <a
-                    onClick={() => {
-                      setSelectedOption("Cream");
-                    }}
-                  >
-                    Cream
-                  </a>
-                </li>
-                <li className="hover:text-black hover:bg-white rounded-lg">
-                  <a
-                    onClick={() => {
-                      setSelectedOption("Ointment");
-                    }}
-                  >
-                    Ointment
-                  </a>
-                </li>
-              </ul>
-            </details>
-            {errors.vitaminDosageForm && (
-              <span className="text-red-600">{errors.vitaminDosageForm}</span>
-            )}
+          <div className="flex flex-row">
+            <div className="w-[1/2] flex justify-center items-center">
+              <details className="dropdown dropdown-end ">
+                <summary
+                  className="btn m-1 bg-black text-white w-52 flex justify-between"
+                  tabIndex={0}
+                  role="button"
+                >
+                  {selectedOption}
+                  <FaCaretDown className="w-4 h-4 text-white ml-1" />
+                </summary>
+                <ul
+                  className="menu dropdown-content  bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
+                  tabIndex={0}
+                >
+                  {dosage_forms.map((label: string) => (
+                    <li key={label} className="hover:text-black hover:bg-white rounded-lg">
+                      <a
+                        onClick={() => {
+                          setSelectedOption(label);
+                        }}
+                      >
+                        {label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
+            <div className="w-[1/2] flex justify-center items-center">
+              <details className="dropdown dropdown-end ">
+                <summary
+                  className="btn m-1 bg-black text-white w-52 flex justify-between"
+                  tabIndex={0}
+                  role="button"
+                >
+                  {selectedPackaging}
+                  <FaCaretDown className="w-4 h-4 text-white ml-1" />
+                </summary>
+                <ul
+                  className="menu dropdown-content  bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
+                  tabIndex={0}
+                >
+                  {medical_packaging.map((label: string) => (
+                    <li key={label} className="hover:text-black hover:bg-white rounded-lg">
+                      <a
+                        onClick={() => {
+                          setSelectedPackaging(label);
+                        }}
+                      >
+                        {label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
           </div>
           <div className="flex flex-row">
             <div className="w-1/2">

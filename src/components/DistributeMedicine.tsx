@@ -20,8 +20,11 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
 
   useEffect(() => {
     console.log('showModal :>> ', showModal);
-    if(data) setMedicine(data);
     console.log("distribute :>> ", data);
+    const remainingPieces = (data?.totalPerPiece || 0) - (data?.totalDistributed || 0);
+    const totalPieces = remainingPieces % (data?.medicinePiecesPerItem || 0);
+    console.log('totalPieces :>> ', totalPieces);
+    if(data) setMedicine({...data, totalPieces});
   }, [data]);
   if (!medicine) {
     return null;
@@ -99,7 +102,8 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
             medicineStock: newStock,
             totalQuantity: (existingData?.totalQuantity + newStock) || newStock,
             created_at: new Date().toISOString(),
-            userId: _user?.id
+            userId: _user?.id,
+            totalPerPiece: newStock * payload.medicinePiecesPerItem
           };
   
           if(barangayInventorySnap.exists()) {
@@ -114,8 +118,6 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
             timer: 1500,
           });
   
-          closeModal(true);
-  
         } else {
           Swal.fire({
             position: "center",
@@ -126,8 +128,47 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
           });
         }
       } else {
-        // process barangay distribution for resident
+        const itemDocRef = doc(db, "BarangayInventory", medicine.id);
+        const itemSnap = await getDoc(itemDocRef);
+        if(!itemSnap.exists()) throw new Error("Item not found in Barangay Inventory");
+
+        const itemData = itemSnap.data();
+        let totalPerPiece = parseInt(itemData.totalPerPiece);
+        let currentStock = parseInt(itemData.medicineStock);
+        let quantityToDistribute = parseInt(medicine.totalPieces);
+        let medicinePiecesPerItem = parseInt(medicine.medicinePiecesPerItem);
+
+        if(quantityToDistribute > totalPerPiece) {
+          throw new Error("Insufficient stock to distribute this quantity.");
+        }
+
+        totalPerPiece -= quantityToDistribute;
+        while(quantityToDistribute > 0) {
+          if(quantityToDistribute <= currentStock * medicinePiecesPerItem) {
+            currentStock -= Math.ceil(quantityToDistribute / medicinePiecesPerItem);
+            quantityToDistribute = 0;
+          } else {
+            quantityToDistribute -= currentStock * medicinePiecesPerItem;
+            currentStock = 0;
+          }
+        }
+
+        await updateDoc(itemDocRef, {
+          totalPerPiece: totalPerPiece,
+          medicineStock: currentStock,
+        });
+
+        Swal.fire({
+          position: "center",
+          icon: "success",
+          title: `${medicine.medicineBrandName} has been successfully distributed to ${medicine.fullName}`,
+          showConfirmButton: false,
+          timer: 1500,
+        });
+
       }
+  
+      closeModal(true);
 
     } catch(error: any) {
       Swal.fire({
@@ -214,21 +255,38 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                       </div>
                     </div>
                     <div className="flex flex-row">
-                      <div className="w-full">
-                        <label
-                          htmlFor="medicineStock"
-                          className="block text-sm font-medium text-gray-700"
-                        >
-                          Quantity
-                        </label>
-                        <input
-                          type="number"
-                          id="medicineStock"
-                          value={medicine.medicineStock}
-                          onChange={(e) => handleChange(e, 'medicineStock')}
-                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                        />
-                      </div>
+                      {isBarangay ?
+                        <div className="w-full">
+                          <label
+                            htmlFor="totalPieces"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Quantity
+                          </label>
+                          <input
+                            type="number"
+                            id="totalPieces"
+                            value={medicine.totalPieces}
+                            onChange={(e) => handleChange(e, 'totalPieces')}
+                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                          />
+                        </div> : 
+                        <div className="w-full">
+                          <label
+                            htmlFor="medicineStock"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Quantity
+                          </label>
+                          <input
+                            type="number"
+                            id="medicineStock"
+                            value={medicine.medicineStock}
+                            onChange={(e) => handleChange(e, 'medicineStock')}
+                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                          />
+                        </div>
+                      }
                       <div className="w-full">
                         <label
                           htmlFor="medicineLotNo"
@@ -388,7 +446,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                               type="text"
                               id="address"
                               value={medicine.fullName}
-                              onChange={(e) => handleChange(e, 'address')}
+                              onChange={(e) => handleChange(e, 'fullName')}
                               className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
                             />
                           </div>

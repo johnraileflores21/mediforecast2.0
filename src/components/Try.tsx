@@ -307,16 +307,16 @@ const Try: React.FC = () => {
                             {
                               (item.medicineClassification)
                                 ? (item.medicineClassification.includes('ml')
-                                    ? `${item.medicineClassification} per ${item.medicinePackaging}`
-                                    : `${item.medicineClassification}
-                                      ${(item.medicineDosageForm || "").toLowerCase()}${parseInt(item.medicineClassification) > 1 && "s"}
+                                    ? `${item.medicinePiecesPerItem} per ${item.medicinePackaging}`
+                                    : `${item.medicinePiecesPerItem}
+                                      ${(item.medicineDosageForm || "").toLowerCase()}${parseInt(item.medicinePiecesPerItem) > 1 && "s"}
                                       per ${item.medicinePackaging}`)
                                 
                                 : (item.vitaminClassification)
                                   ? (item.vitaminClassification.includes('ml')
-                                      ? `${item.vitaminClassification} per ${item.vitaminPackaging}`
-                                      : `${item.vitaminClassification}
-                                        ${(item.vitaminDosageForm || "").toLowerCase()}${parseInt(item.vitaminClassification) > 1 && "s"}
+                                      ? `${item.vitaminPiecesPerItem} per ${item.vitaminPackaging}`
+                                      : `${item.vitaminPiecesPerItem}
+                                        ${(item.vitaminDosageForm || "").toLowerCase()}${parseInt(item.vitaminClassification) > 1 && "/s"}
                                         per ${item.vitaminPackaging}`)
 
                                 : (item.vaccineClassification.includes('ml')
@@ -337,9 +337,9 @@ const Try: React.FC = () => {
                           <>
                             {
                                 item.vaccineClassification.includes('ml') ?
-                                <>{item.vaccineClassification} per ${item.vaccinePackaging}</> :
+                                <>{item.vaccinePiecesPerItem} per ${item.vaccinePackaging}</> :
                                 <>
-                                  {item.vaccineClassification} {`${item.vaccineDosageForm.toLowerCase()}${parseInt(item.vaccineClassification) > 1 && "s"} per ${item.vaccinePackaging}`}
+                                  {item.vaccinePiecesPerItem} {`${item.vaccineDosageForm.toLowerCase()}${parseInt(item.vaccinePiecesPerItem) > 1 && "s"} per ${item.vaccinePackaging}`}
                                 </>
                               }
                           </>

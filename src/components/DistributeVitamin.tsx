@@ -20,6 +20,7 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
   const [barangay, setBarangay] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const { user } = useUser();
+  const isBarangay = user?.role.includes('Barangay');
 
   useEffect(() => {
     if(data) {
@@ -39,72 +40,77 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
         vitaminStock: parseInt(vitamin.vitaminStock)
       };
 
-      if(!payload.barangay) return Swal.fire({
-        position: "center",
-        icon: "error",
-        title: `Barangay is required`,
-        showConfirmButton: false,
-        timer: 1000,
-      });
-
-      console.log("payload :>> ", payload);
-      const itemDocRef = doc(db, "Inventory", vitamin.id);
-      const itemSnap = await getDoc(itemDocRef);
-      if(!itemSnap.exists()) throw new Error("Item not found");
-
-      const itemData = itemSnap.data();
-      const currentStock = itemData.vitaminStock;
-
-      if(payload.vitaminStock > currentStock) throw new Error("Insufficient stock.");
-
-      const userQuery = query(
-        collection(db, "Users"),
-        where("barangay", "==", payload.barangay)
-      );
-
-      const userSnap = await getDocs(userQuery);
-      console.log("userSnap :>> ", userSnap);
-      const userData = userSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      console.log("userData :>> ", userData);
-      
-      const filteredUser = userData.filter((x: any) => x?.role.includes('Barangay'));
-      if(filteredUser.length > 0) {
-        await updateDoc(itemDocRef, { vitaminStock: currentStock - payload.vitaminStock });
-
-        const _user = filteredUser[0];
-
-        const barangayInventoryRef = doc(db, "BarangayInventory", payload.id);
-        const barangayInventorySnap = await getDoc(barangayInventoryRef);
-        const existingData = barangayInventorySnap.data();
-
-        const _currentStock = existingData?.vitaminStock || 0;
-        const newStock = parseInt(payload.vitaminStock) + _currentStock;
-
-        const barangayInventoryData = {
-          ...itemData,
-          vitaminStock: newStock,
-          totalQuantity: (existingData?.totalQuantity + newStock) || newStock,
-          created_at: new Date().toISOString(),
-          userId: _user?.id
-        };
-
-        if(barangayInventorySnap.exists()) {
-          await setDoc(barangayInventoryRef, barangayInventoryData, { merge: true });
-        } else await setDoc(barangayInventoryRef, barangayInventoryData);
-
-        Swal.fire({
+      if(!isBarangay) {
+        if(!payload.barangay) return Swal.fire({
           position: "center",
-          icon: "success",
-          title: `${payload.vitaminBrandName} has been distributed to ${payload.barangay}`,
+          icon: "error",
+          title: `Barangay is required`,
           showConfirmButton: false,
-          timer: 1500,
+          timer: 1000,
         });
+  
+        console.log("payload :>> ", payload);
+        const itemDocRef = doc(db, "Inventory", vitamin.id);
+        const itemSnap = await getDoc(itemDocRef);
+        if(!itemSnap.exists()) throw new Error("Item not found");
+  
+        const itemData = itemSnap.data();
+        const currentStock = itemData.vitaminStock;
+  
+        if(payload.vitaminStock > currentStock) throw new Error("Insufficient stock.");
+  
+        const userQuery = query(
+          collection(db, "Users"),
+          where("barangay", "==", payload.barangay)
+        );
+  
+        const userSnap = await getDocs(userQuery);
+        console.log("userSnap :>> ", userSnap);
+        const userData = userSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+  
+        console.log("userData :>> ", userData);
+        
+        const filteredUser = userData.filter((x: any) => x?.role.includes('Barangay'));
+        if(filteredUser.length > 0) {
+          await updateDoc(itemDocRef, { vitaminStock: currentStock - payload.vitaminStock });
+  
+          const _user = filteredUser[0];
+  
+          const barangayInventoryRef = doc(db, "BarangayInventory", payload.id);
+          const barangayInventorySnap = await getDoc(barangayInventoryRef);
+          const existingData = barangayInventorySnap.data();
+  
+          const _currentStock = existingData?.vitaminStock || 0;
+          const newStock = parseInt(payload.vitaminStock) + _currentStock;
+  
+          const barangayInventoryData = {
+            ...itemData,
+            vitaminStock: newStock,
+            totalQuantity: (existingData?.totalQuantity + newStock) || newStock,
+            created_at: new Date().toISOString(),
+            userId: _user?.id,
+            totalPerPiece: newStock * payload.medicinePiecesPerItem
+          };
+  
+          if(barangayInventorySnap.exists()) {
+            await setDoc(barangayInventoryRef, barangayInventoryData, { merge: true });
+          } else await setDoc(barangayInventoryRef, barangayInventoryData);
+  
+          Swal.fire({
+            position: "center",
+            icon: "success",
+            title: `${payload.vitaminBrandName} has been distributed to ${payload.barangay}`,
+            showConfirmButton: false,
+            timer: 1500,
+          });
+      } else {
+        //  process barangay distribution
+      }
 
-        closeModal(true);
+      closeModal(true);
 
       } else {
         Swal.fire({

@@ -33,5 +33,6 @@ export const medicineFormData = {
     medicineRegulatoryClassification: "",
     medicineDescription: "",
     medicineClassification: "",
-    userId: ""
+    userId: "",
+    medicinePiecesPerItem: "",
 };
