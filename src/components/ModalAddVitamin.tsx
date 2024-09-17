@@ -15,11 +15,11 @@ import { MdCancel } from "react-icons/md";
 import { FaCaretDown } from "react-icons/fa";
 import { FaUpload } from "react-icons/fa";
 import { useUser } from "./User";
-import { dosage_forms, medical_packaging } from "../assets/common/constants";
+import { dosage_forms, medical_packaging, vitaminFormData } from "../assets/common/constants";
 
 interface ModalAddVitaminProps {
   showModal: boolean;
-  closeModal: () => void;
+  closeModal: (bool: any) => void;
 }
 const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
   showModal,
@@ -31,19 +31,7 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
   const [selectedOption, setSelectedOption] = useState<string>("Dosage Form");
   const [selectedPackaging, setSelectedPackaging] = useState<string>("Medical Packaging");
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    vitaminGenericName: "",
-    vitaminBrandName: "",
-    vitaminStock: 0,
-    vitaminClassification: "",
-    vitaminLotNo: "",
-    vitaminDosageForm: "",
-    vitaminDosageStrength: "",
-    vitaminExpiration: "",
-    vitaminRegulatoryClassification: "",
-    vitaminDescription: "",
-    vitaminPiecesPerItem: "",
-  });
+  const [formData, setFormData] = useState(vitaminFormData);
   const [errors, setErrors] = useState<any>({});
   const { user } = useUser();
 
@@ -94,6 +82,8 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
   };
 
   const handleConfirmSubmit = async () => {
+    formData.vitaminDosageForm = selectedOption;
+    formData.vitaminPackaging = selectedPackaging;
     if (!validateForm()) return;
 
     const now = new Date();
@@ -114,34 +104,20 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
         type: "Vitamin",
         created_at: dateToday,
         updated_at: dateToday,
-        vitaminDosageForm: selectedOption,
         userId: user?.uid,
-        medicinePackaging: selectedPackaging,
         created_by_unit: user?.rhuOrBarangay
       };
 
       const docRef = await addDoc(collection(db, "Inventory"), formDataWithImage);
       console.log("Document written with ID: ", docRef.id);
 
-      setFormData({
-        vitaminGenericName: "",
-        vitaminBrandName: "",
-        vitaminStock: 0,
-        vitaminClassification: "",
-        vitaminLotNo: "",
-        vitaminDosageForm: "",
-        vitaminDosageStrength: "",
-        vitaminExpiration: "",
-        vitaminRegulatoryClassification: "",
-        vitaminDescription: "",
-        vitaminPiecesPerItem: ""
-      });
+      setFormData(vitaminFormData);
       setFile(null);
       setPreview(null);
       setShowModalSucces(true);
       setTimeout(() => {
         setShowModalSucces(false);
-        closeModal();
+        closeModal(true);
       }, 1000);
     } catch (error) {
       console.error("Error adding document: ", error);
@@ -281,14 +257,14 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
             </div>
             <div className="w-1/3">
               <label
-                htmlFor="vitaminStock"
+                htmlFor="vitaminClassification"
                 className="block text-sm font-medium text-gray-700 ml-1"
               >
                 Stock Classification
               </label>
               <input
                 type="text"
-                id="vitaminStock"
+                id="vitaminClassification"
                 value={formData.vitaminClassification}
                 onChange={handleChange}
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"

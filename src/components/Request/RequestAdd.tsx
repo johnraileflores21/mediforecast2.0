@@ -211,7 +211,7 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
                     </h3>
                     <br />
                     <div className="flex flex-col gap-2">
-                        <p>Remaining Stock: <b>{getStock(selectedItem)}</b></p>
+                        {/* <p>Remaining Stock: <b>{getStock(selectedItem)}</b></p> */}
                         <p>Form: <b>{getDosageForm(selectedItem)}</b></p>
                         <p>Type: <b>{selectedItem?.type}</b></p>
                         <p>Generic Name: <b>{getGenericName(selectedItem)}</b></p>

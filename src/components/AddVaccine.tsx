@@ -7,19 +7,24 @@ import { MdCancel } from "react-icons/md";
 import { FaCaretDown, FaUpload } from "react-icons/fa";
 import { useUser } from "./User";
 import { useForm, SubmitHandler } from "react-hook-form";
+import { dosage_forms, medical_packaging, vaccineFormData } from "../assets/common/constants";
 
 interface ModalAddVaccineProps {
   showModal: boolean;
-  closeModal: () => void;
+  closeModal: (bool: any) => void;
 }
 
 type FormData = {
   vaccineName: string;
   vaccineBatchNo: string;
-  vaccineStock: string;
+  vaccineStock: number;
   vaccineExpiration: string;
   vaccineDescription: string;
-  vaccineImage: FileList | null;
+  vaccineImg: FileList | null;
+  vaccineDosageForm: string;
+  vaccinePackaging: string;
+  vaccinePiecesPerItem: number;
+  vaccineClassification: string;
 };
 
 const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
@@ -37,32 +42,24 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string>("Vaccine Form");
+  const [selectedPackaging, setSelectedPackaging] = useState<string>("Medical Packaging");
+  const [file, setFile] = useState<any>(null);
   const { user } = useUser();
-  let inventory = "";
-
-  if (user?.rhuOrBarangay === "1") {
-    inventory = "RHU1Inventory";
-  } else if (user?.rhuOrBarangay === "2") {
-    inventory = "RHU2Inventory";
-  } else if (user?.rhuOrBarangay === "3") {
-    inventory = "RHU3Inventory";
-  }
-
-  const watchImage = watch("vaccineImage");
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
+      setFile(selectedFile);
       setPreview(URL.createObjectURL(selectedFile));
     }
   };
 
   const handleClearPreview = () => {
     setPreview(null);
-    reset({ vaccineImage: null } as Partial<FormData>);
+    setFile(null);
+    reset({ vaccineImg: null } as Partial<FormData>);
   };
 
-  // Custom validation function for future date
   const validateFutureDate = (value: string) => {
     const today = new Date();
     const expirationDate = new Date(value);
@@ -70,19 +67,25 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
   };
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
+    data.vaccineDosageForm = selectedOption;
+    data.vaccinePackaging = selectedPackaging;
+
+    console.log('data :>> ', data);
+    console.log('file :>> ', file);
     const now = new Date();
     const dateToday = now.toISOString();
     setLoading(true);
 
     try {
       let vaccineImg = "";
-      if (data.vaccineImage && data.vaccineImage[0]) {
+      if (file) {
         const imageRef = ref(
           storage,
-          `Vaccines/${data.vaccineImage[0].name + v4()}`
+          `Vaccines/${file.name + v4()}`
         );
-        await uploadBytes(imageRef, data.vaccineImage[0]);
+        await uploadBytes(imageRef, file);
         vaccineImg = await getDownloadURL(imageRef);
+        console.log('vaccineImg :>> ', vaccineImg);
       }
 
       const formDataWithImage = {
@@ -90,18 +93,19 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
         vaccineImg,
         created_at: dateToday,
         updated_at: dateToday,
-        vaccineForm: selectedOption,
+        userId: user?.uid,
+        created_by_unit: user?.rhuOrBarangay,
         type: "Vaccine",
       };
 
-      const docRef = await addDoc(collection(db, inventory), formDataWithImage);
+      const docRef = await addDoc(collection(db, "Inventory"), formDataWithImage);
       console.log("Document written with ID: ", docRef.id);
 
       reset();
       setShowModalSuccess(true);
       setTimeout(() => {
         setShowModalSuccess(false);
-        closeModal();
+        closeModal(true);
       }, 1000);
     } catch (error) {
       console.error("Error adding document: ", error);
@@ -125,7 +129,7 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
                 <input
                   type="file"
                   accept="image/*"
-                  {...register("vaccineImage", {
+                  {...register("vaccineImg", {
                     required: true,
                   })}
                   onChange={handleFileChange}
@@ -149,7 +153,7 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
           </div>
         </div>
         <div className="flex justify-center items-center">
-          {errors.vaccineImage && (
+          {errors.vaccineImg && (
             <span className="text-red-600">Image is required</span>
           )}
         </div>
@@ -188,8 +192,8 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
             )}
           </div>
         </div>
-        <div className="flex flex-row">
-          <div className="w-1/2">
+        <div className="flex flex-row gap-2">
+          <div className="w-1/3">
             <label
               htmlFor="vaccineStock"
               className="block text-sm font-medium text-gray-700"
@@ -197,7 +201,7 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
               Vaccine Stock
             </label>
             <input
-              type="text"
+              type="number"
               {...register("vaccineStock", { required: true })}
               className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
             />
@@ -205,46 +209,97 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
               <span className="text-red-600">Vaccine Stock is required</span>
             )}
           </div>
-          <div className="w-1/2">
+          <div className="w-1/3">
             <label
-              htmlFor="vaccineStock"
+              htmlFor="vaccineClassification"
               className="block text-sm font-medium text-gray-700 ml-1"
             >
               Stock Classification
             </label>
             <input
               type="text"
-              {...register("vaccineStock", { required: true })}
+              {...register("vaccineClassification", { required: true })}
               className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
             />
-            {errors.vaccineStock && (
-              <span className="text-red-600">Vaccine Stock is required</span>
+            {errors.vaccineClassification && (
+              <span className="text-red-600">Vaccine Classification is required</span>
+            )}
+          </div>
+          <div className="w-1/3">
+            <label
+              htmlFor="vaccinePiecesPerItem"
+              className="block text-sm font-medium text-gray-700 ml-1"
+            >
+              Piece/s
+            </label>
+            <input
+              type="number"
+              {...register("vaccinePiecesPerItem", { required: true })}
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
+            />
+            {errors.vaccinePiecesPerItem && (
+              <span className="text-red-600">Piece/s is required</span>
             )}
           </div>
         </div>
-        <div className="w-full flex justify-center items-center">
-          <details className="dropdown dropdown-end">
-            <summary
-              className="btn m-1 bg-black text-white w-52 flex justify-between"
-              tabIndex={0}
-              role="button"
-            >
-              {selectedOption}
-              <FaCaretDown className="w-4 h-4 text-white ml-1" />
-            </summary>
-            <ul
-              className="menu dropdown-content bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
-              tabIndex={0}
-            >
-              <li className="hover:text-black hover:bg-white rounded-lg">
-                <a onClick={() => setSelectedOption("Vial")}>Vial</a>
-              </li>
-              <li className="hover:text-black hover:bg-white rounded-lg">
-                <a onClick={() => setSelectedOption("Ampoule")}>Ampoule</a>
-              </li>
-            </ul>
-          </details>
-        </div>
+        <div className="flex flex-row">
+            <div className="w-[1/2] flex justify-center items-center">
+              <details className="dropdown dropdown-end ">
+                <summary
+                  className="btn m-1 bg-black text-white w-52 flex justify-between"
+                  tabIndex={0}
+                  role="button"
+                >
+                  {selectedOption}
+                  <FaCaretDown className="w-4 h-4 text-white ml-1" />
+                </summary>
+                <ul
+                  className="menu dropdown-content  bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
+                  tabIndex={0}
+                >
+                  {dosage_forms.map((label: string) => (
+                    <li key={label} className="hover:text-black hover:bg-white rounded-lg">
+                      <a
+                        onClick={() => {
+                          setSelectedOption(label);
+                        }}
+                      >
+                        {label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
+            <div className="w-[1/2] flex justify-center items-center">
+              <details className="dropdown dropdown-end ">
+                <summary
+                  className="btn m-1 bg-black text-white w-52 flex justify-between"
+                  tabIndex={0}
+                  role="button"
+                >
+                  {selectedPackaging}
+                  <FaCaretDown className="w-4 h-4 text-white ml-1" />
+                </summary>
+                <ul
+                  className="menu dropdown-content  bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
+                  tabIndex={0}
+                >
+                  {medical_packaging.map((label: string) => (
+                    <li key={label} className="hover:text-black hover:bg-white rounded-lg">
+                      <a
+                        onClick={() => {
+                          setSelectedPackaging(label);
+                        }}
+                      >
+                        {label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
+          </div>
         <div className="flex flex-row">
           <div className="w-full">
             <label

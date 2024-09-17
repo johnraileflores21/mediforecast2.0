@@ -23,6 +23,7 @@ const Sidebar = () => {
   const menus = [
     { name: "Dashboard", link: "/dashboard", icon: MdOutlineDashboard },
     { name: "Inventory", link: "/inventory", icon: MdInventory },
+    // { name: "Inventory2", link: "/inventory2", icon: MdInventory },
     { name: "Request", link: "/request", icon: FaQuestionCircle },
     { name: "Community Post", link: "/community", icon: SiGooglemessages },
     {

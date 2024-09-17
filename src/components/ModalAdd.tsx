@@ -14,8 +14,9 @@ import { medical_packaging, dosage_forms, medicineFormData } from "../assets/com
 
 interface ModalAddProps {
   showModal: boolean;
-  closeModal: () => void;
+  closeModal: (bool: any) => void;
 }
+
 const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
   const [showModalSuccess, setShowModalSucces] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -46,6 +47,7 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
     });
 
     setErrors(newErrors);
+    console.log('newErrors :>> ', newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -88,6 +90,8 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
   };
 
   const handleConfirmSubmit = async () => {
+    formData.medicineDosageForm = selectedOption;
+    formData.medicinePackaging = selectedPackaging;
     if (!validateForm()) return;
 
     const now = new Date();
@@ -112,8 +116,6 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
         created_at: dateToday,
         updated_at: dateToday,
         userId: user?.uid,
-        medicineDosageForm: selectedOption,
-        medicinePackaging: selectedPackaging,
         created_by_unit: user?.rhuOrBarangay
       };
 
@@ -128,7 +130,7 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
 
       setTimeout(() => {
         setShowModalSucces(false);
-        closeModal();
+        closeModal(true);
       }, 1000);
       
     } catch (error) {

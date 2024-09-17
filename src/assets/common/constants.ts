@@ -17,7 +17,8 @@ export const dosage_forms = [
     "Capsule",
     "Suspension",
     "Cream",
-    "Ointment"
+    "Ointment",
+    "Injectible"
 ];
 
 export const medicineFormData = {
@@ -36,3 +37,52 @@ export const medicineFormData = {
     userId: "",
     medicinePiecesPerItem: "",
 };
+
+export const vitaminFormData = {
+    vitaminGenericName: "",
+    vitaminBrandName: "",
+    vitaminStock: 0,
+    totalQuantity: 0,
+    vitaminLotNo: "",
+    vitaminDosageForm: "",
+    vitaminPackaging: "",
+    vitaminDosageStrength: "",
+    vitaminExpiration: "",
+    vitaminRegulatoryClassification: "",
+    vitaminDescription: "",
+    vitaminClassification: "",
+    userId: "",
+    vitaminPiecesPerItem: "",
+};
+
+export const vaccineFormData = {
+    vaccineName: "",
+    vaccineBatchNo: "",
+    vaccineDosageForm: "",
+    vaccinePackaging: "",
+    vaccineExpiration: "",
+    vaccineDescription: "",
+    vaccineClassification: "",
+    vaccinePiecesPerItem: "",
+    userId: "",
+    vaccineStock: 0,
+    totalQuantity: 0,
+};
+
+export const inventoryFormData = {
+    brandName: '',
+    genericName: '',
+    stock: 0,
+    stockClassification: '',
+    piecesPerItem: 0,
+    lotNo: '',
+    dosage: '',
+    type: '',
+    packaging: '',
+    expirationDate: '',
+    regulatoryClassification: '',
+    description: ''
+};
+
+export const inventoryFilters = ["All", "Medicines", "Vitamins", "Vaccine"];
+export const inventoryTabs = ["Medicine", "Vitamin", "Vaccine"];

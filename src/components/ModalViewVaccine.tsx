@@ -8,41 +8,22 @@ import { useUser } from "./User";
 interface ModalViewVaccineProps {
   showModal: boolean;
   closeModal: () => void;
-  viewId: string | null;
+  data: any;
 }
 
 const ModalViewVaccine: React.FC<ModalViewVaccineProps> = ({
   showModal,
   closeModal,
-  viewId,
+  data,
 }) => {
   const [vaccine, setVaccine] = useState<any | null>(null);
   const { user } = useUser();
 
-  let inventory = "";
-
-  if (user?.rhuOrBarangay === "1") {
-    inventory = "RHU1Inventory";
-  } else if (user?.rhuOrBarangay === "2") {
-    inventory = "RHU2Inventory";
-  } else if (user?.rhuOrBarangay === "3") {
-    inventory = "RHU3Inventory";
-  }
-
   useEffect(() => {
-    if (!viewId) return;
-
-    const unsub = onSnapshot(collection(db, inventory), (snapshot) => {
-      const vaccinesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      const selectedVaccine = vaccinesData.find((vac) => vac.id === viewId);
-      setVaccine(selectedVaccine);
-    });
-
-    return () => unsub();
-  }, [viewId, inventory]);
+    if(data) {
+      setVaccine(data);
+    }
+  }, [data]);
 
   if (!showModal || !vaccine) {
     return null;
@@ -137,15 +118,15 @@ const ModalViewVaccine: React.FC<ModalViewVaccineProps> = ({
                   </div>
                   <div>
                     <label
-                      htmlFor="vaccineForm"
+                      htmlFor="vaccineDosageForm"
                       className="block text-sm font-medium text-gray-700"
                     >
                       Vaccine Form
                     </label>
                     <input
                       type="text"
-                      id="vaccineForm"
-                      value={vaccine.vaccineForm}
+                      id="vaccineDosageForm"
+                      value={vaccine.vaccineDosageForm}
                       className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                       disabled
                     />

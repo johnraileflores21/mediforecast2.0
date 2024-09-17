@@ -23,16 +23,17 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { v4 } from "uuid";
 import { useUser } from "./User";
+import { dosage_forms } from "../assets/common/constants";
 
 interface ModalEditVaccineProps {
   showModal: boolean;
-  closeModal: () => void;
-  editId: string | null;
+  closeModal: (bool: any) => void;
+  data: any;
 }
 const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
   showModal,
   closeModal,
-  editId,
+  data,
 }) => {
   const [showModalSuccess, setShowModalSucces] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -45,7 +46,7 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
     vaccineName: "",
     vaccineBatchNo: "",
     vaccineStock: "",
-    vaccineForm: "",
+    vaccineDosageForm: "",
     vaccineExpiration: "",
     vaccineDescription: "",
     updated_at: "",
@@ -63,41 +64,19 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
   }
 
   useEffect(() => {
-    if (editId) {
-      const unsub = onSnapshot(doc(db, inventory, editId), (doc) => {
-        try {
-          if (doc.exists()) {
-            const vaccineData = doc.data() as DocumentData;
-            console.log("Medicine Image URL:", vaccineData.vaccineImg);
-            setFormData({
-              vaccineImg: vaccineData.vaccineImg || "",
-              vaccineName: vaccineData.vaccineName || "",
-
-              vaccineStock: vaccineData.vaccineStock || "",
-              vaccineBatchNo: vaccineData.vaccineBatchNo || "",
-              vaccineForm: vaccineData.vaccineForm || "",
-
-              vaccineExpiration: vaccineData.vaccineExpiration || "",
-              vaccineDescription: vaccineData.vaccineDescription || "",
-              updated_at: vaccineData.updated_at || "",
-            });
-            setSelectedOption(vaccineData.vaccineForm || null);
-            setPreview(vaccineData.vaccineImg || null);
-          }
-        } catch (error) {
-          console.error("Error fetching document:", error);
-        }
-      });
-      return () => unsub();
+    if(data) {
+      setFormData(data);
+      setSelectedOption(data.vaccineDosageForm || null);
+      setPreview(data.vaccineImg || null);
     }
-  }, [editId]);
+  }, [data]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     if (e.target instanceof HTMLInputElement && e.target.files) {
       const selectedFile = e.target.files[0];
-      if (e.target.id == "vaccineImage") {
+      if (e.target.id == "vaccineImg") {
         setFile(selectedFile);
         setPreview(URL.createObjectURL(selectedFile));
       } else {
@@ -127,11 +106,10 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
         await uploadBytes(storageReference, file);
         imageUrl = await getDownloadURL(storageReference);
       }
-      if (editId) {
-        await updateDoc(doc(db, inventory, editId), {
+      if (data) {
+        if(selectedOption) formData.vaccineDosageForm = selectedOption;
+        await updateDoc(doc(db, "Inventory", data.id), {
           ...formData,
-
-          vaccineForm: selectedOption,
           vaccineImg: imageUrl,
           updated_at: dateToday,
         });
@@ -140,7 +118,7 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
       notify();
       setTimeout(() => {
         setShowModalSucces(false);
-        closeModal();
+        closeModal(true);
       }, 1000);
     } catch (error) {
       console.error("Error updating document:", error);
@@ -168,7 +146,7 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
       vaccineImg: "",
     });
     const inputElement = document.getElementById(
-      "vaccineImage"
+      "vaccineImg"
     ) as HTMLInputElement | null;
     if (inputElement) {
       inputElement.value = "";
@@ -198,7 +176,7 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
             }`}
           >
             <FaCheckCircle className="h-6 w-6 shrink-0 stroke-current text-white" />
-            <span className="text-white">Medicine Updated Successfully!</span>
+            <span className="text-white">Vaccine Updated Successfully!</span>
           </div>
         </div>
       )}
@@ -231,7 +209,7 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
                           {preview ? (
                             <img
                               src={preview}
-                              alt="Medicine Preview"
+                              alt="Vaccine Preview"
                               className="w-full h-full object-cover"
                             />
                           ) : (
@@ -239,13 +217,13 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
                               <input
                                 type="file"
                                 accept="image/*"
-                                id="vaccineImage"
+                                id="vaccineImg"
                                 onChange={handleChange}
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                 required
                               />
                               <label
-                                htmlFor="vaccineImage"
+                                htmlFor="vaccineImg"
                                 className="absolute cursor-pointer flex flex-col items-center justify-center text-center w-full h-full"
                               >
                                 <FaUpload className="w-6 h-6 text-blue-700" />
@@ -329,7 +307,7 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
                             className="menu dropdown-content bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
                             tabIndex={0}
                           >
-                            {["Vial", "Ampoule"].map((option) => (
+                            {dosage_forms.map((option) => (
                               <li
                                 key={option}
                                 className="hover:text-black hover:bg-white rounded-lg"
@@ -339,7 +317,7 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
                                     setSelectedOption(option);
                                     setFormData({
                                       ...formData,
-                                      vaccineForm: option,
+                                      vaccineDosageForm: option,
                                     });
                                   }}
                                 >

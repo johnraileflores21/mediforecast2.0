@@ -14,6 +14,7 @@ import Request from "./components/Request";
 import Community from "./components/Community";
 import Individual from "./components/Individual";
 import Try from "./components/Try";
+import InventoryV2 from "./components/InventoryV2";
 import AdminRHU1 from "./components/bin/AdminRHU1";
 import RHU2 from "./components/bin/AdminRHU2";
 import RHU3 from "./components/bin/AdminRHU3";
@@ -106,6 +107,7 @@ const App = () => {
           <Route path="/individual-treatment-record" element={<Individual />} />
           <Route path="/administrator" element={<AdminLogin />} />
           <Route path="/inventory" element={<Try />} />
+          <Route path="/inventory2" element={<InventoryV2 />} />
           <Route path="/administrator-dashboard" element={<AdminDashboard />} />
           <Route path="/admin" element={<AdminRHU1 />} />
           <Route path="/rural-health-unit-2" element={<RHU2 />} />

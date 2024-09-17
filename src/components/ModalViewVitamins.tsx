@@ -18,16 +18,6 @@ const ModalViewVitamins: React.FC<ModalViewVitaminsProps> = ({
   const [vitamin, setVitamin] = useState<any | null>(null);
   const { user } = useUser();
 
-  let inventory = "";
-
-  if (user?.rhuOrBarangay === "1") {
-    inventory = "RHU1Inventory";
-  } else if (user?.rhuOrBarangay === "2") {
-    inventory = "RHU2Inventory";
-  } else if (user?.rhuOrBarangay === "3") {
-    inventory = "RHU3Inventory";
-  }
-
   useEffect(() => {
     if(data) {
       setVitamin(data);

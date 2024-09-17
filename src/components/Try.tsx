@@ -82,7 +82,10 @@ const Try: React.FC = () => {
   }, [user?.rhuOrBarangay]);
 
   const handleAdd = () => setModalAdd(true);
-  const closeModalAdd = () => setModalAdd(false);
+  const closeModalAdd = (bool: any) => {
+    if(bool) fetchData();
+    setModalAdd(false);
+  };
 
   const handleDelete = async (id: string) => {
     // setShowDeleteModal(true);
@@ -154,9 +157,15 @@ const Try: React.FC = () => {
     setForm(item);
     if(item.type === "Medicine") {
       setModalDistribute(true);
+      setDistributeVaccine(false);
+      setDistributeVitamin(false);
     } else if (item.type === "Vaccine") {
-      return;
+      setModalDistribute(false);
+      setDistributeVaccine(true);
+      setDistributeVitamin(false);
     } else if (item.type === "Vitamin") {
+      setModalDistribute(false);
+      setDistributeVaccine(false);
       setDistributeVitamin(true);
     }
   };
@@ -319,11 +328,12 @@ const Try: React.FC = () => {
                                         ${(item.vitaminDosageForm || "").toLowerCase()}${parseInt(item.vitaminClassification) > 1 && "/s"}
                                         per ${item.vitaminPackaging}`)
 
-                                : (item.vaccineClassification.includes('ml')
-                                  ? `${item.vaccineClassification} per ${item.vaccinePackaging}`
-                                  : `${item.vaccineClassification}
-                                    ${(item.vaccineDosageForm || "").toLowerCase()}${parseInt(item.vaccineClassification) > 1 && "s"}
-                                    per ${item.vaccinePackaging}`)
+                                : ""
+                                // (item.vaccineClassification.includes('ml')
+                                //   ? `${item.vaccineClassification} per ${item.vaccinePackaging}`
+                                //   : `${item.vaccineClassification}
+                                //     ${(item.vaccineDosageForm || "").toLowerCase()}${parseInt(item.vaccineClassification) > 1 && "s"}
+                                //     per ${item.vaccinePackaging}`)
                             }
                             {/* {item.medicineClassification && item.vaccineClassification.includes('ml') &&
                               `${item.medicineClassification}
@@ -335,13 +345,13 @@ const Try: React.FC = () => {
                         {/* Add similar conditions for vaccineStock and vitaminStock if needed */}
                         {item.vaccineStock && (
                           <>
-                            {
+                            {/* {
                                 item.vaccineClassification.includes('ml') ?
                                 <>{item.vaccinePiecesPerItem} per ${item.vaccinePackaging}</> :
                                 <>
                                   {item.vaccinePiecesPerItem} {`${item.vaccineDosageForm.toLowerCase()}${parseInt(item.vaccinePiecesPerItem) > 1 && "s"} per ${item.vaccinePackaging}`}
                                 </>
-                              }
+                              } */}
                           </>
                         )}
                       </div>
@@ -409,11 +419,11 @@ const Try: React.FC = () => {
         />
       )}
 
-      {modalEditVaccine && (
+      {modalEditVaccine && form && (
         <ModalEditVaccine
           showModal={modalEditVaccine}
           closeModal={closeModalEditVaccine}
-          editId={editId}
+          data={form}
         />
       )}
 
@@ -421,7 +431,7 @@ const Try: React.FC = () => {
         <ModalViewVaccine
           showModal={modalViewVaccine}
           closeModal={closeModalViewVaccine}
-          viewId={null}
+          data={form}
         />
       )}
       {modalViewVitamin && form && (
@@ -448,6 +458,13 @@ const Try: React.FC = () => {
       {distributeVitamin && form && (
         <DistributeVitamin
           showModal={distributeVitamin}
+          closeModal={closeDistribute}
+          data={form}
+        />
+      )}
+      {distributeVaccine && form && (
+        <DistributeVaccine
+          showModal={distributeVaccine}
           closeModal={closeDistribute}
           data={form}
         />
