@@ -46,10 +46,10 @@ const Try: React.FC = () => {
   const { user } = useUser();
   const MySwal = withReactContent(Swal);
 
+  const isBarangay = user?.role.includes("Barangay");
+
   const fetchData = async () => {
     try {
-
-      const isBarangay = user?.role.includes("Barangay");
 
       const RHUs = [
         {"barangays": ["Sulipan", "San Juan", "Capalangan", "Sucad", "Colgante"]},
@@ -230,13 +230,13 @@ const Try: React.FC = () => {
           <IoSearchOutline className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
         </div>
 
-        <button
+        {!isBarangay && <button
           onClick={handleAdd}
           className="bg-green-500 text-white p-2 hover:bg-green-700 rounded-md font-bold flex items-center space-x-1"
         >
           <IoMdAddCircle className="w-5 h-5" />
           <span>Add</span>
-        </button>
+        </button>}
       </div>
       <div className="dropdown w-28 relative">
         <div
@@ -306,11 +306,11 @@ const Try: React.FC = () => {
                                                 item.vaccineStock ||
                                                 item.vitaminStock}
                                         </div> */}
-                    {(item.medicineStock ||
-                      item.vaccineStock ||
-                      item.vitaminStock) && (
+                    {(item.medicineStock !== null ||
+                      item.vaccineStock  !== null ||
+                      item.vitaminStock  !== null) && (
                       <div>
-                          <span>Stock: {item.medicineStock || item.vitaminStock || item.vaccineStock}</span>
+                          <span>Stock: {(item.medicineStock || 0) || (item.vitaminStock || 0) || (item.vaccineStock || 0)}</span>
                         <div>
                           <span>
                             {
