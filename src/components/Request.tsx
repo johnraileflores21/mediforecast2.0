@@ -105,8 +105,31 @@ const Request = () => {
         loadData();
     }, [])
 
-    const handleDecline = (id: string) => {
+    const handleDecline = async (id: string) => {
+        try {
+            setLoading(true);
+            const requestDocRef = doc(db, "Requests", id);
+            await updateDoc(requestDocRef, { status: "rejected" });
 
+            Swal.fire({
+                position: "center",
+                icon: "success",
+                title: "Request has been rejected!",
+                showConfirmButton: false,
+                timer: 1000,
+            });
+        } catch (error) {
+            console.log(error);
+            Swal.fire({
+                position: "center",
+                icon: "error",
+                title: "Unable to decline request",
+                showConfirmButton: false,
+                timer: 1000,
+            });
+        } finally {
+            setLoading(false);
+        }
     }
 
     const handleApprove = async (id: string) => {
@@ -181,7 +204,7 @@ const Request = () => {
             Swal.fire({
                 position: "center",
                 icon: "error",
-                title: "Unable to distribute item",
+                title: "Unable to request. Please try again",
                 showConfirmButton: false,
                 timer: 1000,
             });
