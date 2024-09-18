@@ -122,6 +122,7 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
           requestedQuantity: parseInt(form.requestedQuantity),
           userId: user?.uid,
           created_at: new Date(),
+          barangay: user?.rhuOrBarangay || user?.barangay,
           status: 'pending'
         };
 

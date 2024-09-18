@@ -126,26 +126,35 @@ const Request = () => {
             if(!itemSnap.exists()) throw new Error("Item not found");
     
             const itemData = itemSnap.data();
-            const currentStock = itemData.medicineStock;
+            const currentStock = itemData.medicineStock || itemData.vitaminStock || itemData.vaccineStock;
     
             if(requestedQuantity > currentStock) throw new Error("Insufficient stock.");
 
-            await updateDoc(itemDocRef, { medicineStock: currentStock - requestedQuantity });
+            const stockTypes = ['medicineStock', 'vitaminStock', 'vaccineStock'];
+            let stockType = "";
+            Object.keys(itemData).forEach(type => {
+                if(stockTypes.includes(type)) stockType = type;
+            });
+
+            await updateDoc(itemDocRef, { [stockType]: currentStock - requestedQuantity });
 
             const barangayInventoryData = {
                 ...itemData,
-                medicineStock: requestedQuantity,
+                [stockType]: requestedQuantity,
                 totalQuantity: requestedQuantity,
                 created_at: new Date().toISOString(),
-                userId: barangayId
+                userId: barangayId,
+                last_modified: new Date().toISOString()
             };
 
             const barangayInventoryRef = doc(db, "BarangayInventory", itemId);
             const barangayInventorySnap = await getDoc(barangayInventoryRef);
 
-            if(barangayInventorySnap.exists())
-                await updateDoc(barangayInventoryRef, barangayInventoryData);
-            else await setDoc(barangayInventoryRef, barangayInventoryData);
+            if(barangayInventorySnap.exists()) {
+                const currentData = barangayInventorySnap.data();
+                const updatedStock = parseInt(currentData[stockType]) + parseInt(requestedQuantity);
+                await updateDoc(barangayInventoryRef, { ...barangayInventoryData, [stockType]: updatedStock });
+            } else await setDoc(barangayInventoryRef, barangayInventoryData);
 
             await addDoc(collection(db, "Distributions"), {
                 barangayId,
