@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../../firebase";
-import { collection, onSnapshot, deleteDoc, doc, query, where, getDocs, getDoc } from "firebase/firestore";
+import { collection, onSnapshot, deleteDoc, doc, query, where, getDocs, getDoc, addDoc } from "firebase/firestore";
 import { IoMdClose } from "react-icons/io";
 import { useUser } from "../User";
+import { requestFormData } from "../../assets/common/constants";
+import { FaRegCheckCircle } from "react-icons/fa";
+import { toast, ToastContainer } from "react-toastify";
 
 interface ModalAddRequestProps {
-  closeModal: () => void
+  closeModal: (bool: any) => void
   showModal: boolean;
 }
 
@@ -13,10 +16,9 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
   showModal,
   closeModal
 }) => {
-  const [form, setForm] = useState<any>({
-
-  });
+  const [form, setForm] = useState<any>(requestFormData);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [showModalSuccess, setShowModalSucces] = useState(false);
   const [items, setItems] = useState<any>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const { user } = useUser();
@@ -72,6 +74,12 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
   const handleChange = (e: any) => {
     const findItem = items.find((x: any) => x.id === e.target.value);
     setSelectedItem(findItem);
+    setForm({...form, itemId: findItem.id, rhuId: findItem.userId});
+  }
+
+  const onInputChange = (e: any, field: string) => {
+    setForm({ ...form, [field]: e.target.value });
+    console.log("medicine :>> ", { ...form, [field]: e.target.value });
   }
 
   const getStock = (item: any) => {
@@ -98,123 +106,173 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
     return item?.medicineRegulatoryClassification || item?.vaccineRegulatoryClassification || item?.vitaminRegulatoryClassification;
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     try {
+        if(!form.itemId || !form.requestedQuantity || !form.reason) {
+          console.log('test');
+          return toast.error("Fill out required fields", {
+            position: "top-right",
+          });
+        }
+
         setLoading(true);
+
+        const payload = {
+          ...form,
+          requestedQuantity: parseInt(form.requestedQuantity),
+          userId: user?.uid,
+          created_at: new Date(),
+          status: 'pending'
+        };
+
+        console.log('payload :>> ', payload);
+
+        const docRef = await addDoc(collection(db, "Requests"), payload);
+        console.log("Document written with ID: ", docRef.id);
+
+        setForm(requestFormData);
+        setShowModalSucces(true);
+
+        setTimeout(() => {
+          setShowModalSucces(false);
+          closeModal(true);
+        }, 1000);
+
     } catch(error: any) {
-        // todo:: submit logic of request, distribute barangay to resident, add history
+      toast.error("Unable to add request", {
+        position: "top-right",
+      });
     } finally {
         setLoading(false);
     }
   }
 
   return (
-    <div
-      className={`fixed z-10 inset-0 overflow-y-auto transition-all duration-500 ease-out ${
-        showModal ? "opacity-100" : "opacity-0"
-      }`}
-    >
-      <div className="flex items-center justify-center min-h-screen px-4 py-6 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-black bg-opacity-50"></div>
-        <div
-          className={`inline-block align-middle bg-white rounded-lg text-left max-h-[600px] overflow-y-auto shadow-xl transform transition-all sm:my-8 sm:max-w-lg sm:w-full ${
-            showModal ? "animate-slideDown" : "animate-slideUp"
-          }`}
-        >
-          {/* Modal content */}
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="ml-40 text-xl font-medium text-gray-900">
-                Request Item
-              </h3>
-              <button
-                onClick={closeModal}
-                type="button"
-                className="text-gray-700 hover:text-gray-900"
-              >
-                <IoMdClose className="w-8 h-8 text-gray-400 hover:text-red-600" />
-              </button>
-            </div>
+    <>
+      <ToastContainer />
+      {showModalSuccess && (
+        <div className="fixed inset-0 flex justify-end items-start z-50 p-4">
+          <div
+            role="alert"
+            className={`absolute alert alert-success w-72 mr-2 flex justify-center items-center z-50 transition-opacity duration-500 ${
+              showModalSuccess ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <FaRegCheckCircle className="h-6 w-6 shrink-0 stroke-current text-white" />
+            <span className="text-white">Request Added Successfully!</span>
+          </div>
+        </div>
+      )}
+      <div
+        className={`fixed z-10 inset-0 overflow-y-auto transition-all duration-500 ease-out ${
+          showModal ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        <div className="flex items-center justify-center min-h-screen px-4 py-6 text-center sm:block sm:p-0">
+          <div className="fixed inset-0 bg-black bg-opacity-50"></div>
+          <div
+            className={`inline-block align-middle bg-white rounded-lg text-left max-h-[600px] overflow-y-auto shadow-xl transform transition-all sm:my-8 sm:max-w-lg sm:w-full ${
+              showModal ? "animate-slideDown" : "animate-slideUp"
+            }`}
+          >
+            {/* Modal content */}
+            <div className="bg-white px-4 pt-5 pb-4 sm:p-6">
+              <div className="flex items-center justify-between">
+                <h3 className="ml-40 text-xl font-medium text-gray-900">
+                  Request Item
+                </h3>
+                <button
+                  onClick={closeModal}
+                  type="button"
+                  className="text-gray-700 hover:text-gray-900"
+                >
+                  <IoMdClose className="w-8 h-8 text-gray-400 hover:text-red-600" />
+                </button>
+              </div>
 
-            <div className="mt-4">
-              <form className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <label
-                      htmlFor="selectedItem"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Select Item
-                    </label>
-                    <div className="relative mt-1">
-                        <select
-                            id="selectedItem"
-                            onChange={handleChange}
-                            className="block appearance-none w-full p-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:black focus:border-black sm:text-base"
-                        >
-                            <option value="" disabled selected>Please Select</option>
-                            {items.map((item: any, index: number) => (
-                                <option key={index} value={item.id}>{
-                                    item.medicineBrandName ||
-                                    item.vitaminBrandName ||
-                                    item.vaccineBrandName
-                                }</option>
-                            ))}
-                        </select>
-                        <svg
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                          aria-hidden="true"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </div>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="stock"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Quantity
-                    </label>
-                    <input
-                      type="number"
-                      id="stock"
-                      // value={vitamin.vitaminGenericName}
-                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                    />
-                  </div>
-                </div>
-                <div>
-                    <label
-                      htmlFor="stock"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Reason
-                    </label>
-                    <textarea
+              <div className="mt-4">
+                <form className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label
+                        htmlFor="selectedItem"
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        Select Item
+                      </label>
+                      <div className="relative mt-1">
+                          <select
+                              id="selectedItem"
+                              onChange={handleChange}
+                              className="block appearance-none w-full p-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:black focus:border-black sm:text-base"
+                          >
+                              <option disabled selected>Please Select</option>
+                              {items.map((item: any, index: number) => (
+                                  <option key={index} value={item.id}>{
+                                      item.medicineBrandName ||
+                                      item.vitaminBrandName ||
+                                      item.vaccineBrandName
+                                  }</option>
+                              ))}
+                          </select>
+                          <svg
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="requestedQuantity"
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        Quantity
+                      </label>
+                      <input
+                        type="number"
+                        id="requestedQuantity"
+                        value={form.requestedQuantity}
+                        onChange={(e) => onInputChange(e, 'requestedQuantity')}
                         className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                        rows={3}
-                        placeholder="Please enter your reason"
-                    >
+                      />
+                    </div>
+                  </div>
+                  <div>
+                      <label
+                        htmlFor="reason"
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        Reason
+                      </label>
+                      <textarea
+                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                          rows={3}
+                          id="reason"
+                          placeholder="Please enter your reason"
+                          value={form.reason}
+                          onChange={(e) => onInputChange(e, 'reason')}
+                      >
 
-                    </textarea>
-                </div>
-                {selectedItem && <div>
-                    <h3 className="ml-40 text-xl font-medium text-gray-900">
-                        Item Details
-                    </h3>
-                    <br />
-                    <div className="flex flex-col gap-2">
-                        {/* <p>Remaining Stock: <b>{getStock(selectedItem)}</b></p> */}
-                        <p>Form: <b>{getDosageForm(selectedItem)}</b></p>
-                        <p>Type: <b>{selectedItem?.type}</b></p>
-                        <p>Generic Name: <b>{getGenericName(selectedItem)}</b></p>
+                      </textarea>
+                  </div>
+                  {selectedItem && <div>
+                      <h3 className="ml-40 text-xl font-medium text-gray-900">
+                          Item Details
+                      </h3>
+                      <br />
+                      <div className="flex flex-col gap-2">
+                          {/* <p>Remaining Stock: <b>{getStock(selectedItem)}</b></p> */}
+                          <p>Form: <b>{getDosageForm(selectedItem)}</b></p>
+                          <p>Type: <b>{selectedItem?.type}</b></p>
+                          <p>Generic Name: <b>{getGenericName(selectedItem)}</b></p>
                         <p>Dosage: <b>{getDosage(selectedItem)}</b></p>
                         <p>Lot No: <b>{getLotNo(selectedItem)}</b></p>
                         <p>Regulatory Classification: <b>{getClassification(selectedItem)}</b></p>
@@ -245,6 +303,7 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
         </div>
       </div>
     </div>
+    </>
   );
 };
 

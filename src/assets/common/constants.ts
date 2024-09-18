@@ -84,5 +84,13 @@ export const inventoryFormData = {
     description: ''
 };
 
+export const requestFormData = {
+    rhuId: "",
+    userId: "",
+    itemId: "",
+    reason: "",
+    requestedQuantity: ""
+};
+
 export const inventoryFilters = ["All", "Medicines", "Vitamins", "Vaccine"];
 export const inventoryTabs = ["Medicine", "Vitamin", "Vaccine"];

@@ -22,7 +22,10 @@ const Request = () => {
     const handleAdd = () => {
         setModalAdd(true);
     }
-    const closeModalAdd = () => setModalAdd(false);
+    const closeModalAdd = (bool: boolean) => {
+        if(bool) loadData();
+        setModalAdd(false);
+    }
     const handleSearchInputChange = (
         event: React.ChangeEvent<HTMLInputElement>
     ) => setSearchQuery(event.target.value);
@@ -33,24 +36,24 @@ const Request = () => {
     };
     const filteredAndSortedItems = items
         .filter(
-            (item) =>
+            (itemData) =>
                 selectedOption === "All" ||
-                (selectedOption === "Medicines" && item.type === "Medicine") ||
-                (selectedOption === "Vaccines" && item.type === "Vaccine") ||
-                (selectedOption === "Vitamins" && item.type === "Vitamin")
+                (selectedOption === "Medicines" && itemData.item.type === "Medicine") ||
+                (selectedOption === "Vaccines" && itemData.item.type === "Vaccine") ||
+                (selectedOption === "Vitamins" && itemData.item.type === "Vitamin")
         )
         .filter(
-            (item) =>
-                item.medicineBrandName
+            (itemData) =>
+                itemData.item.medicineBrandName
                     ?.toLowerCase()
                     .includes(searchQuery.toLowerCase()) ||
-                item.medicineGenericName
+                itemData.item.medicineGenericName
                     ?.toLowerCase()
                     .includes(searchQuery.toLowerCase()) ||
-                item.vaccineName
+                itemData.item.vaccineName
                     ?.toLowerCase()
                     .includes(searchQuery.toLowerCase()) ||
-                item.vitaminBrandName
+                itemData.item.vitaminBrandName
                     ?.toLowerCase()
                     .includes(searchQuery.toLowerCase())
         );
@@ -299,7 +302,7 @@ const Request = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {items.map((itemData, index) => (
+                            {filteredAndSortedItems.map((itemData, index) => (
                                 <tr
                                     key={index}
                                     className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
@@ -308,7 +311,13 @@ const Request = () => {
                                         {itemData.barangay}
                                     </td>}
                                     <td className="px-6 py-4 text-gray-900">
-                                        {`${itemData.item.medicineBrandName} (${itemData.item.medicineGenericName})`}
+                                        {
+                                            `${itemData.item.medicineBrandName || itemData.item.vitaminBrandName || itemData.item.vaccineName}
+                                            ${itemData.item.type !== 'vaccine' && `(${
+                                                itemData.item.medicineGenericName ||
+                                                itemData.item.vitaminGenericName
+                                            })`}`
+                                        }
                                     </td>
                                     <td className="px-6 py-4 text-gray-900">
                                         {itemData.requestedQuantity}
