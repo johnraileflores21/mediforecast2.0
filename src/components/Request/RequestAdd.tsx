@@ -21,6 +21,7 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
   const [showModalSuccess, setShowModalSucces] = useState(false);
   const [items, setItems] = useState<any>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [itemsLoading, setItemsLoading] = useState<boolean>(false);
   const { user } = useUser();
 
   const formatDate = (dateString: string) => {
@@ -34,34 +35,45 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
 
   const fetchData = async () => {
     try {
-        
-        const inventorySnap = await getDocs(collection(db, "Inventory"));
-        const inventoryItems: any = inventorySnap.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-        }));
-  
-        let filteredItems = [];
-  
-        for(const item of inventoryItems) {
-            if(!item.userId) continue;
+      setItemsLoading(true);
+      const inventorySnap = await getDocs(collection(db, "Inventory"));
+      const inventoryItems: any = inventorySnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
 
-            const userDocRef = doc(db, "Users", item.userId);
-            const userSnap = await getDoc(userDocRef);
+      let filteredItems = [];
+
+      for(const item of inventoryItems) {
+        if(!item.userId) continue;
+
+        const userDocRef = doc(db, "Users", item.userId);
+        const userSnap = await getDoc(userDocRef);
+
+        if(userSnap.exists()) {
+          const userData = userSnap.data();
+          console.log('userData :>> ', userData);
+
+          const RHUs = [
+            {"barangays": ["Sulipan", "San Juan", "Capalangan", "Sucad", "Colgante"]},
+            {"barangays": ["Tabuyuc", "Balucuc", "Cansinala", "Calantipe"]},
+            {"barangays": ["San Vicente", "Sampaloc", "Paligui"]}
+          ]
     
-            if(userSnap.exists()) {
-                const userData = userSnap.data();
-        
-                if(userData.barangay === user?.barangay) {
-                    filteredItems.push(item);
-                }
-            }
-        }
+          const unit = RHUs.findIndex((x: any) => x['barangays'].includes(user?.barangay)) + 1;
   
-        setItems(filteredItems);
-        console.log("filteredItems :>> ", filteredItems);
+          if(userData.rhuOrBarangay === unit.toString()) {
+            filteredItems.push(item);
+          }
+        }
+      }
+
+      setItems(filteredItems);
+      console.log("filteredItems :>> ", filteredItems);
     } catch (error) {
       console.error("error fetching data :>> ", error);
+    } finally {
+      setItemsLoading(false);
     }
   };
   
@@ -100,10 +112,6 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
 
   const getLotNo = (item: any) => {
     return item?.medicineLotNo || item?.vaccineLotNo || item?.vitaminLotNo;
-  }
-
-  const getClassification = (item: any) => {
-    return item?.medicineRegulatoryClassification || item?.vaccineRegulatoryClassification || item?.vitaminRegulatoryClassification;
   }
 
   const handleSubmit = async () => {
@@ -207,7 +215,7 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
                               onChange={handleChange}
                               className="block appearance-none w-full p-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:black focus:border-black sm:text-base"
                           >
-                              <option disabled selected>Please Select</option>
+                              <option disabled selected>{itemsLoading ? 'Loading..' : 'Please Select'}</option>
                               {items.map((item: any, index: number) => (
                                   <option key={index} value={item.id}>{
                                       item.medicineBrandName ||
@@ -270,13 +278,11 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
                       </h3>
                       <br />
                       <div className="flex flex-col gap-2">
-                          {/* <p>Remaining Stock: <b>{getStock(selectedItem)}</b></p> */}
-                          <p>Form: <b>{getDosageForm(selectedItem)}</b></p>
-                          <p>Type: <b>{selectedItem?.type}</b></p>
-                          <p>Generic Name: <b>{getGenericName(selectedItem)}</b></p>
+                        <p>Form: <b>{getDosageForm(selectedItem)}</b></p>
+                        <p>Type: <b>{selectedItem?.type}</b></p>
+                        <p>Generic Name: <b>{getGenericName(selectedItem)}</b></p>
                         <p>Dosage: <b>{getDosage(selectedItem)}</b></p>
                         <p>Lot No: <b>{getLotNo(selectedItem)}</b></p>
-                        <p>Regulatory Classification: <b>{getClassification(selectedItem)}</b></p>
                         <p>From: <b>Unit {selectedItem?.created_by_unit}</b></p>
                     </div>
                 </div>}

@@ -154,7 +154,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
         }
 
         await updateDoc(itemDocRef, {
-          totalPerPiece: totalPerPiece,
+          totalPerPiece: ((totalPerPiece) || parseInt(medicine.medicinePiecesPerItem || 0)),
           medicineStock: currentStock,
         });
 
@@ -352,22 +352,6 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                           id="medicineExpiration"
                           value={formatDate(medicine.medicineExpiration)}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                          disabled
-                          readOnly
-                        />
-                      </div>
-                      <div className="w-full">
-                        <label
-                          htmlFor="medicineRegulatoryClassification"
-                          className="block text-sm font-medium text-gray-700 ml-1"
-                        >
-                          RegulatoryClassification
-                        </label>
-                        <input
-                          type="text"
-                          id="medicineRegulatoryClassification"
-                          value={medicine.medicineRegulatoryClassification}
-                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
                           disabled
                           readOnly
                         />

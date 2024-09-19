@@ -176,14 +176,6 @@ const AddItemModal: React.FC<ModalParams> = ({showModal, closeModal}) => {
                                     value={formData.expirationDate}
                                     onChange={handleInputChange}
                                 />
-
-                                <TextField
-                                    fullWidth
-                                    label="Regulatory Classification"
-                                    name="regulatoryClassification"
-                                    value={formData.regulatoryClassification}
-                                    onChange={handleInputChange}
-                                />
                             </div>
 
                             <TextField

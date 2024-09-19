@@ -50,7 +50,6 @@ const ModalEditVitamins: React.FC<ModalEditVitaminsProps> = ({
     vitaminDosageForm: "",
     vitaminDosageStrength: "",
     vitaminExpiration: "",
-    vitaminRegulatoryClassification: "",
     vitaminDescription: "",
     updated_at: "",
   });
@@ -377,22 +376,6 @@ const ModalEditVitamins: React.FC<ModalEditVitaminsProps> = ({
                             value={formData.vitaminExpiration}
                             onChange={handleChange}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                            required
-                          />
-                        </div>
-                        <div className="w-full">
-                          <label
-                            htmlFor="vitaminRegulatoryClassification"
-                            className="block text-sm font-medium text-gray-700 ml-1"
-                          >
-                            Regulatory Classification
-                          </label>
-                          <input
-                            type="text"
-                            id="vitaminRegulatoryClassification"
-                            value={formData.vitaminRegulatoryClassification}
-                            onChange={handleChange}
-                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
                             required
                           />
                         </div>

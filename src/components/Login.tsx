@@ -6,6 +6,7 @@ import {
   browserLocalPersistence,
   browserSessionPersistence,
   sendPasswordResetEmail,
+  updatePassword,
 } from "firebase/auth";
 import bcrypt from "bcryptjs";
 import { auth, db } from "../firebase";
@@ -15,7 +16,9 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useUser } from "./User";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, updateDoc, addDoc, doc, query, where, getDoc, setDoc, getDocs } from "firebase/firestore";
+import { baseUrl } from "../assets/common/constants";
+import axios from 'axios';
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -34,6 +37,9 @@ const Login = () => {
   const MySwal = withReactContent(Swal);
   const [newPassword, setNewPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [isOtpSent, setIsOtpSent] = useState<boolean>(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+
 
   const showCommonToast = (message: string) => {
     const errMessage = !message.includes('Invalid')
@@ -45,16 +51,69 @@ const Login = () => {
     setErrors(true);
   }
 
+  const sendOtp = async () => {
+    try {
+      setSubmitLoading(true);
+
+      const q = query(
+        collection(db, "Users"),
+        where("email", "==", resetEmail)
+      );
+
+      console.log('resetEmail :>> ', resetEmail);
+      const querySnapshot = await getDocs(q);
+      console.log('querySnapshot.docs :>> ', querySnapshot.docs);
+
+      if(querySnapshot.empty) {
+        MySwal.fire({
+          position: "center",
+          icon: "error",
+          title: "User not found!",
+          showConfirmButton: false,
+          timer: 1000,
+        });
+        return;
+      } else {
+        const user = querySnapshot.docs[0].data();
+
+        console.log('user :>> ', user);
+        const code = Math.floor(Math.random() * (999999 - 100000 + 1)) + 100000;
+
+        await axios.post(`${baseUrl}/forgot-password/send-otp`, {
+          to: user?.email,
+          subject: 'Reset Password | OTP',
+          firstName: user?.firstName,
+          code
+        }, { headers: {'token': 's3cretKey'} });
+
+        await addDoc(collection(db, "OtpVerifications"), {
+          otp: code,
+          userId: querySnapshot.docs[0]?.id,
+          isValid: true,
+          created_at: new Date()
+        });
+
+        setIsOtpSent(true);
+      }
+      
+    } catch (error) {
+      MySwal.fire({
+        position: "center",
+        icon: "error",
+        title: "Unable to send OTP!",
+        showConfirmButton: false,
+        timer: 1000,
+      });
+    } finally {
+      setSubmitLoading(false);
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     if (!email) {
       setErrorEmail("This field is required!");
-      setLoading(false);
-      return;
-    }
-    if (!password) {
-      setErrorPass("This field is required!");
       setLoading(false);
       return;
     }
@@ -70,17 +129,25 @@ const Login = () => {
 
       const userQuery = query(collection(db, "Users"), where("email", "==", email));
       const querySnapshot = await getDocs(userQuery);
-
       if(querySnapshot.empty)
         return showCommonToast('Invalid');
 
       const userDoc = querySnapshot.docs[0];
       const userData = userDoc.data();
 
-      const isPasswordValid = await bcrypt.compare(password, userData.password);
+      console.log('userData :>> ', userData);
 
-      if(!isPasswordValid) 
-        return showCommonToast('Invalid');
+      const isPasswordValid = await bcrypt.compare(password, userData.password);
+      console.log('isPasswordValid :>> ', isPasswordValid);
+
+      if(!isPasswordValid) {
+        const log = await signInWithEmailAndPassword(auth, email, password);
+        if(!log.user) return showCommonToast('Invalid');
+        await updatePassword(log.user, password);
+        const userDocRef = doc(db, 'Users', log.user.uid);
+        const newPass = await bcrypt.hash(password, 10);
+        await updateDoc(userDocRef, { password: newPass });
+      }
 
       if(userData.acc_status === "pending") {
         return showCommonToast('is pending approval');
@@ -121,70 +188,6 @@ const Login = () => {
         }, 700);
       }
 
-      // const user = userCredential.user;
-
-      // const docRef = doc(db, "Users", user.uid);
-      // const docSnap = await getDoc(docRef);
-
-      // console.log("login user :>> ", user);
-
-      // if (docSnap.exists()) {
-      //   const userData = docSnap.data();
-
-      //   console.log('userData :>> ', userData);
-
-      //   // Check user account status
-      //   if (userData.acc_status === "pending") {
-      //     toast.error("Your account is pending approval.", {
-      //       position: "top-right",
-      //       autoClose: 3000,
-      //     });
-      //     setError("Your account is pending approval.");
-      //     setErrors(true);
-
-      //     return;
-      //   } else if (userData.acc_status === "decline") {
-      //     toast.error("Your account has been declined.", {
-      //       position: "top-right",
-      //       autoClose: 3000,
-      //     });
-      //     setError("Your account has been declined.");
-      //     setErrors(true);
-
-      //     return;
-      //   } else {
-      //     MySwal.fire({
-      //       position: "center",
-      //       icon: "success",
-      //       title: "User Logged In Successfully!",
-      //       showConfirmButton: false,
-      //       timer: 1000,
-      //     });
-      //     // Update user context only on successful login
-      //     const payload = {
-      //       firstname: userData.firstname || "",
-      //       lastname: userData.lastname || "",
-      //       email: userData.email || "",
-      //       rhuOrBarangay: userData.rhuOrBarangay || "",
-      //       imageUrl: userData.imageUrl || "",
-      //       barangay: userData.barangay || "",
-      //       uid: user.uid || ""
-      //     };
-      //     console.log("payload :>> ", payload)
-      //     setUser(payload);
-
-      //     setTimeout(() => {
-      //       navigate("/dashboard");
-      //     }, 700);
-      //   }
-      // } else {
-      //   toast.error("User details not found.", {
-      //     position: "top-right",
-      //     autoClose: 1000,
-      //   });
-      //   setError("Invalid Email or Password!");
-      //   setErrors(true);
-      // }
     } catch (error) {
       console.log('error :>> ', error);
       toast.error("Invalid Email or Password!", {
@@ -207,6 +210,7 @@ const Login = () => {
   };
 
   const handleResetEmailSend = async (e: React.FormEvent<HTMLFormElement>) => {
+    console.log('test');
     e.preventDefault();
     setLoading(true);
 
@@ -215,15 +219,15 @@ const Login = () => {
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
     // Check if new password meets criteria
-    if (!passwordRegex.test(newPassword)) {
-      setPasswordError(
-        "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character."
-      );
-      setLoading(false);
-      return;
-    } else {
-      setPasswordError(""); // Clear error if password is valid
-    }
+    // if (!passwordRegex.test(newPassword)) {
+    //   setPasswordError(
+    //     "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character."
+    //   );
+    //   setLoading(false);
+    //   return;
+    // } else {
+    //   setPasswordError(""); // Clear error if password is valid
+    // }
 
     try {
       // Check if the email is associated with an existing user
@@ -415,21 +419,23 @@ const Login = () => {
               />
 
               {/* New Password Field */}
-              <label htmlFor="new-password" className="block mb-2 text-md mt-4">
-                New Password
-              </label>
-              <input
-                type="password"
-                id="new-password"
-                className="w-full p-2 border border-gray-300 rounded-md"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter New Password"
-                required
-              />
-              {passwordError && (
-                <span className="text-red-500 text-sm">{passwordError}</span>
-              )}
+              {/* {isOtpSent && <>
+                <label htmlFor="new-password" className="block mb-2 text-md mt-4">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  id="new-password"
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter New Password"
+                  required
+                />
+                {passwordError && (
+                  <span className="text-red-500 text-sm">{passwordError}</span>
+                )}
+              </>} */}
 
               <div className="flex justify-end mt-4">
                 <button
@@ -442,6 +448,7 @@ const Login = () => {
                 <button
                   type="submit"
                   className="bg-teal-700 text-white p-2 rounded"
+                  // onClick={sendOtp}
                 >
                   Send Reset Link
                 </button>

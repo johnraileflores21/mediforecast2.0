@@ -177,25 +177,24 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         />
                       </div>
                     </div>
-                    <div className="flex justify-center items-center">
-                      <div className="">
-                        <label
-                          htmlFor="medicineDosageForm"
-                          className="block text-sm font-medium text-gray-700"
-                        >
-                          Dosage Form
-                        </label>
-                        <input
-                          type="text"
-                          id="medicineDosageForm"
-                          value={medicine?.medicineDosageForm}
-                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                          readOnly
-                        />
-                      </div>
-                    </div>
-
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex justify-center items-center">
+                        <div className="">
+                          <label
+                            htmlFor="medicineDosageForm"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Dosage Form
+                          </label>
+                          <input
+                            type="text"
+                            id="medicineDosageForm"
+                            value={medicine?.medicineDosageForm}
+                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                            readOnly
+                          />
+                        </div>
+                      </div>
                       <div>
                         <label
                           htmlFor="medicineExpiration"
@@ -211,22 +210,8 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                           readOnly
                         />
                       </div>
-                      <div>
-                        <label
-                          htmlFor="medicineRegulatoryClassification"
-                          className="block text-sm font-medium text-gray-700"
-                        >
-                          Regulatory Classification
-                        </label>
-                        <input
-                          type="text"
-                          id="medicineRegulatoryClassification"
-                          value={medicine?.medicineRegulatoryClassification}
-                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                          readOnly
-                        />
-                      </div>
                     </div>
+                    
                     <div>
                       <label
                         htmlFor="medicineDescription"

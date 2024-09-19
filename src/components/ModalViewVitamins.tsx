@@ -179,21 +179,6 @@ const ModalViewVitamins: React.FC<ModalViewVitaminsProps> = ({
                       disabled
                     />
                   </div>
-                  <div>
-                    <label
-                      htmlFor="vitaminRegulatoryClassification"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Regulatory Classification
-                    </label>
-                    <input
-                      type="text"
-                      id="vitaminRegulatoryClassification"
-                      value={vitamin.vitaminRegulatoryClassification}
-                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                      disabled
-                    />
-                  </div>
                 </div>
                 <div>
                   <label

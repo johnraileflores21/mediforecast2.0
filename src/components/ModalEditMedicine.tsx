@@ -50,7 +50,6 @@ const ModalEditMedicine: React.FC<ModalEditMedicineProps> = ({
     medicineDosageForm: "",
     medicineDosageStrength: "",
     medicineExpiration: "",
-    medicineRegulatoryClassification: "",
     medicineDescription: "",
     updated_at: "",
   });
@@ -63,33 +62,6 @@ const ModalEditMedicine: React.FC<ModalEditMedicineProps> = ({
       setFormData(data);
       setSelectedOption(data.medicineDosageForm || null);
       setPreview(data.medicineImg || null);
-      // const unsub = onSnapshot(doc(db, inventory, editId), (doc) => {
-      //   try {
-      //     if (doc.exists()) {
-      //       const medicineData = doc.data() as DocumentData;
-      //       console.log("Medicine Image URL:", medicineData.medicineImg);
-      //       setFormData({
-      //         medicineImg: medicineData.medicineImg || "",
-      //         medicineGenericName: medicineData.medicineGenericName || "",
-      //         medicineBrandName: medicineData.medicineBrandName || "",
-      //         medicineStock: medicineData.medicineStock || 0,
-      //         medicineLotNo: medicineData.medicineLotNo || "",
-      //         medicineDosageForm: medicineData.medicineDosageForm || "",
-      //         medicineDosageStrength: medicineData.medicineDosageStrength || "",
-      //         medicineExpiration: medicineData.medicineExpiration || "",
-      //         medicineRegulatoryClassification:
-      //           medicineData.medicineRegulatoryClassification || "",
-      //         medicineDescription: medicineData.medicineDescription || "",
-      //         updated_at: medicineData.updated_at || "",
-      //       });
-      //       setSelectedOption(medicineData.medicineDosageForm || null);
-      //       setPreview(medicineData.medicineImg || null);
-      //     }
-      //   } catch (error) {
-      //     console.error("Error fetching document:", error);
-      //   }
-      // });
-      // return () => unsub();
     }
   }, [data]);
 
@@ -408,22 +380,6 @@ const ModalEditMedicine: React.FC<ModalEditMedicineProps> = ({
                             value={formData.medicineExpiration}
                             onChange={handleChange}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                            required
-                          />
-                        </div>
-                        <div className="w-full">
-                          <label
-                            htmlFor="medicineRegulatoryClassification"
-                            className="block text-sm font-medium text-gray-700 ml-1"
-                          >
-                            Regulatory Classification
-                          </label>
-                          <input
-                            type="text"
-                            id="medicineRegulatoryClassification"
-                            value={formData.medicineRegulatoryClassification}
-                            onChange={handleChange}
-                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
                             required
                           />
                         </div>

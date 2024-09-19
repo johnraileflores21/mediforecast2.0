@@ -271,21 +271,6 @@ const DistributeVaccine: React.FC<DistributeVaccineProps> = ({
                           disabled
                         />
                       </div>
-                      <div className="w-full">
-                        <label
-                          htmlFor="vaccineRegulatoryClassification"
-                          className="block text-sm font-medium text-gray-700 ml-1"
-                        >
-                          Regulatory Classification
-                        </label>
-                        <input
-                          type="text"
-                          id="vaccineRegulatoryClassification"
-                          value={vaccine.vaccineClassification}
-                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
-                          disabled
-                        />
-                      </div>
                     </div>
                     <div>
                       <label

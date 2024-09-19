@@ -107,18 +107,54 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
             timer: 1500,
           });
       } else {
-        //  process barangay distribution
-      }
-
-      closeModal(true);
-
-      } else {
         Swal.fire({
           position: "center",
           icon: "error",
           title: `No existing user for ${payload.barangay}`,
           showConfirmButton: false,
           timer: 1000,
+        });
+      }
+
+      closeModal(true);
+
+      } else {
+        const itemDocRef = doc(db, "BarangayInventory", vitamin.id);
+        const itemSnap = await getDoc(itemDocRef);
+        if(!itemSnap.exists()) throw new Error("Item not found in Barangay Inventory");
+
+        const itemData = itemSnap.data();
+        let totalPerPiece = parseInt(itemData.totalPerPiece);
+        let currentStock = parseInt(itemData.vitaminStock);
+        let quantityToDistribute = parseInt(vitamin.totalPieces);
+        let vitaminPiecesPerItem = parseInt(vitamin.vitaminPiecesPerItem);
+
+        if(quantityToDistribute > totalPerPiece) {
+          throw new Error("Insufficient stock to distribute this quantity.");
+        }
+
+        totalPerPiece -= quantityToDistribute;
+        while(quantityToDistribute > 0) {
+          if(quantityToDistribute <= currentStock * vitaminPiecesPerItem) {
+            currentStock -= Math.ceil(quantityToDistribute / vitaminPiecesPerItem);
+            quantityToDistribute = 0;
+          } else {
+            quantityToDistribute -= currentStock * vitaminPiecesPerItem;
+            currentStock = 0;
+          }
+        }
+
+        await updateDoc(itemDocRef, {
+          totalPerPiece: ((totalPerPiece) || parseInt(vitamin.vitaminPiecesPerItem || 0)),
+          vitaminStock: currentStock,
+        });
+
+        Swal.fire({
+          position: "center",
+          icon: "success",
+          title: `${vitamin.vitaminBrandName} has been successfully distributed to ${vitamin.fullName}`,
+          showConfirmButton: false,
+          timer: 1500,
         });
       }
 
@@ -295,21 +331,6 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                           id="vitaminExpiration"
                           value={formatDate(vitamin.vitaminExpiration)}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                          disabled
-                        />
-                      </div>
-                      <div className="w-full">
-                        <label
-                          htmlFor="vitaminRegulatoryClassification"
-                          className="block text-sm font-medium text-gray-700 ml-1"
-                        >
-                          Regulatory Classification
-                        </label>
-                        <input
-                          type="text"
-                          id="vitaminRegulatoryClassification"
-                          value={vitamin.vitaminRegulatoryClassification}
-                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
                           disabled
                         />
                       </div>

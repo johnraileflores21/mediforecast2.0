@@ -318,7 +318,7 @@ const Try: React.FC = () => {
                                 ? (item.medicineClassification.includes('ml')
                                     ? `${item.medicinePiecesPerItem} per ${item.medicinePackaging}`
                                     : `${item.medicinePiecesPerItem}
-                                      ${(item.medicineDosageForm || "").toLowerCase()}${parseInt(item.medicinePiecesPerItem) > 1 && "s"}
+                                      ${(item.medicineDosageForm || "").toLowerCase()}${parseInt(item.medicinePiecesPerItem) > 1 ? "s" : ""}
                                       per ${item.medicinePackaging}`)
                                 
                                 : (item.vitaminClassification)

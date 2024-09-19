@@ -49,9 +49,6 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
       newErrors.vitaminDosageStrength = "Dosage Strength is required";
     if (!formData.vitaminExpiration)
       newErrors.vitaminExpiration = "Expiration Date is required";
-    if (!formData.vitaminRegulatoryClassification)
-      newErrors.vitaminRegulatoryClassification =
-        "Regulatory Classification is required";
     if (!formData.vitaminDescription)
       newErrors.vitaminDescription = "Description is required";
     if (!file) newErrors.vitaminImage = "Image is required";
@@ -394,7 +391,7 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
             </div>
           </div>
           <div className="flex flex-row">
-            <div className="w-1/2">
+            <div className="w-full">
               <label
                 htmlFor="vitaminExpiration"
                 className="block text-sm font-medium text-gray-700 "
@@ -411,27 +408,6 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
               />
               {errors.vitaminExpiration && (
                 <span className="text-red-600">{errors.vitaminExpiration}</span>
-              )}
-            </div>
-            <div className="w-1/2">
-              <label
-                htmlFor="vitaminRegulatoryClassification"
-                className="block text-sm font-medium text-gray-700 ml-1"
-              >
-                Regulatory Classification
-              </label>
-              <input
-                type="text"
-                id="vitaminRegulatoryClassification"
-                value={formData.vitaminRegulatoryClassification}
-                onChange={handleChange}
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
-                required
-              />
-              {errors.vitaminRegulatoryClassification && (
-                <span className="text-red-600">
-                  {errors.vitaminRegulatoryClassification}
-                </span>
               )}
             </div>
           </div>

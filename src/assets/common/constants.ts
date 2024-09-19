@@ -1,3 +1,5 @@
+export const baseUrl = "https://api-dgreatplan.site/api";
+
 export const medical_packaging = [
     "Bottle",
     "Blister Pack",
@@ -31,7 +33,6 @@ export const medicineFormData = {
     medicinePackaging: "",
     medicineDosageStrength: "",
     medicineExpiration: "",
-    medicineRegulatoryClassification: "",
     medicineDescription: "",
     medicineClassification: "",
     userId: "",
@@ -48,7 +49,6 @@ export const vitaminFormData = {
     vitaminPackaging: "",
     vitaminDosageStrength: "",
     vitaminExpiration: "",
-    vitaminRegulatoryClassification: "",
     vitaminDescription: "",
     vitaminClassification: "",
     userId: "",
@@ -80,7 +80,6 @@ export const inventoryFormData = {
     type: '',
     packaging: '',
     expirationDate: '',
-    regulatoryClassification: '',
     description: ''
 };
 

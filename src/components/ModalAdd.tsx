@@ -493,7 +493,7 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
                                 </div>
                               </div>
                               <div className="flex flex-row">
-                                <div className="w-1/2">
+                                <div className="w-full">
                                   <label
                                     htmlFor="medicineExpiration"
                                     className="block text-sm font-medium text-gray-700 "
@@ -511,30 +511,6 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
                                   {errors.medicineExpiration && (
                                     <span className="text-red-600">
                                       {errors.medicineExpiration}
-                                    </span>
-                                  )}
-                                </div>
-
-                                <div className="w-1/2">
-                                  <label
-                                    htmlFor="medicineRegulatoryClassification"
-                                    className="block text-sm font-medium text-gray-700 ml-1"
-                                  >
-                                    Regulatory Classification
-                                  </label>
-                                  <input
-                                    type="text"
-                                    id="medicineRegulatoryClassification"
-                                    value={
-                                      formData.medicineRegulatoryClassification
-                                    }
-                                    onChange={handleChange}
-                                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
-                                    required
-                                  />
-                                  {errors.medicineRegulatoryClassification && (
-                                    <span className="text-red-600">
-                                      {errors.medicineRegulatoryClassification}
                                     </span>
                                   )}
                                 </div>
