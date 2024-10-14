@@ -233,7 +233,7 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
           </div>
 
           <div className="flex flex-row gap-2">
-            <div className="w-1/3">
+            <div className="w-1/2">
               <label
                 htmlFor="vitaminStock"
                 className="block text-sm font-medium text-gray-700"
@@ -252,23 +252,7 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
                 <span className="text-red-600">{errors.vitaminStock}</span>
               )}
             </div>
-            <div className="w-1/3">
-              <label
-                htmlFor="vitaminClassification"
-                className="block text-sm font-medium text-gray-700 ml-1"
-              >
-                Stock Classification
-              </label>
-              <input
-                type="text"
-                id="vitaminClassification"
-                value={formData.vitaminClassification}
-                onChange={handleChange}
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
-                required
-              />
-            </div>
-            <div className="w-1/3">
+            <div className="w-1/2">
               <label
                 htmlFor="vitaminPiecesPerItem"
                 className="block text-sm font-medium text-gray-700 ml-1"

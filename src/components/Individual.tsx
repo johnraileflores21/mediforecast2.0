@@ -205,7 +205,7 @@ const Individual = () => {
   return (
     <DashboardLayout>
       <div className="flex justify-between">
-        <h1 className="text-3xl font-bold mb-4">Individual Treatment Record</h1>
+        <h1 className="text-3xl font-bold mb-4">Files</h1>
         <div className="flex justify-center items-center mb-4">
           <div className="dropdown dropdown-end w-28">
             <div

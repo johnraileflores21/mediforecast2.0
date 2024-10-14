@@ -19,11 +19,14 @@ import withReactContent from "sweetalert2-react-content";
 import { collection, onSnapshot, updateDoc, addDoc, doc, query, where, getDoc, setDoc, getDocs } from "firebase/firestore";
 import { baseUrl } from "../assets/common/constants";
 import axios from 'axios';
+import OtpVerification from "./OtpVerification/Modal";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(true);
+  const [modalVerification, setModalVerification] = useState(false);
+  const [otpID, setOtpID] = useState<string>("");
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -133,6 +136,7 @@ const Login = () => {
         return showCommonToast('Invalid');
 
       const userDoc = querySnapshot.docs[0];
+      console.log('userDoc :>> ', userDoc);
       const userData = userDoc.data();
 
       console.log('userData :>> ', userData);
@@ -149,7 +153,11 @@ const Login = () => {
         await updateDoc(userDocRef, { password: newPass });
       }
 
-      if(userData.acc_status === "pending") {
+      if(userData.acc_status === "for_verification") {
+        console.log('test');
+        setOtpID(userDoc.id);
+        return setModalVerification(true);
+      } else if(userData.acc_status === "pending") {
         return showCommonToast('is pending approval');
       } else if (userData.acc_status === "decline") {
         return showCommonToast('has been declined');
@@ -457,6 +465,8 @@ const Login = () => {
           </div>
         </div>
       )}
+
+      <OtpVerification showModal={modalVerification} userId={otpID} closeModal={() => setModalVerification(false)} />
     </>
   );
 };

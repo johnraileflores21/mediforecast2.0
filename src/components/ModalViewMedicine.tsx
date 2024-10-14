@@ -113,7 +113,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
                       <div>
                         <label
                           htmlFor="medicineStock"
@@ -125,21 +125,6 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                           type="text"
                           id="medicineStock"
                           value={medicine?.medicineStock}
-                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                          readOnly
-                        />
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="medicineStockClassification"
-                          className="block text-sm font-medium text-gray-700"
-                        >
-                          Stock Classification
-                        </label>
-                        <input
-                          type="text"
-                          id="medicineClassification"
-                          value={`${medicine?.medicineClassification} ${medicine?.medicineDosageForm}`}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />

@@ -216,7 +216,7 @@ const Request = () => {
     const handleDropdown = () => setDropdownOpen(!dropdownOpen);
     return (
         <DashboardLayout>
-            <h1 className="text-3xl font-bold mb-4">Request</h1>
+            <h1 className="text-3xl font-bold mb-4">Stock Request</h1>
             <div className="flex justify-between mb-2 mt-10">
                 <div className="flex items-middle gap-3">
                     <div className="relative">

@@ -193,7 +193,7 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
           </div>
         </div>
         <div className="flex flex-row gap-2">
-          <div className="w-1/3">
+          <div className="w-1/2">
             <label
               htmlFor="vaccineStock"
               className="block text-sm font-medium text-gray-700"
@@ -209,23 +209,7 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
               <span className="text-red-600">Vaccine Stock is required</span>
             )}
           </div>
-          <div className="w-1/3">
-            <label
-              htmlFor="vaccineClassification"
-              className="block text-sm font-medium text-gray-700 ml-1"
-            >
-              Stock Classification
-            </label>
-            <input
-              type="text"
-              {...register("vaccineClassification", { required: true })}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
-            />
-            {errors.vaccineClassification && (
-              <span className="text-red-600">Vaccine Classification is required</span>
-            )}
-          </div>
-          <div className="w-1/3">
+          <div className="w-1/2">
             <label
               htmlFor="vaccinePiecesPerItem"
               className="block text-sm font-medium text-gray-700 ml-1"

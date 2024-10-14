@@ -1,6 +1,6 @@
 import React, { useState, ChangeEvent, useRef, useCallback } from "react";
 import { auth, db, storage } from "../firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
 import { v4 } from "uuid";
@@ -10,6 +10,10 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import bcrypt from "bcryptjs";
+import CommonError from "../assets/common/error";
+import OtpVerification from "./OtpVerification/Modal";
+import axios from "axios";
+import { baseUrl } from "../assets/common/constants";
 
 // Optional: Define form data types for better type safety
 type FormData = {
@@ -73,7 +77,11 @@ const Register: React.FC = () => {
   const [errorConfirmPassword, setErrorConfirmPassword] = useState<
     string | null
   >(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<any | null>({});
+  const [otpModal, setOtpModal] = useState(false);
+  const [otpID, setOtpID] = useState<string>("");
+  const [modalVerification, setModalVerification] = useState(false);
+  
   const Navigate = useNavigate();
 
   const uploadImage = async (file: File, path: string): Promise<string> => {
@@ -230,7 +238,7 @@ const Register: React.FC = () => {
         idFront: idFrontUrl,
         idBack: idBackUrl,
         rhuOrBarangay,
-        acc_status: "pending", //setting automatic pending and for approval of super admin
+        acc_status: "for_verification", 
         created_at: dateToday,
         updated_at: dateToday,
       };
@@ -244,12 +252,33 @@ const Register: React.FC = () => {
       // Sign out the user after registration because it automatic login if not signout
       await signOut(auth);
 
-      // Show success toast and reset the form
-      toast.success("User Registered Successfully!", {
-        position: "top-right",
+      const newOtp = Math.floor(Math.random() * (999999 - 100000 + 1)) + 100000;
+
+      const newOtpDocRef = doc(collection(db, "OtpVerifications"));
+      await setDoc(newOtpDocRef, {
+          created_at: serverTimestamp(),
+          isValid: true,
+          otp: newOtp,
+          userId: user.uid
       });
-      resetForm();
+
+      await axios.post(`${baseUrl}/forgot-password/registration-otp`, {
+        to: userData?.email,
+        subject: '[Mediforecast] - Account Verification | OTP',
+        firstName: userData?.firstname,
+        code: newOtp
+    }, { headers: {'token': 's3cretKey'} });
+
+      setOtpID(user.uid);
+      setModalVerification(true);
+
+      // Show success toast and reset the form
+      // toast.success("User Registered Successfully! Please Verify your account");
+      // resetForm();
+
+
     } catch (error: any) {
+      console.log('catch!');
       if (error.code === "auth/email-already-in-use") {
         toast.error("The email address is already in use by another account.", {
           position: "top-right",
@@ -296,7 +325,7 @@ const Register: React.FC = () => {
     if (!formData.password) newErrors.password = "Password is required";
     if (!formData.housenoandstreetname) newErrors.phone = "Address is required";
     if (!formData.barangay) newErrors.barangay = "Barangay is required";
-    if (!fileInputRef) newErrors.imageUrl = "Image is required";
+    if (!file) newErrors.imageUrl = "Image is required";
     if (!idFrontInputRef) newErrors.idFront = "Front ID is required";
     if (!idBackInputRef) newErrors.idBack = "Back ID is required";
     if (!formData.role) newErrors.role = "Role is required";
@@ -385,6 +414,7 @@ const Register: React.FC = () => {
                       onChange={handleChange}
                       placeholder="Enter Firstname"
                     />
+                    {error?.firstname && <CommonError message={error?.firstname || ''} />}
                   </div>
                   <div className="form-control">
                     <label className="label" htmlFor="middlename">
@@ -398,6 +428,7 @@ const Register: React.FC = () => {
                       onChange={handleChange}
                       placeholder="Enter Middlename"
                     />
+                    {error?.middlename && <CommonError message={error?.middlename || ''} />}
                   </div>
                   <div className="form-control">
                     <label className="label" htmlFor="lastname">
@@ -411,6 +442,7 @@ const Register: React.FC = () => {
                       onChange={handleChange}
                       placeholder="Enter Lastname"
                     />
+                    {error?.lastname && <CommonError message={error?.lastname || ''} />}
                   </div>
 
                   <div className="form-control">
@@ -432,19 +464,12 @@ const Register: React.FC = () => {
                     </label>
                     <input
                       type="date"
-                      // {...register("age", {
-                      //   valueAsNumber: true,
-                      // })}
                       id="dateOfBirth"
                       className="input input-bordered w-full md:w-80 ml-1 border border-gray-300 rounded-md"
                       value={formData.dateOfBirth}
                       onChange={handleChange}
                     />
-                    {/* {errors.age && (
-                      <span className="text-red-600 mt-1">
-                        {errors.age.message}
-                      </span>
-                    )} */}
+                    {error?.dateOfBirth && <CommonError message={error?.dateOfBirth || ''} />}
                   </div>
 
                   <div className="form-control">
@@ -474,6 +499,7 @@ const Register: React.FC = () => {
                           clipRule="evenodd"
                         />
                       </svg>
+                      {error?.gender && <CommonError message={error?.gender || ''} />}
                     </div>
                   </div>
                   <div className="form-control">
@@ -482,18 +508,13 @@ const Register: React.FC = () => {
                     </label>
                     <input
                       type="tel"
-                      // {...register("phone")}
                       id="phone"
                       className="input input-bordered w-full md:w-80 p-2 ml-1 border border-gray-300 rounded-md"
                       value={formData.phone}
                       onChange={handleChange}
                       placeholder="Enter Phone Number"
                     />
-                    {/* {errors.phone && (
-                      <span className="text-red-600">
-                        {errors.phone.message}
-                      </span>
-                    )} */}
+                    {error?.phone && <CommonError message={error?.phone || ''} />}
                   </div>
                   <div className="form-control">
                     <label htmlFor="address" className="label">
@@ -517,6 +538,7 @@ const Register: React.FC = () => {
                       className="input input-bordered w-full md:w-80 p-2 ml-1 mt-2 border border-gray-300 rounded-md capitalize"
                       placeholder="House No. & Street Name"
                     />
+                    {error?.housenoandstreetname && <CommonError message={error?.housenoandstreetname || ''} />}
                   </div>
                   <div className="form-control">
                     <div className="relative">
@@ -554,11 +576,7 @@ const Register: React.FC = () => {
                         />
                       </svg>
                     </div>
-                    {/* {errors.barangay && (
-                                            <span className="text-red-600 mt-1">
-                                                {errors.barangay.message}
-                                            </span>
-                                        )} */}
+                    {error?.barangay && <CommonError message={error?.barangay || ''} />}
                   </div>
                   <div>
                     <label className="label" htmlFor="image">
@@ -583,6 +601,7 @@ const Register: React.FC = () => {
                           className="input input-bordered w-full p-2 border mb-5  border-gray-300 rounded-md"
                           onChange={handleChange}
                         />
+                        {error?.imageUrl && <CommonError message={error?.imageUrl || ''} />}
                       </div>
                     </div>
                   </div>
@@ -616,6 +635,7 @@ const Register: React.FC = () => {
                         />
                       </div>
                     </div>
+                    {error?.idFront && <CommonError message={error?.idFront || ''} />}
                   </div>
                   <div>
                     <label className="text-center" htmlFor="id">
@@ -644,6 +664,7 @@ const Register: React.FC = () => {
                         />
                       </div>
                     </div>
+                    {error?.idBack && <CommonError message={error?.idBack || ''} />}
                   </div>
                   <div className="form-control">
                     <label className="label" htmlFor="role">
@@ -677,6 +698,7 @@ const Register: React.FC = () => {
                         />
                       </svg>
                     </div>
+                    {error?.role && <CommonError message={error?.role || ''} />}
                   </div>
                   <div className="form-control">
                     <label className="label" htmlFor="password">
@@ -778,6 +800,8 @@ const Register: React.FC = () => {
             </div>
           </div>
         </form>
+
+        <OtpVerification showModal={modalVerification} userId={otpID} closeModal={() => setModalVerification(false)} />
       </div>
     </>
   );
