@@ -8,7 +8,7 @@ import { FaRegCheckCircle } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 
 interface ModalAddRequestProps {
-  closeModal: (bool: any) => void
+  closeModal: (bool: any) => void;
   showModal: boolean;
 }
 
@@ -16,10 +16,10 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
   showModal,
   closeModal
 }) => {
-  const [form, setForm] = useState<any>(requestFormData);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [forms, setForms] = useState<any[]>([requestFormData]);
+  const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [showModalSuccess, setShowModalSucces] = useState(false);
-  const [items, setItems] = useState<any>([]);
+  const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [itemsLoading, setItemsLoading] = useState<boolean>(false);
   const { user } = useUser();
@@ -44,117 +44,121 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
 
       let filteredItems = [];
 
-      for(const item of inventoryItems) {
-        if(!item.userId) continue;
+      for (const item of inventoryItems) {
+        if (!item.userId) continue;
 
         const userDocRef = doc(db, "Users", item.userId);
         const userSnap = await getDoc(userDocRef);
 
-        if(userSnap.exists()) {
+        if (userSnap.exists()) {
           const userData = userSnap.data();
-          console.log('userData :>> ', userData);
-
           const RHUs = [
-            {"barangays": ["Sulipan", "San Juan", "Capalangan", "Sucad", "Colgante"]},
-            {"barangays": ["Tabuyuc", "Balucuc", "Cansinala", "Calantipe"]},
-            {"barangays": ["San Vicente", "Sampaloc", "Paligui"]}
-          ]
-    
+            { "barangays": ["Sulipan", "San Juan", "Capalangan", "Sucad", "Colgante"] },
+            { "barangays": ["Tabuyuc", "Balucuc", "Cansinala", "Calantipe"] },
+            { "barangays": ["San Vicente", "Sampaloc", "Paligui"] }
+          ];
+
           const unit = RHUs.findIndex((x: any) => x['barangays'].includes(user?.barangay)) + 1;
-  
-          if(userData.rhuOrBarangay === unit.toString()) {
+
+          if (userData.rhuOrBarangay === unit.toString()) {
             filteredItems.push(item);
           }
         }
       }
 
       setItems(filteredItems);
-      console.log("filteredItems :>> ", filteredItems);
     } catch (error) {
-      console.error("error fetching data :>> ", error);
+      console.error("Error fetching data: ", error);
     } finally {
       setItemsLoading(false);
     }
   };
-  
+
   useEffect(() => {
-    if(user?.barangay) {
+    if (user?.barangay) {
       fetchData();
     }
   }, [user]);
 
-  const handleChange = (e: any) => {
+  const handleChange = (index: number, e: any) => {
     const findItem = items.find((x: any) => x.id === e.target.value);
-    setSelectedItem(findItem);
-    setForm({...form, itemId: findItem.id, rhuId: findItem.userId});
-  }
+    const newForms = [...forms];
+    newForms[index] = { ...newForms[index], itemId: findItem.id, rhuId: findItem.userId };
+    setForms(newForms);
+    const newSelectedItems = [...selectedItems];
+    newSelectedItems[index] = findItem;
+    setSelectedItems(newSelectedItems);
+  };
 
-  const onInputChange = (e: any, field: string) => {
-    setForm({ ...form, [field]: e.target.value });
-    console.log("medicine :>> ", { ...form, [field]: e.target.value });
-  }
+  const onInputChange = (index: number, e: any, field: string) => {
+    const newForms = [...forms];
+    newForms[index] = { ...newForms[index], [field]: e.target.value };
+    setForms(newForms);
+  };
 
   const getStock = (item: any) => {
     return item?.medicineStock || item?.vaccineStock || item?.vitaminStock;
-  }
+  };
 
   const getDosageForm = (item: any) => {
     return item?.medicineDosageForm || item?.vaccineDosageForm || item?.vitaminDosageForm;
-  }
+  };
 
   const getGenericName = (item: any) => {
     return item?.medicineGenericName || item?.vaccineGenericName || item?.vitaminGenericName;
-  }
+  };
 
   const getDosage = (item: any) => {
     return item?.medicineDosageStrength || item?.vaccineDosageStrength || item?.vitaminDosageStrength;
-  }
+  };
 
   const getLotNo = (item: any) => {
     return item?.medicineLotNo || item?.vaccineLotNo || item?.vitaminLotNo;
-  }
+  };
 
   const handleSubmit = async () => {
     try {
-        if(!form.itemId || !form.requestedQuantity || !form.reason) {
-          console.log('test');
-          return toast.error("Fill out required fields", {
-            position: "top-right",
-          });
-        }
+      const payloads = forms.map(form => ({
+        ...form,
+        requestedQuantity: parseInt(form.requestedQuantity),
+        userId: user?.uid,
+        created_at: new Date(),
+        barangay: user?.rhuOrBarangay || user?.barangay,
+        status: 'pending'
+      })).filter(form => form.itemId && form.requestedQuantity && form.reason);
 
-        setLoading(true);
+      if (payloads.length === 0) {
+        return toast.error("Fill out required fields", {
+          position: "top-right",
+        });
+      }
 
-        const payload = {
-          ...form,
-          requestedQuantity: parseInt(form.requestedQuantity),
-          userId: user?.uid,
-          created_at: new Date(),
-          barangay: user?.rhuOrBarangay || user?.barangay,
-          status: 'pending'
-        };
+      setLoading(true);
 
-        console.log('payload :>> ', payload);
+      const promises = payloads.map(payload => addDoc(collection(db, "Requests"), payload));
+      await Promise.all(promises);
 
-        const docRef = await addDoc(collection(db, "Requests"), payload);
-        console.log("Document written with ID: ", docRef.id);
+      setForms([requestFormData]); // Reset to initial form
+      setShowModalSucces(true);
 
-        setForm(requestFormData);
-        setShowModalSucces(true);
+      setTimeout(() => {
+        setShowModalSucces(false);
+        closeModal(true);
+      }, 1000);
 
-        setTimeout(() => {
-          setShowModalSucces(false);
-          closeModal(true);
-        }, 1000);
-
-    } catch(error: any) {
+    } catch (error: any) {
       toast.error("Unable to add request", {
         position: "top-right",
       });
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-  }
+  };
+
+  const addAnotherItem = () => {
+    setForms([...forms, requestFormData]);
+    setSelectedItems([...selectedItems, null]); // Initialize selected item for new form
+  };
 
   return (
     <>
@@ -188,7 +192,7 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
             <div className="bg-white px-4 pt-5 pb-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <h3 className="ml-40 text-xl font-medium text-gray-900">
-                  Request Item
+                  Request Items
                 </h3>
                 <button
                   onClick={closeModal}
@@ -200,116 +204,116 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
               </div>
 
               <div className="mt-4">
-                <form className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label
-                        htmlFor="selectedItem"
-                        className="block text-sm font-medium text-gray-700"
-                      >
-                        Select Item
-                      </label>
-                      <div className="relative mt-1">
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={addAnotherItem}
+                  className="mt-4 inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm"
+                >
+                  Add Another Item
+                </button>
+              </div>
+              <br />
+                {forms.map((form, index) => (
+                  <form key={index} className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <label
+                          htmlFor={`selectedItem-${index}`}
+                          className="block text-sm font-medium text-gray-700"
+                        >
+                          Select Item
+                        </label>
+                        <div className="relative mt-1">
                           <select
-                              id="selectedItem"
-                              onChange={handleChange}
-                              className="block appearance-none w-full p-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:black focus:border-black sm:text-base"
+                            id={`selectedItem-${index}`}
+                            onChange={(e) => handleChange(index, e)}
+                            className="block appearance-none w-full p-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:black focus:border-black sm:text-base"
                           >
-                              <option disabled selected>{itemsLoading ? 'Loading..' : 'Please Select'}</option>
-                              {items.map((item: any, index: number) => (
-                                  <option key={index} value={item.id}>{
-                                      item.medicineBrandName ||
-                                      item.vitaminBrandName ||
-                                      item.vaccineBrandName
-                                  }</option>
-                              ))}
+                            <option disabled selected>{itemsLoading ? 'Loading..' : 'Please Select'}</option>
+                            {items.map((item: any) => (
+                              <option key={item.id} value={item.id}>{
+                                item.medicineBrandName ||
+                                item.vitaminBrandName ||
+                                item.vaccineBrandName
+                              }</option>
+                            ))}
                           </select>
-                          <svg
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                            aria-hidden="true"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
                         </div>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor={`requestedQuantity-${index}`}
+                          className="block text-sm font-medium text-gray-700"
+                        >
+                          Quantity
+                        </label>
+                        <input
+                          type="number"
+                          id={`requestedQuantity-${index}`}
+                          value={form.requestedQuantity}
+                          onChange={(e) => onInputChange(index, e, 'requestedQuantity')}
+                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                        />
+                      </div>
                     </div>
                     <div>
                       <label
-                        htmlFor="requestedQuantity"
-                        className="block text-sm font-medium text-gray-700"
-                      >
-                        Quantity
-                      </label>
-                      <input
-                        type="number"
-                        id="requestedQuantity"
-                        value={form.requestedQuantity}
-                        onChange={(e) => onInputChange(e, 'requestedQuantity')}
-                        className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                      <label
-                        htmlFor="reason"
+                        htmlFor={`reason-${index}`}
                         className="block text-sm font-medium text-gray-700"
                       >
                         Reason
                       </label>
                       <textarea
-                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                          rows={3}
-                          id="reason"
-                          placeholder="Please enter your reason"
-                          value={form.reason}
-                          onChange={(e) => onInputChange(e, 'reason')}
-                      >
-
-                      </textarea>
-                  </div>
-                  {selectedItem && <div>
-                      <h3 className="ml-40 text-xl font-medium text-gray-900">
-                          Item Details
-                      </h3>
-                      <br />
-                      <div className="flex flex-col gap-2">
-                        <p>Form: <b>{getDosageForm(selectedItem)}</b></p>
-                        <p>Type: <b>{selectedItem?.type}</b></p>
-                        <p>Generic Name: <b>{getGenericName(selectedItem)}</b></p>
-                        <p>Dosage: <b>{getDosage(selectedItem)}</b></p>
-                        <p>Lot No: <b>{getLotNo(selectedItem)}</b></p>
-                        <p>From: <b>Unit {selectedItem?.created_by_unit}</b></p>
+                        className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                        rows={3}
+                        id={`reason-${index}`}
+                        placeholder="Please enter your reason"
+                        value={form.reason}
+                        onChange={(e) => onInputChange(index, e, 'reason')}
+                      />
                     </div>
-                </div>}
-
+                    {selectedItems[index] && (
+                      <div>
+                        <h3 className="ml-40 text-xl font-medium text-gray-900">
+                          Item Details
+                        </h3>
+                        <br />
+                        <div className="flex flex-col gap-2">
+                          <p>Form: <b>{getDosageForm(selectedItems[index])}</b></p>
+                          <p>Type: <b>{selectedItems[index]?.type}</b></p>
+                          <p>Generic Name: <b>{getGenericName(selectedItems[index])}</b></p>
+                          <p>Dosage: <b>{getDosage(selectedItems[index])}</b></p>
+                          <p>Lot No: <b>{getLotNo(selectedItems[index])}</b></p>
+                          <p>From: <b>Unit {selectedItems[index]?.created_by_unit}</b></p>
+                        </div>
+                      </div>
+                    )}
+                    <br /> <br />
+                  </form>
+                ))}
                 <div className="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse w-full">
-                    <button
-                        type="button"
-                        disabled={loading}
-                        onClick={handleSubmit}
-                        className={`${loading && 'opacity-[0.5]'} w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm`}
-                    >
-                        Submit
-                    </button>
-                    <button
-                        onClick={closeModal}
-                        type="button"
-                        className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                    >
-                        Cancel
-                    </button>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={handleSubmit}
+                    className={`${loading && 'opacity-[0.5]'} w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm`}
+                  >
+                    Submit
+                  </button>
+                  <button
+                    onClick={closeModal}
+                    type="button"
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    Cancel
+                  </button>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
     </>
   );
 };

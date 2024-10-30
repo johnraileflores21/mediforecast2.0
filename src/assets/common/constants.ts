@@ -93,3 +93,23 @@ export const requestFormData = {
 
 export const inventoryFilters = ["All", "Medicines", "Vitamins", "Vaccine"];
 export const inventoryTabs = ["Medicine", "Vitamin", "Vaccine"];
+
+export function getTypes(data: any) {
+
+    const types = ['medicine', 'vitamin', 'vaccine'];
+
+    let typeVal = "";
+    types.forEach(type => {
+        Object.keys(data).forEach(key => {
+            if(key.includes(type)) typeVal = type;
+        });
+    })
+
+    return typeVal;
+};
+
+export const RHUs = [
+    {"barangays": ["Sulipan", "San Juan", "Capalangan", "Sucad", "Colgante"]},
+    {"barangays": ["Tabuyuc", "Balucuc", "Cansinala", "Calantipe"]},
+    {"barangays": ["San Vicente", "Sampaloc", "Paligui"]}
+];

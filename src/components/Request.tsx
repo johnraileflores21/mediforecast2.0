@@ -135,6 +135,98 @@ const Request = () => {
     const handleApprove = async (id: string) => {
         try {
             setLoading(true);
+            const requestDocRef = doc(db, "Requests", id);
+            await updateDoc(requestDocRef, { status: "for_confirmation" });
+
+            Swal.fire({
+                position: "center",
+                icon: "success",
+                title: "Request approved!",
+                showConfirmButton: false,
+                timer: 1000,
+            });
+            // setLoading(true);
+
+            // const requestDocRef = doc(db, "Requests", id);
+            // const requestSnap = await getDoc(requestDocRef);
+    
+            // if(!requestSnap.exists()) throw new Error("Request not found");
+    
+            // const requestData = requestSnap.data();
+            // const { rhuId, userId: barangayId, itemId, requestedQuantity } = requestData;
+
+            // const itemDocRef = doc(db, "Inventory", itemId);
+            // const itemSnap = await getDoc(itemDocRef);
+            // if(!itemSnap.exists()) throw new Error("Item not found");
+    
+            // const itemData = itemSnap.data();
+            // const currentStock = itemData.medicineStock || itemData.vitaminStock || itemData.vaccineStock;
+    
+            // if(requestedQuantity > currentStock) throw new Error("Insufficient stock.");
+
+            // const stockTypes = ['medicineStock', 'vitaminStock', 'vaccineStock'];
+            // let stockType = "";
+            // Object.keys(itemData).forEach(type => {
+            //     if(stockTypes.includes(type)) stockType = type;
+            // });
+
+            // await updateDoc(itemDocRef, { [stockType]: currentStock - requestedQuantity });
+
+            // const barangayInventoryData = {
+            //     ...itemData,
+            //     [stockType]: requestedQuantity,
+            //     totalQuantity: requestedQuantity,
+            //     created_at: new Date().toISOString(),
+            //     userId: barangayId,
+            //     last_modified: new Date().toISOString()
+            // };
+
+            // const barangayInventoryRef = doc(db, "BarangayInventory", itemId);
+            // const barangayInventorySnap = await getDoc(barangayInventoryRef);
+
+            // if(barangayInventorySnap.exists()) {
+            //     const currentData = barangayInventorySnap.data();
+            //     const updatedStock = parseInt(currentData[stockType]) + parseInt(requestedQuantity);
+            //     await updateDoc(barangayInventoryRef, { ...barangayInventoryData, [stockType]: updatedStock });
+            // } else await setDoc(barangayInventoryRef, barangayInventoryData);
+
+            // await addDoc(collection(db, "Distributions"), {
+            //     barangayId,
+            //     created_at: new Date().toISOString(),
+            //     itemId,
+            //     quantity: requestedQuantity,
+            //     rhuId
+            // });
+
+            // await updateDoc(requestDocRef, { status: "approved" });
+
+            // Swal.fire({
+            //     position: "center",
+            //     icon: "success",
+            //     title: "Request approved!",
+            //     showConfirmButton: false,
+            //     timer: 1000,
+            // });
+
+            setLoading(false);
+
+        } catch (error: any) {
+            console.log(error);
+            Swal.fire({
+                position: "center",
+                icon: "error",
+                title: "Unable to request. Please try again",
+                showConfirmButton: false,
+                timer: 1000,
+            });
+        } finally {
+            await loadData();
+        }
+    }
+
+    const handleConfirmReceipt = async (id: string) => {
+        try {
+            setLoading(true);
 
             const requestDocRef = doc(db, "Requests", id);
             const requestSnap = await getDoc(requestDocRef);
@@ -198,20 +290,20 @@ const Request = () => {
             });
 
             setLoading(false);
-
         } catch (error: any) {
             console.log(error);
             Swal.fire({
                 position: "center",
                 icon: "error",
-                title: "Unable to request. Please try again",
+                title: "Unable to confirm receipt. Please try again",
                 showConfirmButton: false,
                 timer: 1000,
             });
         } finally {
             await loadData();
         }
-    }    
+    };
+    
 
     const handleDropdown = () => setDropdownOpen(!dropdownOpen);
     return (
@@ -325,12 +417,12 @@ const Request = () => {
                                 >
                                     Status
                                 </th>
-                                {!user?.role.includes('Barangay') && <th
+                                <th
                                     scope="col"
                                     className="px-6 py-3 border text-xs font-bold text-black"
                                 >
                                     Action
-                                </th>}
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -357,22 +449,24 @@ const Request = () => {
                                     <td className="px-6 py-4 text-gray-900">
                                         {itemData.reason || 'N/A'}
                                     </td>
-                                    <td className="px-5 py-2">
+                                    <td className="px-6 py-2">
                                         <span
                                             className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
                                                 itemData.status === 'approved' 
                                                     ? 'bg-green-100 text-green-800'
                                                     : itemData.status === 'pending'
                                                     ? 'bg-yellow-100 text-yellow-800'
+                                                    : itemData.status === 'for_confirmation'
+                                                    ? 'bg-blue-100 text-blue-800'
                                                     : itemData.status === 'rejected'
                                                     ? 'bg-red-100 text-red-800'
                                                     : 'bg-gray-100 text-gray-800'
                                             }`}
                                         >
-                                            {itemData.status.toUpperCase()}
+                                            {itemData.status.replace("_", " ").toUpperCase()}
                                         </span>
                                     </td>
-                                    {!user?.role.includes('Barangay') && <td className="px-6 py-4">
+                                    {!user?.role.includes('Barangay') ? <td className="px-6 py-4">
                                         <div className="flex items-center">
                                             <button
                                                 className={`bg-blue-500 rounded-md text-white p-2 hover:bg-blue-700 mr-2 flex items-center ${(loading || itemData.status !== 'pending') && 'opacity-[0.5]'}`}
@@ -399,7 +493,26 @@ const Request = () => {
                                                 <span className="mr-5">Decline</span>
                                             </button>
                                         </div>
-                                    </td>}
+                                    </td>
+                                    : <>
+                                       {itemData.status != 'pending' &&  <td className="px-6 py-4">
+                                            <div className="flex items-center">
+                                                <button
+                                                    className={`bg-green-500 rounded-md text-white p-2 hover:bg-green-700 mr-2 flex items-center ${(loading || itemData.status == 'approved') && 'opacity-[0.5]'}`}
+                                                    onClick={() => handleConfirmReceipt(itemData.id)}
+                                                    disabled={loading || itemData.status !== 'for_confirmation'}
+                                                >
+                                                    <img
+                                                        src="/images/check.png"
+                                                        alt="Approve Icon"
+                                                        className="w-5 h-5"
+                                                    />
+                                                    {itemData.stataus == 'for_confirmation' ? 'Item Received' : 'Received'}
+                                                </button>
+                                            </div>
+                                        </td>}
+                                    </>
+                                    }
                                 </tr>
                             ))}
                         </tbody>

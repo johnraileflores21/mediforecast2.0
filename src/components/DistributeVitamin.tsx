@@ -4,6 +4,7 @@ import { collection, onSnapshot, doc, updateDoc, getDoc, setDoc, getDocs, query,
 import { IoMdClose } from "react-icons/io";
 import { useUser } from "./User";
 import Swal from "sweetalert2";
+import { RHUs } from "../assets/common/constants";
 
 interface DistributeVitaminProps {
   showModal: boolean;
@@ -20,11 +21,16 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
   const [barangay, setBarangay] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const { user } = useUser();
+  const [activeTab, setActiveTab] = useState(0);
   const isBarangay = user?.role.includes('Barangay');
+  const [originalQuantity, setOriginalQuantity] = useState(0);
+
+  const filteredBarangays = (RHUs.find((x: any) => x['barangays'].includes(user?.barangay))?.barangays || []);
 
   useEffect(() => {
     if(data) {
       setVitamin(data);
+      setOriginalQuantity(data.vitaminStock);
     }
   }, [data]);
 
@@ -39,25 +45,53 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
         ...vitamin,
         vitaminStock: parseInt(vitamin.vitaminStock)
       };
+  
+      if (!isBarangay) {
+        if (!payload.barangay && activeTab == 0) {
+          return Swal.fire({
+            position: "center",
+            icon: "error",
+            title: `Barangay is required`,
+            showConfirmButton: false,
+            timer: 1000,
+          });
+        } else if(activeTab == 1 && (!payload.fullName || !payload.address)) {
+          return Swal.fire({
+            position: "center",
+            icon: "error",
+            title: `Name and address fields are required`,
+            showConfirmButton: false,
+            timer: 1000,
+          });
+        } else if(activeTab == 1 && payload.fullName && payload.address) {
+          const distributeQty = payload.vitaminStock;
+          payload.vitaminStock = originalQuantity;
 
-      if(!isBarangay) {
-        if(!payload.barangay) return Swal.fire({
-          position: "center",
-          icon: "error",
-          title: `Barangay is required`,
-          showConfirmButton: false,
-          timer: 1000,
-        });
+          const inventoryRef = doc(db, 'Inventory', payload.id);
+          await updateDoc(inventoryRef, { vitaminStock: originalQuantity - (distributeQty || 0) });
+
+          Swal.fire({
+            position: "center",
+            icon: "success",
+            title: `${payload.vitaminBrandName} has been distributed to ${payload.fullName}`,
+            showConfirmButton: false,
+            timer: 1500,
+          });
+          
+          closeModal(true);
+
+          return;
+        }
   
         console.log("payload :>> ", payload);
         const itemDocRef = doc(db, "Inventory", vitamin.id);
         const itemSnap = await getDoc(itemDocRef);
-        if(!itemSnap.exists()) throw new Error("Item not found");
+        if (!itemSnap.exists()) throw new Error("Item not found");
   
         const itemData = itemSnap.data();
         const currentStock = itemData.vitaminStock;
   
-        if(payload.vitaminStock > currentStock) throw new Error("Insufficient stock.");
+        if (payload.vitaminStock > currentStock) throw new Error("Insufficient stock.");
   
         const userQuery = query(
           collection(db, "Users"),
@@ -72,11 +106,9 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
         }));
   
         console.log("userData :>> ", userData);
-        
         const filteredUser = userData.filter((x: any) => x?.role.includes('Barangay'));
-        if(filteredUser.length > 0) {
-          await updateDoc(itemDocRef, { vitaminStock: currentStock - payload.vitaminStock });
   
+        if (filteredUser.length > 0) {
           const _user = filteredUser[0];
   
           const barangayInventoryRef = doc(db, "BarangayInventory", payload.id);
@@ -86,56 +118,56 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
           const _currentStock = existingData?.vitaminStock || 0;
           const newStock = parseInt(payload.vitaminStock) + _currentStock;
   
-          const barangayInventoryData = {
+          const pendingDistributionData = {
             ...itemData,
             vitaminStock: newStock,
             totalQuantity: (existingData?.totalQuantity + newStock) || newStock,
+            pendingQuantity: payload.vitaminStock,
             created_at: new Date().toISOString(),
             userId: _user?.id,
-            totalPerPiece: newStock * payload.medicinePiecesPerItem
+            totalPerPiece: newStock * payload.vitaminPiecesPerItem,
+            status: 'pending',
+            itemId: vitamin.id
           };
   
-          if(barangayInventorySnap.exists()) {
-            await setDoc(barangayInventoryRef, barangayInventoryData, { merge: true });
-          } else await setDoc(barangayInventoryRef, barangayInventoryData);
+          console.log('pendingDistributionData :>> ', pendingDistributionData);
+          await addDoc(collection(db, "BarangayInventory"), pendingDistributionData);
   
           Swal.fire({
             position: "center",
             icon: "success",
-            title: `${payload.vitaminBrandName} has been distributed to ${payload.barangay}`,
+            title: `${payload.vitaminBrandName} has been scheduled for distribution to ${payload.barangay}`,
             showConfirmButton: false,
             timer: 1500,
           });
-      } else {
-        Swal.fire({
-          position: "center",
-          icon: "error",
-          title: `No existing user for ${payload.barangay}`,
-          showConfirmButton: false,
-          timer: 1000,
-        });
-      }
-
-      closeModal(true);
-
+        } else {
+          Swal.fire({
+            position: "center",
+            icon: "error",
+            title: `No existing user for ${payload.barangay}`,
+            showConfirmButton: false,
+            timer: 1000,
+          });
+        }
+  
       } else {
         const itemDocRef = doc(db, "BarangayInventory", vitamin.id);
         const itemSnap = await getDoc(itemDocRef);
-        if(!itemSnap.exists()) throw new Error("Item not found in Barangay Inventory");
-
+        if (!itemSnap.exists()) throw new Error("Item not found in Barangay Inventory");
+  
         const itemData = itemSnap.data();
         let totalPerPiece = parseInt(itemData.totalPerPiece);
         let currentStock = parseInt(itemData.vitaminStock);
         let quantityToDistribute = parseInt(vitamin.totalPieces);
         let vitaminPiecesPerItem = parseInt(vitamin.vitaminPiecesPerItem);
-
-        if(quantityToDistribute > totalPerPiece) {
+  
+        if (quantityToDistribute > totalPerPiece) {
           throw new Error("Insufficient stock to distribute this quantity.");
         }
-
+  
         totalPerPiece -= quantityToDistribute;
-        while(quantityToDistribute > 0) {
-          if(quantityToDistribute <= currentStock * vitaminPiecesPerItem) {
+        while (quantityToDistribute > 0) {
+          if (quantityToDistribute <= currentStock * vitaminPiecesPerItem) {
             currentStock -= Math.ceil(quantityToDistribute / vitaminPiecesPerItem);
             quantityToDistribute = 0;
           } else {
@@ -143,12 +175,12 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
             currentStock = 0;
           }
         }
-
+  
         await updateDoc(itemDocRef, {
-          totalPerPiece: ((totalPerPiece) || parseInt(vitamin.vitaminPiecesPerItem || 0)),
+          totalPerPiece: (totalPerPiece || parseInt(vitamin.vitaminPiecesPerItem || 0)),
           vitaminStock: currentStock,
         });
-
+  
         Swal.fire({
           position: "center",
           icon: "success",
@@ -157,8 +189,8 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
           timer: 1500,
         });
       }
-
-    } catch(error: any) {
+  
+    } catch (error: any) {
       Swal.fire({
         position: "center",
         icon: "error",
@@ -169,7 +201,8 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
     } finally {
       setLoading(false);
     }
-  }
+  };
+  
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -220,6 +253,13 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                   <IoMdClose className="w-8 h-8 text-gray-400 hover:text-red-600" />
                 </button>
                 <div className="mt-2">
+
+                  {/* Tabs for Barangay and Resident */}
+                  {!isBarangay && <div className="my-6">
+                    <button onClick={() => setActiveTab(0)} className={`px-4 py-2 ${activeTab === 0 ? "bg-gray-300" : "bg-gray-200"}`}>Barangay</button>
+                    <button onClick={() => setActiveTab(1)} className={`px-4 py-2 ${activeTab === 1 ? "bg-gray-300" : "bg-gray-200"}`}>Resident</button>
+                  </div>}
+                  
                   <form className="space-y-4">
                     <div className="flex flex-row">
                       <div className="w-full">
@@ -351,47 +391,77 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                       />
                     </div>
 
-                    <div className="relative">
-                      <label
-                        htmlFor="barangay"
-                        className="block text-sm font-medium text-gray-700"
-                      >
-                        Where to Distribute
-                      </label>
-                      <div className="relative mt-1">
-                        <select
-                          id="barangay"
-                          onChange={(e) => handleChange(e, 'barangay')}
-                          className="block appearance-none w-full p-3 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-black focus:border-black sm:text-base"
+                    {!isBarangay && activeTab == 0 ? (
+                      <div className="relative">
+                        <label
+                          htmlFor="barangay"
+                          className="block text-sm font-medium text-gray-700"
                         >
-                          <option value="">Barangay</option>
-                          <option value="Balucuc">Balucuc</option>
-                          <option value="Calantipe">Calantipe</option>
-                          <option value="Cansinala">Cansinala</option>
-                          <option value="Capalangan">Capalangan</option>
-                          <option value="Colgante">Colgante</option>
-                          <option value="Paligui">Paligui</option>
-                          <option value="Sampaloc">Sampaloc</option>
-                          <option value="San Juan">San Juan</option>
-                          <option value="San Vicente">San Vicente</option>
-                          <option value="Sucad">Sucad</option>
-                          <option value="Sulipan">Sulipan</option>
-                          <option value="Tabuyuc">Tabuyuc</option>
-                        </select>
-                        <svg
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                          aria-hidden="true"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                          Where to Distribute
+                        </label>
+                        <div className="relative mt-1">
+                          <select
+                            id="barangay"
+                            onChange={(e) => handleChange(e, 'barangay')}
+                            className="block appearance-none w-full p-3 border border-gray-300 rounded-md bg-white focus:outline-none focus:black focus:border-black sm:text-base"
+                          >
+                            <option value="">Barangay</option>
+                            {filteredBarangays.map((brgy) => (
+                              <option key={brgy} value={brgy}>{brgy}</option>
+                            ))}
+                          </select>
+                          <svg
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div>
+                        <div className="relative">
+                          <label
+                            htmlFor="address"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Full Name
+                          </label>
+                          <div className="relative mt-1">
+                            <input
+                              type="text"
+                              id="address"
+                              value={vitamin.fullName}
+                              onChange={(e) => handleChange(e, 'fullName')}
+                              className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="relative mt-4">
+                          <label
+                            htmlFor="address"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Full Address
+                          </label>
+                          <div className="relative mt-1">
+                            <input
+                              type="text"
+                              id="address"
+                              value={vitamin.address}
+                              onChange={(e) => handleChange(e, 'address')}
+                              className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div className="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse w-full">
                       <button
                         disabled={loading}
