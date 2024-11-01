@@ -96,6 +96,7 @@ const Request = () => {
                 );
 
                 setItems(itemsData);
+                console.log('itemsData :>>', itemsData);
                 console.log(itemsData);
             });
         } catch(error) {

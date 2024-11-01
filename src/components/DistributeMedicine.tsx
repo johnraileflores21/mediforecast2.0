@@ -99,7 +99,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
       setLoading(true);
 
       console.log("forms :>> ", forms);
-      const totalQty = forms.reduce((prev: any, acc: any) => prev + acc.medicineStock, 0);
+      const totalQty = forms.reduce((prev: any, acc: any) => parseInt(prev) + parseInt(acc.medicineStock), 0);
       let errorCounter = { count: 0, insufficient: false };
       let validForms = [];
 
@@ -115,19 +115,28 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
           medicineStock: parseInt(form.medicineStock)
         };
 
+        console.log('payload :>> ', payload);
+
         if(!isBarangay) {
           if((!payload.barangay && activeTabs[i] == 0) || ((!payload.fullName || !payload.address) && activeTabs[i] == 1)) {
             errorCounter.count += 1;
             break;
           } else if(totalQty > parseInt(medicine.medicineStock)) {
+
             errorCounter.count += 1;
             errorCounter.insufficient = true;
             break;
           } else if((activeTabs[i] == 0 && payload.barangay) || (activeTabs[i] == 1 && (payload.fullName && payload.address))) {
             validForms.push(payload);
           }
+        } else  {
+          if(!payload.fullName || !payload.address) {
+            errorCounter.count += 1;
+            break;
+          } else {
+            validForms.push(payload);
+          }
         }
-
       }
 
       console.log('validForms :>> :>> ', validForms);
@@ -142,6 +151,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
           timer: 1000,
         });
       } else if(errorCounter.insufficient) {
+        console.log('errorCounter.insufficient :>> ', errorCounter.insufficient);
         return Swal.fire({
           position: "center",
           icon: "error",
@@ -152,6 +162,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
       }
 
       if(validForms.length == forms.length) {
+
         for(let i = 0; i < validForms.length; i++) {
 
           const form = validForms[i];
@@ -163,17 +174,20 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
             medicineStock: parseInt(form.medicineStock)
           };
 
-          const itemDocRef = doc(db, "Inventory", payload.id);
+          const itemDocRef = isBarangay ? doc(db, 'BarangayInventory', payload.id) : doc(db, "Inventory", payload.id);
           const itemSnap = await getDoc(itemDocRef);
           if(!itemSnap.exists()) throw new Error("Item not found");
 
           const itemData = itemSnap.data();
           const currentStock = itemData.medicineStock;
+          console.log('itemData :>> ', itemData);
 
           if(payload.medicineStock > currentStock) throw new Error("Insufficient stock.");
 
           // FUNCTION IF THE DISTRIBUTION IS FOR RESIDENT
-          if (activeTabs[i] == 1) {
+          if (isBarangay || activeTabs[i] == 1) {
+            console.log('payload resident :>> ', payload);
+
             // Calculate the new stock value
             const newStockResident = currentStock - payload.medicineStock;
 
@@ -188,7 +202,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
               itemId: payload.id,
               quantity: payload.medicineStock,
               distributeType: 'individual',
-              distributedBy: payload.userId,
+              distributedBy: user?.rhuOrBarangay || '',
               distributedTo: payload.fullName,
               isDistributed: true
             });
@@ -212,6 +226,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
             });
 
           } else {
+            console.log('payload barangay :>> ', payload);
             const userQuery = query(
               collection(db, "Users"),
               where("barangay", "==", payload.barangay)
@@ -249,27 +264,29 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                 status: 'pending',
                 itemId: payload?.id
               };
-
               console.log('pendingDistributionData :>> ', pendingDistributionData);
+
+              if('id' in pendingDistributionData) delete (pendingDistributionData as any).id;
+
               const barangayInventoryReff= await addDoc(collection(db, "BarangayInventory"), pendingDistributionData);
               const barangayInventoryId = barangayInventoryReff.id;
-              console.log('createDistribution :>> ', {
-                barangayInventoryId,
-                itemId: payload.id,
-                quantity: payload.medicineStock,
-                distributeType: 'barangay',
-                distributedBy: payload.userId,
-                // distributedTo: payload.fullName,
-                isDistributed: false
-              });
+              // console.log('createDistribution :>> ', {
+              //   barangayInventoryId,
+              //   itemId: payload.id,
+              //   quantity: payload.medicineStock,
+              //   distributeType: 'barangay',
+              //   distributedBy: user?.rhuOrBarangay || '',
+              //   distributedTo: payload.barangay,
+              //   isDistributed: false
+              // });
 
               await createDistribution({
                 barangayInventoryId,
                 itemId: payload.id,
                 quantity: payload.medicineStock,
                 distributeType: 'barangay',
-                distributedBy: payload.userId,
-                // distributedTo: payload.fullName,
+                distributedBy: user?.rhuOrBarangay || '',
+                distributedTo: payload.barangay,
                 isDistributed: false
               });
 
@@ -319,6 +336,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
       setLoading(false);
     }
   }
+
   const handleSubmit = async () => {
     const isConfirmed = await confirm({
       title: 'Confirm Submission',
@@ -376,7 +394,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                   <form className="space-y-4">
 
 
-                    {forms.map((_, index: number) => (
+                    {forms.map((_: any, index: number) => (
                       <Accordion key={index} expanded={expanded === index} onChange={handleAccordion(index)}>
                         <AccordionSummary
                           expandIcon={<MdExpandMore />}
@@ -394,7 +412,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                             <button type="button" onClick={() => handleTabChange(index, 1)} className={`px-4 py-2 ${activeTabs[index] === 1 ? "bg-gray-300" : "bg-gray-200"}`}>Resident</button>
                           </div>}
 
-                          {isBarangay ?
+                          {/* {isBarangay ?
                             <div className="w-full">
                               <label
                                 htmlFor="totalPieces"
@@ -425,7 +443,22 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                               />
                             </div>
-                          }
+                          } */}
+                          <div className="w-full">
+                              <label
+                                htmlFor="medicineStock"
+                                className="block text-sm font-medium text-gray-700"
+                              >
+                                Quantity
+                              </label>
+                              <input
+                                type="number"
+                                id="medicineStock"
+                                value={forms[index].medicineStock}
+                                onChange={(e) => handleFormsChange(e, 'medicineStock', index)}
+                                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                              />
+                            </div>
                           <br/>
 
                           {!isBarangay && activeTabs[index] == 0 ? (
@@ -538,7 +571,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                       </div>
                     </div>
                     <div className="flex flex-row">
-                      {isBarangay ?
+                      {/* {isBarangay ?
                         <div className="w-full">
                           <label
                             htmlFor="totalPieces"
@@ -571,7 +604,23 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                             disabled
                           />
                         </div>
-                      }
+                      } */}
+                      <div className="w-full">
+                          <label
+                            htmlFor="medicineStock"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Quantity
+                          </label>
+                          <input
+                            type="number"
+                            id="medicineStock"
+                            value={medicine.medicineStock}
+                            onChange={(e) => handleChange(e, 'medicineStock')}
+                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                            disabled
+                          />
+                        </div>
                       <div className="w-full">
                         <label
                           htmlFor="medicineLotNo"

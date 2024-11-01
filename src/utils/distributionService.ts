@@ -6,8 +6,8 @@ interface DistributionsProps {
     itemId: string;
     quantity: number;
     distributeType: 'barangay'  | 'individual';
-    distributedBy: string;
-    distributedTo?: string;
+    distributedBy: string; // rhuIdOrBarangay
+    distributedTo?: string; // barangaay name or full name
     isDistributed?: boolean;
     created_at?: string;
 }
@@ -44,3 +44,6 @@ export async function createDistribution({
     }
 
 }
+
+
+// distributedBy: rhuId or userId

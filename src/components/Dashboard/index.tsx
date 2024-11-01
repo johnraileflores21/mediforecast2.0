@@ -17,13 +17,15 @@ import { MdInventory } from "react-icons/md";
 import { FaQuestionCircle } from "react-icons/fa";
 import { FaFileShield } from "react-icons/fa6";
 
-import { collection, doc, getDoc, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, where, onSnapshot } from "firebase/firestore";
 
 import { auth, db } from "../../firebase";
 import { useUser } from "../User";
+import { getTypes, RHUs } from "../../assets/common/constants";
 
 import LineChart from "./LineChart";
 import CountCard from "./CountCard";
+import PieChart from "./PieChart";
 import InsertDistributionsButton from "../InsertDistributionsButton";
 
 interface UserDetails {
@@ -52,8 +54,12 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { user, setUser } = useUser();
 
+  const isBarangay = user?.role.includes("Barangay");
+  // console.log('isBarangay :>>', isBarangay);
+
   const [distributions, setDistributions] = useState<any[]>([]);
   const [inventoryCount, setInventoryCount] = useState<number>(0);
+  const [inventoryList, setInventoryList] = useState<any[]>([]);
   const [requestsCount, setRequestsCount] = useState<number>(0);
   const [itrRecordsCount, setItrRecordsCount] = useState<number>(0);
 //   const [distributionsLoading, setDistributionsLoading] = useState<boolean>(true);
@@ -100,8 +106,13 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchDistributions = async () => {
       try {
-        const distributionsCol = collection(db, "Distributions");
-        const distributionsSnapshot = await getDocs(distributionsCol);
+        console.log('user?.rhuOrBarangay :>>', user?.rhuOrBarangay);
+        const distributionQuery = query(
+          collection(db, "Distributions"),
+          where("distributedBy", "==", user?.rhuOrBarangay)
+        )
+        // const distributionsCol = collection(db, "Distributions");
+        const distributionsSnapshot = await getDocs(distributionQuery);
         const distributionsList: any[] = distributionsSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
@@ -118,12 +129,32 @@ const Dashboard: React.FC = () => {
     const fetchCounts = async () => {
         try {
           // Fetch Inventory count
-          const inventorySnapshot = await getDocs(collection(db, "Inventory"));
+
+          const unit = RHUs.findIndex((x: any) => x['barangays'].includes(user?.barangay)) + 1;
+          // console.log('unit :>> ', unit);
+          const inventoryQuery = query(
+            collection(db, isBarangay ? "BarangayInventory" : "Inventory"),
+            where("created_by_unit", "==", isBarangay ? unit.toString() : user?.rhuOrBarangay)
+          );
+
+          const inventorySnapshot = await getDocs(inventoryQuery);
           setInventoryCount(inventorySnapshot.size);
 
+          // Fetch the inventory
+          const inventoryList: any[] =  inventorySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+          setInventoryList(inventoryList);
+
           // Fetch Requests count
-          const requestsSnapshot = await getDocs(collection(db, "Requests"));
+          const requestQuery =  query(
+            collection(db, "Requests"),
+            where(isBarangay ? "userId" : "rhuId", "==", user?.uid)
+          );
+          const requestsSnapshot = await getDocs(requestQuery);
           setRequestsCount(requestsSnapshot.size);
+
 
           // Fetch Individual Treatment Records count
           const itrRecordsSnapshot = await getDocs(
@@ -138,52 +169,15 @@ const Dashboard: React.FC = () => {
     fetchDistributions()
     fetchCounts();
   }, []);
+
   useEffect(() => {
     console.log('distributions data :>>', distributions.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
-    console.log('inventoryCount :>>', inventoryCount);
-    console.log('requestsCount :>>', requestsCount);
-    console.log('itrRecordsCount :>>', itrRecordsCount);
+    // console.log('inventoryCount :>>', inventoryCount);
+    // console.log('requestsCount :>>', requestsCount);
+    // console.log('itrRecordsCount :>>', itrRecordsCount);
+    // console.log('inventoryList :>>', inventoryList);
   }, [distributions, inventoryCount, requestsCount, itrRecordsCount]);
 
-  const pieData = {
-    labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
-    datasets: [
-      {
-        label: "# of Votes",
-        data: [12, 19, 3, 5, 2, 3],
-        backgroundColor: [
-          "rgba(255, 99, 132, 0.2)",
-          "rgba(54, 162, 235, 0.2)",
-          "rgba(255, 206, 86, 0.2)",
-          "rgba(75, 192, 192, 0.2)",
-          "rgba(153, 102, 255, 0.2)",
-          "rgba(255, 159, 64, 0.2)",
-        ],
-        borderColor: [
-          "rgba(255, 99, 132, 1)",
-          "rgba(54, 162, 235, 1)",
-          "rgba(255, 206, 86, 1)",
-          "rgba(75, 192, 192, 1)",
-          "rgba(153, 102, 255, 1)",
-          "rgba(255, 159, 64, 1)",
-        ],
-        borderWidth: 1,
-      },
-    ],
-  };
-
-  const pieOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: "top" as const,
-      },
-      title: {
-        display: true,
-        text: "Chart.js Pie Chart",
-      },
-    },
-  };
 
   return (
     <DashboardLayout>
@@ -214,10 +208,9 @@ const Dashboard: React.FC = () => {
         <h2 className="text-xl font-bold mb-4">Data Visualization</h2>
         <div className="bg-white p-4 rounded-lg shadow-md flex justify-between">
           <div className="w-1/3 p-2">
-            <Pie data={pieData} options={pieOptions} />
+            <PieChart data={inventoryList} size={10} limit={50}/>
           </div>
           <div className="w-1/2 flex justify-center items-center">
-            {/* <Line data={lineData} options={lineOptions} /> */}
             <LineChart distributions={distributions} />
           </div>
         </div>

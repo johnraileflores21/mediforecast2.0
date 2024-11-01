@@ -63,7 +63,8 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
       setLoading(true);
 
       console.log("forms :>> ", forms);
-      const totalQty = forms.reduce((prev: any, acc: any) => prev + acc.vitaminStock, 0);
+
+      const totalQty = forms.reduce((prev: any, acc: any) => parseInt(prev) + parseInt(acc.vitaminStock), 0);
       let errorCounter = { count: 0, insufficient: false };
       let validForms = [];
 
@@ -152,7 +153,7 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
               itemId: payload.id,
               quantity: payload.vitaminStock,
               distributeType: 'individual',
-              distributedBy: payload.userId,
+              distributedBy: user?.rhuOrBarangay || '',
               distributedTo: payload.fullName,
               isDistributed: true
             });
@@ -224,8 +225,8 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                 itemId: payload.id,
                 quantity: payload.vaccineStock,
                 distributeType: 'barangay',
-                distributedBy: payload.userId,
-                distributedTo: payload.fullName,
+                distributedBy: user?.rhuOrBarangay || '',
+                distributedTo: payload.barangay,
                 isDistributed: false
               });
 

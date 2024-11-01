@@ -60,6 +60,7 @@ const Try: React.FC = () => {
     try {
 
       const unit = RHUs.findIndex((x: any) => x['barangays'].includes(user?.barangay)) + 1;
+      console.log('unit :>> ', unit);
 
       const inventoryQuery = query(
         collection(db, isBarangay ? "BarangayInventory" : "Inventory"),
@@ -509,7 +510,7 @@ const Try: React.FC = () => {
                           item.vitaminStock  !== null) && (
                           <div>
                               <span>Stock: {(item.medicineStock || 0) || (item.vitaminStock || 0) || (item.vaccineStock || 0)}</span>
-                              {item.id}
+                              {/* {item.id} */}
                             <div>
                               <span>
                                 {

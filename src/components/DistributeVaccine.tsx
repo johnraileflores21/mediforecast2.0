@@ -69,7 +69,7 @@ const DistributeVaccine: React.FC<DistributeVaccineProps> = ({
       setLoading(true);
 
       console.log("forms :>> ", forms);
-      const totalQty = forms.reduce((prev: any, acc: any) => prev + acc.vaccineStock, 0);
+      const totalQty = forms.reduce((prev: any, acc: any) => parseInt(prev) + parseInt(acc.vaccineStock), 0);
       let errorCounter = { count: 0, insufficient: false };
       let validForms = [];
 
@@ -158,7 +158,7 @@ const DistributeVaccine: React.FC<DistributeVaccineProps> = ({
               itemId: payload.id,
               quantity: payload.vaccineStock,
               distributeType: 'individual',
-              distributedBy: payload.userId,
+              distributedBy: user?.rhuOrBarangay || '',
               distributedTo: payload.fullName,
               isDistributed: true
             });
@@ -230,8 +230,8 @@ const DistributeVaccine: React.FC<DistributeVaccineProps> = ({
                 itemId: payload.id,
                 quantity: payload.vaccineStock,
                 distributeType: 'barangay',
-                distributedBy: payload.userId,
-                distributedTo: payload.fullName,
+                distributedBy: user?.rhuOrBarangay || '',
+                distributedTo: payload.barangay,
                 isDistributed: false
               });
 

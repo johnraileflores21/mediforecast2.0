@@ -57,15 +57,15 @@ const LineChart: React.FC<{ distributions: any[] }> = ({ distributions }) => {
         // Check if the distribution is within the last 8 months
         const monthsDiff =
           (currentDate.getFullYear() - distYear) * 12 + (currentDate.getMonth() - distMonth);
-        console.log('monthsDiff:', monthsDiff);
+        // console.log('monthsDiff:', monthsDiff);
         if (monthsDiff >= 0 && monthsDiff <= 7) {
 
           const monthKey = `${distYear}-${distMonth}`;
           if (monthTotals[monthKey] !== undefined) {
             monthTotals[monthKey] += dist.quantity;
-            console.log('monthTotals:', monthTotals);
+            // console.log('monthTotals:', monthTotals);
 
-            console.log(`createdAtDate: ${distMonth + 1} - value: ${dist.quantity}`);
+            // console.log(`createdAtDate: ${distMonth + 1} - value: ${dist.quantity}`);
           }
         }
       }
