@@ -16,6 +16,9 @@ import { FaCaretDown } from "react-icons/fa";
 import { FaUpload } from "react-icons/fa";
 import { useUser } from "./User";
 import { dosage_forms, medical_packaging, vitaminFormData } from "../assets/common/constants";
+import { createHistoryLog } from "../utils/historyService";
+import { useConfirmation } from '../hooks/useConfirmation';
+
 
 interface ModalAddVitaminProps {
   showModal: boolean;
@@ -25,6 +28,9 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
   showModal,
   closeModal,
 }) => {
+  const confirm = useConfirmation();
+
+
   const [showModalSuccess, setShowModalSucces] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -78,6 +84,17 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
     }
   };
 
+  const handleSubmit = async () => {
+    const isConfirmed = await confirm({
+      title: 'Confirm Submission',
+      message: 'Are you sure you want to add this vitamin?',
+    });
+
+    if (isConfirmed) {
+      handleConfirmSubmit();
+    }
+  };
+
   const handleConfirmSubmit = async () => {
     formData.vitaminDosageForm = selectedOption;
     formData.vitaminPackaging = selectedPackaging;
@@ -116,6 +133,20 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
         setShowModalSucces(false);
         closeModal(true);
       }, 1000);
+
+      const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
+
+      await createHistoryLog({
+        actionType: 'create',
+        itemId: docRef.id,
+        itemName: formData.vitaminBrandName,
+        fullName: formatFullName,
+        barangay: '',
+        performedBy: user?.uid || '',
+        remarks: `Vitamin ${formData.vitaminBrandName} has been added to the inventory`,
+      })
+
+
     } catch (error) {
       console.error("Error adding document: ", error);
     } finally {
@@ -416,7 +447,7 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
           </div>
           <div className="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse w-full">
             <button
-              onClick={handleConfirmSubmit}
+              onClick={handleSubmit}
               type="button"
               className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"
             >

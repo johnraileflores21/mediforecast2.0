@@ -1,14 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebase";
-import { collection, onSnapshot } from "firebase/firestore";
-import { MdCancel } from "react-icons/md";
 import { IoMdClose } from "react-icons/io";
-import { useUser } from "./User";
+import ReceiptPDF from "./ReceiptPDF";
+import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
+
+interface Vaccine {
+  vaccineName: string;
+  vaccineBatchNo: string;
+  vaccineStock: string;
+  vaccineDosageForm: string;
+  vaccineExpiration: string; // assuming it's a date string
+  vaccineDescription: string;
+}
 
 interface ModalViewVaccineProps {
   showModal: boolean;
   closeModal: () => void;
-  data: any;
+  data: Vaccine | null;
 }
 
 const ModalViewVaccine: React.FC<ModalViewVaccineProps> = ({
@@ -17,10 +24,10 @@ const ModalViewVaccine: React.FC<ModalViewVaccineProps> = ({
   data,
 }) => {
   const [vaccine, setVaccine] = useState<any | null>(null);
-  const { user } = useUser();
+  const [showPDFModal, setShowPDFModal] = useState<boolean>(false);
 
   useEffect(() => {
-    if(data) {
+    if (data) {
       setVaccine(data);
     }
   }, [data]);
@@ -37,6 +44,29 @@ const ModalViewVaccine: React.FC<ModalViewVaccineProps> = ({
       year: "numeric",
     });
   };
+
+  const filteredData = (inventoryData: Vaccine) => {
+    const fieldsToInclude = [
+      "vaccineName",
+      "vaccineBatchNo",
+      "vaccineStock",
+      "vaccineDosageForm",
+      "vaccineExpiration",
+      "vaccineDescription",
+      "created_at",
+      "updated_at",
+    ];
+
+    // Create a filtered object only with the fields you want
+    return fieldsToInclude.reduce((acc, field) => {
+      if (inventoryData[field as keyof Vaccine]) {
+        acc[field] = inventoryData[field as keyof Vaccine];
+      }
+      return acc;
+    }, {} as { [key: string]: string | number });
+  };
+
+  const dataForPdf = filteredData(vaccine);
 
   return (
     <div
@@ -163,10 +193,59 @@ const ModalViewVaccine: React.FC<ModalViewVaccineProps> = ({
                   />
                 </div>
               </form>
+              {/* View & Download Button */}
+              <div className="mt-4">
+                <button
+                  onClick={() => setShowPDFModal(true)}
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
+                  View & Download Receipt
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* PDF Viewer */}
+      {showPDFModal && (
+        <div
+          className="fixed inset-0 z-30 flex items-start justify-center p-4"
+          style={{ width: "90%", height: "90%", top: "5%", left: "5%" }}
+        >
+          <div className="relative bg-white w-full h-full rounded-lg shadow-xl p-4">
+            {/* Close button */}
+            <button
+              onClick={() => setShowPDFModal(false)}
+              type="button"
+              className="absolute top-3 right-3 text-gray-700 hover:text-gray-900"
+            >
+              <IoMdClose className="w-6 h-6 text-gray-400 hover:text-red-600" />
+            </button>
+
+            <div className="mt-8 w-[90%] h-[90%] mx-auto">
+              {/* PDF Viewer */}
+              <div className="w-full h-full">
+                <PDFViewer style={{ width: "100%", height: "100%" }}>
+                  <ReceiptPDF title="Medicine" data={dataForPdf} />
+                </PDFViewer>
+              </div>
+              {/* Download Link */}
+              <div className="mt-4 text-center">
+                <PDFDownloadLink
+                  document={<ReceiptPDF title="Medicine" data={dataForPdf} />}
+                  fileName="medicine_receipt.pdf"
+                  className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                >
+                  {({ loading }: { loading: boolean }) =>
+                    loading ? "Preparing document..." : "Download PDF"
+                  }
+                </PDFDownloadLink>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

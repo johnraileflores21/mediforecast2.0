@@ -24,6 +24,8 @@ import "react-toastify/dist/ReactToastify.css";
 import { v4 } from "uuid";
 import { useUser } from "./User";
 import { dosage_forms } from "../assets/common/constants";
+import { createHistoryLog }  from '../utils/historyService';
+import { useConfirmation } from '../hooks/useConfirmation';
 
 interface ModalEditVaccineProps {
   showModal: boolean;
@@ -35,6 +37,9 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
   closeModal,
   data,
 }) => {
+
+  const confirm = useConfirmation();
+
   const [showModalSuccess, setShowModalSucces] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -74,6 +79,9 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
+
+
+
     if (e.target instanceof HTMLInputElement && e.target.files) {
       const selectedFile = e.target.files[0];
       if (e.target.id == "vaccineImg") {
@@ -90,10 +98,9 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
     }
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleConfirmSubmit = async () => {
     const now = new Date();
     const dateToday = now.toISOString();
-    e.preventDefault();
     setLoading(true);
     try {
       let imageUrl = formData.vaccineImg;
@@ -120,10 +127,38 @@ const ModalEditVaccine: React.FC<ModalEditVaccineProps> = ({
         setShowModalSucces(false);
         closeModal(true);
       }, 1000);
+
+      const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
+
+      await createHistoryLog({
+        actionType: 'update',
+        itemId: data.id,
+        itemName: data.vaccineName,
+        fullName: formatFullName,
+        barangay: '',
+        performedBy: user?.uid || '',
+        remarks: `${formatFullName} updated the ${data.vaccineName} medicine`,
+      })
+
     } catch (error) {
       console.error("Error updating document:", error);
     }
+
+  }
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    const isConfirmed = await confirm({
+      title: 'Confirm Submission',
+      message: 'Are you sure you want to edit this vaccine?',
+    });
+
+    if (isConfirmed) {
+      handleConfirmSubmit();
+    }
+
   };
+
   const handleDeleteImg = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     const Img = formData.vaccineImg;

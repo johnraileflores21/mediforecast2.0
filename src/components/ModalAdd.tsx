@@ -11,6 +11,8 @@ import AddVaccine from "./AddVaccine";
 import ModalAddVitamin from "./ModalAddVitamin";
 import { useUser } from "./User";
 import { medical_packaging, dosage_forms, medicineFormData } from "../assets/common/constants";
+import { createHistoryLog }  from '../utils/historyService';
+import { useConfirmation } from '../hooks/useConfirmation';
 
 interface ModalAddProps {
   showModal: boolean;
@@ -18,6 +20,8 @@ interface ModalAddProps {
 }
 
 const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
+  const confirm = useConfirmation();
+
   const [showModalSuccess, setShowModalSucces] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -29,7 +33,7 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
   const [activeTab, setActiveTab] = useState("Medicine");
   const tabs = ["Medicine", "Vitamin", "Vaccine"];
   const { user } = useUser();
-  
+
   const validateForm = () => {
     const newErrors: any = {};
     const fields = Object.keys(formData) as Array<keyof typeof formData>;
@@ -132,11 +136,34 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
         setShowModalSucces(false);
         closeModal(true);
       }, 1000);
-      
+
+      const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
+
+      await createHistoryLog({
+        actionType: 'create',
+        itemId: docRef.id,
+        itemName: formData.medicineBrandName,
+        fullName: formatFullName,
+        barangay: '',
+        performedBy: user?.uid || '',
+        remarks: `Medicine ${formData.medicineBrandName} has been added to the inventory`,
+      })
+
     } catch (error) {
       console.error("Error adding document: ", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    const isConfirmed = await confirm({
+      title: 'Confirm Submission',
+      message: 'Are you sure you want to add this medicine?',
+    });
+
+    if (isConfirmed) {
+      handleConfirmSubmit();
     }
   };
 
@@ -352,7 +379,7 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
                                                                                                             {selectedOption}
                                                                                                             <FaCaretDown className="w-4 h-4 text-white ml-1" />
                                                                                                         </div>
-                                                
+
                                                                                                         <ul
                                                                                                             tabIndex={0}
                                                                                                             className="dropdown-content menu rounded-box z-[50] relative w-52 p-2 shadow bg-teal-600 text-white"
@@ -517,7 +544,7 @@ const ModalAdd: React.FC<ModalAddProps> = ({ showModal, closeModal }) => {
                               </div>
                               <div className="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse w-full">
                                 <button
-                                  onClick={handleConfirmSubmit}
+                                  onClick={handleSubmit}
                                   disabled={loading}
                                   type="button"
                                   className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"

@@ -1,13 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebase";
-import { collection, onSnapshot } from "firebase/firestore";
-import { useUser } from "./User";
 import { IoMdClose } from "react-icons/io";
+import ReceiptPDF from "./ReceiptPDF";
+
+import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
+import { useUser } from "./User";
+import {RHUs} from "../assets/common/constants";
+
+interface Medicine {
+  medicineBrandName: string;
+  medicineGenericName: string;
+  medicineStock: number;
+  medicineLotNo: string;
+  medicineDosageStrength: string;
+  medicineDosageForm: string;
+  medicineExpiration: string;
+  medicineDescription: string;
+}
 
 interface ModalViewMedicineProps {
   showModal: boolean;
   closeModal: () => void;
-  data: any;
+  data: Medicine | null;
 }
 
 const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
@@ -15,28 +28,17 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
   closeModal,
   data,
 }) => {
-  const [medicine, setMedicine] = useState<any | null>(null);
+  const [medicine, setMedicine] = useState<Medicine | null>(null);
+  const [showPDFModal, setShowPDFModal] = useState<boolean>(false);
+
   const { user } = useUser();
 
   useEffect(() => {
-    console.log('data 123 :>> ', data)
-    if(!data) return;
+    if (!data) return;
     setMedicine(data);
-
-    // const unsub = onSnapshot(collection(db, "Inventory"), (snapshot) => {
-    //   const medicinesData = snapshot.docs.map((doc) => ({
-    //     id: doc.id,
-    //     ...doc.data(),
-    //   }));
-    //   const selectedMedicine = medicinesData.find((med) => med.id === data);
-    //   setMedicine(selectedMedicine);
-    //   console.log("selectedMedicine :>> ", selectedMedicine);
-    // });
-
-    // return () => unsub();
   }, [data]);
 
-  if(!showModal || !data) {
+  if (!showModal || !medicine) {
     return null;
   }
 
@@ -48,6 +50,53 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
       year: "numeric",
     });
   };
+
+  const filteredPdfHeader = () => {
+    const userBarangay = user?.rhuOrBarangay || "";
+    const rhuIndex = RHUs.findIndex(rhu => rhu.barangays.includes(userBarangay)) + 1;
+
+    const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+    const rhuRomanNumeral = romanNumerals[(rhuIndex == 0 ? parseInt(userBarangay): rhuIndex) - 1];
+
+    console.log('rhuIndex :>>', rhuIndex);
+    console.log('rhuRomanNumeral :>>', rhuRomanNumeral);
+    return {
+      h1: rhuIndex == 0 ?   `Rural Health Unit ${rhuRomanNumeral}`: `${user?.rhuOrBarangay} Health Center`,
+      h2: rhuIndex == 0 ? '' :  `Rural Health Unit ${rhuRomanNumeral}`,
+      h3: 'City of San Fernando, Pampanga',
+    };
+  };
+
+  const headerForPdf = filteredPdfHeader();
+
+  const filteredData = (medicine: Medicine) => {
+    const fieldsToInclude = [
+      'medicineBrandName',
+      'medicineGenericName',
+      'medicineStock',
+      'medicineLotNo',
+      'medicineDosageStrength',
+      'medicineDosageForm',
+      'medicineExpiration',
+      'medicineDescription',
+      'created_at',
+      'updated_at',
+    ];
+
+    // Create a filtered object only with the fields you want
+    return fieldsToInclude.reduce((acc, field) => {
+      if (medicine[field as keyof Medicine]) {
+        acc[field] = medicine[field as keyof Medicine];
+      }
+      return acc;
+    }, {} as { [key: string]: string | number });
+  };
+
+  const dataForPdf = filteredData(medicine);
+
+
+
+
 
   return (
     <div
@@ -80,6 +129,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                 </div>
 
                 <div className="mt-2">
+                  {/* Existing form fields */}
                   <form className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
@@ -92,7 +142,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         <input
                           type="text"
                           id="medicineBrandName"
-                          value={medicine?.medicineBrandName}
+                          value={medicine.medicineBrandName}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />
@@ -107,7 +157,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         <input
                           type="text"
                           id="medicineGenericName"
-                          value={medicine?.medicineGenericName}
+                          value={medicine.medicineGenericName}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />
@@ -124,7 +174,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         <input
                           type="text"
                           id="medicineStock"
-                          value={medicine?.medicineStock}
+                          value={medicine.medicineStock}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />
@@ -141,7 +191,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         <input
                           type="text"
                           id="medicineLotNo"
-                          value={medicine?.medicineLotNo}
+                          value={medicine.medicineLotNo}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />
@@ -156,7 +206,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         <input
                           type="text"
                           id="medicineDosageStrength"
-                          value={medicine?.medicineDosageStrength}
+                          value={medicine.medicineDosageStrength}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />
@@ -174,7 +224,7 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                           <input
                             type="text"
                             id="medicineDosageForm"
-                            value={medicine?.medicineDosageForm}
+                            value={medicine.medicineDosageForm}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                             readOnly
                           />
@@ -190,13 +240,13 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                         <input
                           type="text"
                           id="medicineExpiration"
-                          value={formatDate(medicine?.medicineExpiration)}
+                          value={formatDate(medicine.medicineExpiration)}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           readOnly
                         />
                       </div>
                     </div>
-                    
+
                     <div>
                       <label
                         htmlFor="medicineDescription"
@@ -206,19 +256,70 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
                       </label>
                       <textarea
                         id="medicineDescription"
-                        value={medicine?.medicineDescription}
+                        value={medicine.medicineDescription}
                         className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                         rows={4}
                         readOnly
                       />
                     </div>
                   </form>
+
+
+                  {/* View & Download Button */}
+                  <div className="mt-4">
+                    <button
+                      onClick={() => setShowPDFModal(true)}
+                      className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                    >
+                      View & Download Receipt
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* PDF Viewer */}
+      {showPDFModal && (
+        <div
+          className="fixed inset-0 z-30 flex items-start justify-center p-4"
+          style={{ width: "90%", height: "90%", top: "5%", left: "5%" }}
+        >
+          <div className="relative bg-white w-full h-full rounded-lg shadow-xl p-4">
+            {/* Close button */}
+            <button
+              onClick={() => setShowPDFModal(false)}
+              type="button"
+              className="absolute top-3 right-3 text-gray-700 hover:text-gray-900"
+            >
+              <IoMdClose className="w-6 h-6 text-gray-400 hover:text-red-600" />
+            </button>
+
+            <div className="mt-8 w-[90%] h-[90%] mx-auto">
+              {/* PDF Viewer */}
+              <div className="w-full h-full">
+                <PDFViewer style={{ width: "100%", height: "100%" }}>
+                  <ReceiptPDF title="Medicine" data={dataForPdf} headerText={headerForPdf} />
+                </PDFViewer>
+              </div>
+              {/* Download Link */}
+              <div className="mt-4 text-center">
+                <PDFDownloadLink
+                  document={<ReceiptPDF title="Medicine" data={dataForPdf} headerText={headerForPdf}/>}
+                  fileName="medicine_receipt.pdf"
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
+                  {({ loading }: { loading: boolean }) =>
+                    loading ? "Preparing document..." : "Download PDF"
+                  }
+                </PDFDownloadLink>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -8,7 +8,7 @@ import {
 } from "react-router-dom";
 import Login from "./components/Login";
 import Register from "./components/Register";
-import Dashboard from "./components/Dashboard";
+import Dashboard from "./components/Dashboard/index";
 import Add from "./components/Add";
 import Request from "./components/Request";
 import Community from "./components/Community";
@@ -23,6 +23,7 @@ import { UserProvider, useUser } from "./components/User";
 import PrivateRoute from "./components/PrivateRoute";
 import PulseLoader from "react-spinners/PulseLoader";
 import ForgotPassword from "./components/ForgotPassword";
+import Settings from "./components/Settings";
 import AdminLogin from "./components/SuperAdmin/Login";
 import AdminDashboard from "./components/SuperAdmin/Dashboard";
 import ResetPassword from "./components/ResetPassword";
@@ -41,10 +42,12 @@ import SanVicente from "./components/SuperAdmin/BarangayHealthCenter/SanVicente"
 import Sucad from "./components/SuperAdmin/BarangayHealthCenter/Sucad";
 import Sulipan from "./components/SuperAdmin/BarangayHealthCenter/Sulipan";
 import Tabuyuc from "./components/SuperAdmin/BarangayHealthCenter/Tabuyuc";
+import { ConfirmationProvider } from './components/ConfirmationContext';
 
 import PrivateRouteAdmin from "./components/SuperAdmin/PrivateRouteAdmin";
 const App = () => {
   return (
+    <ConfirmationProvider>
     <UserProvider>
       <Routes>
         {/* Super Admin */}
@@ -112,10 +115,12 @@ const App = () => {
           <Route path="/admin" element={<AdminRHU1 />} />
           <Route path="/rural-health-unit-2" element={<RHU2 />} />
           <Route path="/rural-health-unit-3" element={<RHU3 />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
         {/* <Route path="/inventory" element={<Inventory />} /> */}
       </Routes>
     </UserProvider>
+    </ConfirmationProvider>
   );
 };
 const AuthRedirect = () => {

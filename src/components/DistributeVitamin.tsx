@@ -5,6 +5,11 @@ import { IoMdClose } from "react-icons/io";
 import { useUser } from "./User";
 import Swal from "sweetalert2";
 import { RHUs } from "../assets/common/constants";
+import { Accordion, AccordionSummary, AccordionDetails, Typography } from '@mui/material';
+import { MdExpandMore } from 'react-icons/md';
+import { createHistoryLog }  from '../utils/historyService';
+import { createDistribution } from '../utils/distributionService';
+import { useConfirmation } from '../hooks/useConfirmation';
 
 interface DistributeVitaminProps {
   showModal: boolean;
@@ -17,19 +22,32 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
   closeModal,
   data,
 }) => {
+  const confirm = useConfirmation();
+
   const [vitamin, setVitamin] = useState<any | null>(null);
   const [barangay, setBarangay] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const { user } = useUser();
-  const [activeTab, setActiveTab] = useState(0);
-  const isBarangay = user?.role.includes('Barangay');
   const [originalQuantity, setOriginalQuantity] = useState(0);
+  const [forms, setForms] = useState<any>([]);
+  const [expanded, setExpanded] = useState(0);
+  const [activeTabs, setActiveTabs] = useState([0]);
+
+  const isBarangay = user?.role.includes('Barangay');
 
   const filteredBarangays = (RHUs.find((x: any) => x['barangays'].includes(user?.barangay))?.barangays || []);
 
   useEffect(() => {
+    console.log('showModal :>> ', showModal);
+    console.log("distribute :>> ", data);
+    const remainingPieces = (data?.totalPerPiece || 0) - (data?.totalDistributed || 0);
+
+    console.log('remainingPieces :>> ', remainingPieces);
+    const totalPieces = remainingPieces % (data?.vitaminPiecesPerItem || 0);
+    console.log('totalPieces :>> ', totalPieces);
     if(data) {
       setVitamin(data);
+      setForms([{ ...data, totalPieces }]);
       setOriginalQuantity(data.vitaminStock);
     }
   }, [data]);
@@ -38,159 +56,214 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
     return null;
   }
 
-  const handleSubmit = async () => {
+
+
+  const handleConfirmSubmit = async () => {
     try {
       setLoading(true);
-      let payload = {
-        ...vitamin,
-        vitaminStock: parseInt(vitamin.vitaminStock)
-      };
-  
-      if (!isBarangay) {
-        if (!payload.barangay && activeTab == 0) {
-          return Swal.fire({
-            position: "center",
-            icon: "error",
-            title: `Barangay is required`,
-            showConfirmButton: false,
-            timer: 1000,
-          });
-        } else if(activeTab == 1 && (!payload.fullName || !payload.address)) {
-          return Swal.fire({
-            position: "center",
-            icon: "error",
-            title: `Name and address fields are required`,
-            showConfirmButton: false,
-            timer: 1000,
-          });
-        } else if(activeTab == 1 && payload.fullName && payload.address) {
-          const distributeQty = payload.vitaminStock;
-          payload.vitaminStock = originalQuantity;
 
-          const inventoryRef = doc(db, 'Inventory', payload.id);
-          await updateDoc(inventoryRef, { vitaminStock: originalQuantity - (distributeQty || 0) });
+      console.log("forms :>> ", forms);
+      const totalQty = forms.reduce((prev: any, acc: any) => prev + acc.vitaminStock, 0);
+      let errorCounter = { count: 0, insufficient: false };
+      let validForms = [];
 
-          Swal.fire({
-            position: "center",
-            icon: "success",
-            title: `${payload.vitaminBrandName} has been distributed to ${payload.fullName}`,
-            showConfirmButton: false,
-            timer: 1500,
-          });
-          
-          closeModal(true);
+      console.log('totalQty :>> ', totalQty);
+      console.log('vitamin.vitaminStock :>> ', vitamin.vitaminStock);
 
-          return;
-        }
-  
-        console.log("payload :>> ", payload);
-        const itemDocRef = doc(db, "Inventory", vitamin.id);
-        const itemSnap = await getDoc(itemDocRef);
-        if (!itemSnap.exists()) throw new Error("Item not found");
-  
-        const itemData = itemSnap.data();
-        const currentStock = itemData.vitaminStock;
-  
-        if (payload.vitaminStock > currentStock) throw new Error("Insufficient stock.");
-  
-        const userQuery = query(
-          collection(db, "Users"),
-          where("barangay", "==", payload.barangay)
-        );
-  
-        const userSnap = await getDocs(userQuery);
-        console.log("userSnap :>> ", userSnap);
-        const userData = userSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-  
-        console.log("userData :>> ", userData);
-        const filteredUser = userData.filter((x: any) => x?.role.includes('Barangay'));
-  
-        if (filteredUser.length > 0) {
-          const _user = filteredUser[0];
-  
-          const barangayInventoryRef = doc(db, "BarangayInventory", payload.id);
-          const barangayInventorySnap = await getDoc(barangayInventoryRef);
-          const existingData = barangayInventorySnap.data();
-  
-          const _currentStock = existingData?.vitaminStock || 0;
-          const newStock = parseInt(payload.vitaminStock) + _currentStock;
-  
-          const pendingDistributionData = {
-            ...itemData,
-            vitaminStock: newStock,
-            totalQuantity: (existingData?.totalQuantity + newStock) || newStock,
-            pendingQuantity: payload.vitaminStock,
-            created_at: new Date().toISOString(),
-            userId: _user?.id,
-            totalPerPiece: newStock * payload.vitaminPiecesPerItem,
-            status: 'pending',
-            itemId: vitamin.id
-          };
-  
-          console.log('pendingDistributionData :>> ', pendingDistributionData);
-          await addDoc(collection(db, "BarangayInventory"), pendingDistributionData);
-  
-          Swal.fire({
-            position: "center",
-            icon: "success",
-            title: `${payload.vitaminBrandName} has been scheduled for distribution to ${payload.barangay}`,
-            showConfirmButton: false,
-            timer: 1500,
-          });
-        } else {
-          Swal.fire({
-            position: "center",
-            icon: "error",
-            title: `No existing user for ${payload.barangay}`,
-            showConfirmButton: false,
-            timer: 1000,
-          });
-        }
-  
-      } else {
-        const itemDocRef = doc(db, "BarangayInventory", vitamin.id);
-        const itemSnap = await getDoc(itemDocRef);
-        if (!itemSnap.exists()) throw new Error("Item not found in Barangay Inventory");
-  
-        const itemData = itemSnap.data();
-        let totalPerPiece = parseInt(itemData.totalPerPiece);
-        let currentStock = parseInt(itemData.vitaminStock);
-        let quantityToDistribute = parseInt(vitamin.totalPieces);
-        let vitaminPiecesPerItem = parseInt(vitamin.vitaminPiecesPerItem);
-  
-        if (quantityToDistribute > totalPerPiece) {
-          throw new Error("Insufficient stock to distribute this quantity.");
-        }
-  
-        totalPerPiece -= quantityToDistribute;
-        while (quantityToDistribute > 0) {
-          if (quantityToDistribute <= currentStock * vitaminPiecesPerItem) {
-            currentStock -= Math.ceil(quantityToDistribute / vitaminPiecesPerItem);
-            quantityToDistribute = 0;
-          } else {
-            quantityToDistribute -= currentStock * vitaminPiecesPerItem;
-            currentStock = 0;
+      for(let i = 0; i < forms.length; i++) {
+
+        let form = forms[i];
+
+        let payload = {
+          ...form,
+          vitaminStock: parseInt(form.vitaminStock)
+        };
+
+        if(!isBarangay) {
+          if((!payload.barangay && activeTabs[i] == 0) || ((!payload.fullName || !payload.address) && activeTabs[i] == 1)) {
+            errorCounter.count += 1;
+            break;
+          } else if(totalQty > parseInt(vitamin.vitaminStock)) {
+            errorCounter.count += 1;
+            errorCounter.insufficient = true;
+            break;
+          } else if((activeTabs[i] == 0 && payload.barangay) || (activeTabs[i] == 1 && (payload.fullName && payload.address))) {
+            validForms.push(payload);
           }
         }
-  
-        await updateDoc(itemDocRef, {
-          totalPerPiece: (totalPerPiece || parseInt(vitamin.vitaminPiecesPerItem || 0)),
-          vitaminStock: currentStock,
-        });
-  
-        Swal.fire({
+
+      }
+
+      console.log('validForms :>> ', validForms);
+      console.log('errorCounter :>> ', errorCounter);
+
+      if(errorCounter.count > 0 && !errorCounter.insufficient) {
+        return Swal.fire({
           position: "center",
-          icon: "success",
-          title: `${vitamin.vitaminBrandName} has been successfully distributed to ${vitamin.fullName}`,
+          icon: "error",
+          title: `Fill out required fields`,
           showConfirmButton: false,
-          timer: 1500,
+          timer: 1000,
+        });
+      } else if(errorCounter.insufficient) {
+        return Swal.fire({
+          position: "center",
+          icon: "error",
+          title: `Insufficient Stock`,
+          showConfirmButton: false,
+          timer: 1000,
         });
       }
-  
-    } catch (error: any) {
+
+      if(validForms.length == forms.length) {
+        for(let i = 0; i < validForms.length; i++) {
+
+          const form = validForms[i];
+
+          console.log('form :>> ', form);
+
+          let payload = {
+            ...form,
+            vitaminStock: parseInt(form.vitaminStock)
+          };
+
+          const itemDocRef = doc(db, "Inventory", payload.id);
+          const itemSnap = await getDoc(itemDocRef);
+          if(!itemSnap.exists()) throw new Error("Item not found");
+
+          const itemData = itemSnap.data();
+          const currentStock = itemData.vitaminStock;
+
+          if(payload.vitaminStock > currentStock) throw new Error("Insufficient stock.");
+
+          // FUNCTION IF THE DISTRIBUTION IS FOR RESIDENT
+          if (activeTabs[i] == 1) {
+            // Calculate the new stock value
+            const newStockResident = currentStock - payload.vitaminStock;
+
+            // Update the stock value in Firestore
+            await updateDoc(itemDocRef, {
+              vitaminStock: newStockResident
+            });
+
+            console.log(`Stock updated. New stock: ${newStockResident}`);
+
+            await createDistribution({
+              itemId: payload.id,
+              quantity: payload.vitaminStock,
+              distributeType: 'individual',
+              distributedBy: payload.userId,
+              distributedTo: payload.fullName,
+              isDistributed: true
+            });
+
+            await createHistoryLog({
+              actionType: "distribute",
+              itemId: payload.id,
+              itemName: payload.vitaminBrandName,
+              fullName: payload.fullName,
+              barangay: payload.barangay,
+              performedBy: payload.userId,
+              remarks: `Distributed ${payload.vitaminStock} units to ${payload.fullName}`,
+            });
+
+            Swal.fire({
+              position: "center",
+              icon: "success",
+              title: `${payload.vitaminBrandName} has been distributed to ${payload.fullName}`,
+              showConfirmButton: false,
+              timer: 1500,
+            });
+
+          } else {
+            const userQuery = query(
+              collection(db, "Users"),
+              where("barangay", "==", payload.barangay)
+            );
+
+
+            const userSnap = await getDocs(userQuery);
+            console.log("userSnap :>> ", userSnap);
+            const userData = userSnap.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+            console.log("userData :>> ", userData);
+            const filteredUser = userData.filter((x: any) => x?.role.includes('Barangay'));
+            if (filteredUser.length > 0) {
+              // await updateDoc(itemDocRef, { vitaminStock: currentStock - payload.vitaminStock });
+
+              const _user = filteredUser[0];
+
+              const barangayInventoryRef = doc(db, "BarangayInventory", payload.id);
+              const barangayInventorySnap = await getDoc(barangayInventoryRef);
+              const existingData = barangayInventorySnap.data();
+
+              const _currentStock = existingData?.vitaminStock || 0;
+              const newStock = parseInt(payload.vitaminStock) + _currentStock;
+
+              const pendingDistributionData: any = {
+                ...itemData,
+                vitaminStock: newStock,
+                totalQuantity: (existingData?.totalQuantity + newStock) || newStock,
+                pendingQuantity: payload.vitaminStock,
+                created_at: new Date().toISOString(),
+                userId: _user?.id,
+                totalPerPiece: newStock * payload.vitaminPiecesPerItem,
+                status: 'pending',
+                itemId: payload?.id
+              };
+
+              if('id' in pendingDistributionData) delete (pendingDistributionData as any).id;
+
+              const barangayInventoryReff=  await addDoc(collection(db, "BarangayInventory"), pendingDistributionData);
+              const barangayInventoryId = barangayInventoryReff.id;
+
+              await createDistribution({
+                barangayInventoryId,
+                itemId: payload.id,
+                quantity: payload.vaccineStock,
+                distributeType: 'barangay',
+                distributedBy: payload.userId,
+                distributedTo: payload.fullName,
+                isDistributed: false
+              });
+
+
+              await createHistoryLog({
+                actionType: "pending-distribution",
+                itemId: payload.id,
+                itemName: payload.vitaminBrandName,
+                barangay: payload.barangay,
+                performedBy: _user.id,
+                remarks: `Pending distribution of ${payload.vitaminStock} units to ${payload.barangay}`,
+              });
+
+
+              Swal.fire({
+                position: "center",
+                icon: "success",
+                title: `${payload.vitaminBrandName} has been scheduled for distribution to ${payload.barangay}`,
+                showConfirmButton: false,
+                timer: 1500,
+              });
+
+            } else {
+              Swal.fire({
+                position: "center",
+                icon: "error",
+                title: `No existing user for ${payload.barangay}`,
+                showConfirmButton: false,
+                timer: 1000,
+              });
+            }
+          }
+        }
+
+      }
+
+    } catch(error: any) {
+      console.error("Error distributing vitamin: ", error);
       Swal.fire({
         position: "center",
         icon: "error",
@@ -202,7 +275,18 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
       setLoading(false);
     }
   };
-  
+  const handleSubmit = async () => {
+    const isConfirmed = await confirm({
+      title: 'Confirm Submission',
+      message: 'Are you sure you want to distribute this vitamin?',
+    });
+
+    if (isConfirmed) {
+      handleConfirmSubmit();
+    }
+  };
+
+
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -217,6 +301,38 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
     setVitamin({ ...vitamin, [field]: e.target.value });
     console.log("vitamin :>> ", { ...vitamin, [field]: e.target.value });
   };
+
+  const handleAccordion = (index: any) => (event: any, isExpanded: any) => {
+    setExpanded(isExpanded ? index : false);
+  };
+
+  const handleTabChange = (index: number, tabIndex: number) => {
+    const newActiveTabs = [...activeTabs];
+    newActiveTabs[index] = tabIndex;
+    setActiveTabs(newActiveTabs);
+  };
+
+  const handleFormsChange = (e: any, field: string, index: number) => {
+    const updatedForms = forms.map((form: any, i: number) => {
+      if (i === index) {
+        return {
+          ...form,
+          [field]: e.target.value
+        };
+      }
+      return form;
+    });
+
+    setForms(updatedForms);
+    console.log("Updated forms: ", updatedForms);
+  };
+
+  const addForm = () => {
+    setForms([...forms, vitamin]);
+    setActiveTabs([...activeTabs, 0]);
+  }
+
+
 
   return (
     <div
@@ -254,14 +370,143 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                 </button>
                 <div className="mt-2">
 
-                  {/* Tabs for Barangay and Resident */}
-                  {!isBarangay && <div className="my-6">
-                    <button onClick={() => setActiveTab(0)} className={`px-4 py-2 ${activeTab === 0 ? "bg-gray-300" : "bg-gray-200"}`}>Barangay</button>
-                    <button onClick={() => setActiveTab(1)} className={`px-4 py-2 ${activeTab === 1 ? "bg-gray-300" : "bg-gray-200"}`}>Resident</button>
-                  </div>}
-                  
+
+                <div className="flex justify-end mb-4">
+                  <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" onClick={addForm}>
+                    Add
+                  </button>
+                </div>
+
                   <form className="space-y-4">
-                    <div className="flex flex-row">
+                  {forms.map((_, index: number) => (
+                      <Accordion key={index} expanded={expanded === index} onChange={handleAccordion(index)}>
+                        <AccordionSummary
+                          expandIcon={<MdExpandMore />}
+                          aria-controls={`panel${index}-content`}
+                          id={`panel${index}-header`}
+                          sx={{ bgcolor: '#f0f0f0', '&.Mui-expanded': { bgcolor: '#f0f0f0' } }}
+                        >
+                          <Typography>Distribution #{index + 1}</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+
+                        {/* Tabs for Barangay and Resident */}
+                        {!isBarangay && <div className="my-6">
+                            <button type="button" onClick={() => handleTabChange(index, 0)} className={`px-4 py-2 ${activeTabs[index] === 0 ? "bg-gray-300" : "bg-gray-200"}`}>Barangay</button>
+                            <button type="button" onClick={() => handleTabChange(index, 1)} className={`px-4 py-2 ${activeTabs[index] === 1 ? "bg-gray-300" : "bg-gray-200"}`}>Resident</button>
+                          </div>}
+
+                          {isBarangay ?
+                            <div className="w-full">
+                              <label
+                                htmlFor="totalPieces"
+                                className="block text-sm font-medium text-gray-700"
+                              >
+                                Quantity
+                              </label>
+                              <input
+                                type="number"
+                                id="totalPieces"
+                                value={forms[index].totalPieces}
+                                onChange={(e) => handleFormsChange(e, 'totalPieces', index)}
+                                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                              />
+                            </div> :
+                            <div className="w-full">
+                              <label
+                                htmlFor="vitaminStock"
+                                className="block text-sm font-medium text-gray-700"
+                              >
+                                Quantity
+                              </label>
+                              <input
+                                type="number"
+                                id="vitaminStock"
+                                value={forms[index].vitaminStock}
+                                onChange={(e) => handleFormsChange(e, 'vitaminStock', index)}
+                                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                              />
+                            </div>
+                          }
+                          <br/>
+
+                          {!isBarangay && activeTabs[index] == 0 ? (
+                            <div className="relative">
+                              <label
+                                htmlFor="barangay"
+                                className="block text-sm font-medium text-gray-700"
+                              >
+                                Where to Distribute
+                              </label>
+                              <div className="relative mt-1">
+                                <select
+                                  id="barangay"
+                                  onChange={(e) => handleFormsChange(e, 'barangay', index)}
+                                  className="block appearance-none w-full p-3 border border-gray-300 rounded-md bg-white focus:outline-none focus:black focus:border-black sm:text-base"
+                                >
+                                  <option value="">Barangay</option>
+                                  {filteredBarangays.map((brgy) => (
+                                    <option key={brgy} value={brgy}>{brgy}</option>
+                                  ))}
+                                </select>
+                                <svg
+                                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="relative">
+                                <label
+                                  htmlFor="address"
+                                  className="block text-sm font-medium text-gray-700"
+                                >
+                                  Full Name
+                                </label>
+                                <div className="relative mt-1">
+                                  <input
+                                    type="text"
+                                    id="address"
+                                    value={forms[index].fullName}
+                                    onChange={(e) => handleFormsChange(e, 'fullName', index)}
+                                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
+                                  />
+                                </div>
+                              </div>
+                              <div className="relative mt-4">
+                                <label
+                                  htmlFor="address"
+                                  className="block text-sm font-medium text-gray-700"
+                                >
+                                  Full Address
+                                </label>
+                                <div className="relative mt-1">
+                                  <input
+                                    type="text"
+                                    id="address"
+                                    value={forms[index].address}
+                                    onChange={(e) => handleFormsChange(e, 'address', index)}
+                                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+
+                        </AccordionDetails>
+                      </Accordion>
+                    ))}
+                  <div className="flex flex-row">
                       <div className="w-full">
                         <label
                           htmlFor="vitaminBrandName"
@@ -275,6 +520,7 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                           value={vitamin.vitaminBrandName}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           disabled
+                          readOnly
                         />
                       </div>
                       <div className="w-full">
@@ -290,31 +536,51 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                           value={vitamin.vitaminGenericName}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
                           disabled
+                          readOnly
                         />
                       </div>
                     </div>
                     <div className="flex flex-row">
-                      <div className="w-full">
-                        <label
-                          htmlFor="vitaminStock"
-                          className="block text-sm font-medium text-gray-700"
-                        >
-                          Quantity
-                        </label>
-                        <input
-                          type="number"
-                          id="vitaminStock"
-                          value={vitamin.vitaminStock}
-                          onChange={(e) => handleChange(e, 'vitaminStock')}
-                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                        />
-                      </div>
+                      {isBarangay ?
+                        <div className="w-full">
+                          <label
+                            htmlFor="totalPieces"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Quantity
+                          </label>
+                          <input
+                            type="number"
+                            id="totalPieces"
+                            value={vitamin.totalPieces}
+                            onChange={(e) => handleChange(e, 'totalPieces')}
+                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                            disabled
+                          />
+                        </div> :
+                        <div className="w-full">
+                          <label
+                            htmlFor="vitaminStock"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Quantity
+                          </label>
+                          <input
+                            type="number"
+                            id="vitaminStock"
+                            value={vitamin.vitaminStock}
+                            onChange={(e) => handleChange(e, 'vitaminStock')}
+                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                            disabled
+                          />
+                        </div>
+                      }
                       <div className="w-full">
                         <label
                           htmlFor="vitaminLotNo"
                           className="block text-sm font-medium text-gray-700 ml-1"
                         >
-                          Lot No.
+                          Vitamin Lot No.
                         </label>
                         <input
                           type="text"
@@ -322,23 +588,25 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                           value={vitamin.vitaminLotNo}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
                           disabled
+                          readOnly
                         />
                       </div>
                     </div>
                     <div className="flex flex-row">
                       <div className="w-full">
                         <label
-                          htmlFor="vitaminStrength"
+                          htmlFor="vitaminDosageStrength"
                           className="block text-sm font-medium text-gray-700"
                         >
                           Strength
                         </label>
                         <input
                           type="text"
-                          id="vitaminStrength"
+                          id="vitaminDosageStrength"
                           value={vitamin.vitaminDosageStrength}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           disabled
+                          readOnly
                         />
                       </div>
                       <div className="w-full">
@@ -354,6 +622,7 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                           value={vitamin.vitaminDosageForm}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
                           disabled
+                          readOnly
                         />
                       </div>
                     </div>
@@ -372,6 +641,7 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                           value={formatDate(vitamin.vitaminExpiration)}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           disabled
+                          readOnly
                         />
                       </div>
                     </div>
@@ -388,80 +658,11 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                         className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                         rows={4}
                         disabled
+                        readOnly
                       />
                     </div>
 
-                    {!isBarangay && activeTab == 0 ? (
-                      <div className="relative">
-                        <label
-                          htmlFor="barangay"
-                          className="block text-sm font-medium text-gray-700"
-                        >
-                          Where to Distribute
-                        </label>
-                        <div className="relative mt-1">
-                          <select
-                            id="barangay"
-                            onChange={(e) => handleChange(e, 'barangay')}
-                            className="block appearance-none w-full p-3 border border-gray-300 rounded-md bg-white focus:outline-none focus:black focus:border-black sm:text-base"
-                          >
-                            <option value="">Barangay</option>
-                            {filteredBarangays.map((brgy) => (
-                              <option key={brgy} value={brgy}>{brgy}</option>
-                            ))}
-                          </select>
-                          <svg
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                            aria-hidden="true"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="relative">
-                          <label
-                            htmlFor="address"
-                            className="block text-sm font-medium text-gray-700"
-                          >
-                            Full Name
-                          </label>
-                          <div className="relative mt-1">
-                            <input
-                              type="text"
-                              id="address"
-                              value={vitamin.fullName}
-                              onChange={(e) => handleChange(e, 'fullName')}
-                              className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
-                            />
-                          </div>
-                        </div>
-                        <div className="relative mt-4">
-                          <label
-                            htmlFor="address"
-                            className="block text-sm font-medium text-gray-700"
-                          >
-                            Full Address
-                          </label>
-                          <div className="relative mt-1">
-                            <input
-                              type="text"
-                              id="address"
-                              value={vitamin.address}
-                              onChange={(e) => handleChange(e, 'address')}
-                              className="mt-1 block w-full p-2 border border-gray-300 rounded-md ml-1"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
+
                     <div className="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse w-full">
                       <button
                         disabled={loading}
