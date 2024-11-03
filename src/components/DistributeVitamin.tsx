@@ -40,14 +40,9 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
   useEffect(() => {
     console.log('showModal :>> ', showModal);
     console.log("distribute :>> ", data);
-    const remainingPieces = (data?.totalPerPiece || 0) - (data?.totalDistributed || 0);
-
-    console.log('remainingPieces :>> ', remainingPieces);
-    const totalPieces = remainingPieces % (data?.vitaminPiecesPerItem || 0);
-    console.log('totalPieces :>> ', totalPieces);
     if(data) {
       setVitamin(data);
-      setForms([{ ...data, totalPieces }]);
+      setForms([{ ...data }]);
       setOriginalQuantity(data.vitaminStock);
     }
   }, [data]);
@@ -61,24 +56,30 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
   const handleConfirmSubmit = async () => {
     try {
       setLoading(true);
-
       console.log("forms :>> ", forms);
 
-      const totalQty = forms.reduce((prev: any, acc: any) => parseInt(prev) + parseInt(acc.vitaminStock), 0);
+      let totalQty = 0;
       let errorCounter = { count: 0, insufficient: false };
       let validForms = [];
 
-      console.log('totalQty :>> ', totalQty);
-      console.log('vitamin.vitaminStock :>> ', vitamin.vitaminStock);
+      if(isBarangay) {
+        totalQty = forms.reduce((prev: any, acc: any) => parseInt(prev) + parseInt(acc.totalPieces), 0);
+      } else {
+        totalQty = forms.reduce((prev: any, acc: any) => parseInt(prev) + parseInt(acc.vitaminStock), 0);
+      }
 
       for(let i = 0; i < forms.length; i++) {
 
         let form = forms[i];
 
-        let payload = {
+        const payload = {
           ...form,
-          vitaminStock: parseInt(form.vitaminStock)
+          ...(isBarangay
+            ? { totalPieces: Number(form.totalPieces) }
+            : { vitaminStock: parseInt(form.vitaminStock) })
         };
+
+        console.log('payload :>> ', payload);
 
         if(!isBarangay) {
           if((!payload.barangay && activeTabs[i] == 0) || ((!payload.fullName || !payload.address) && activeTabs[i] == 1)) {
@@ -91,8 +92,18 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
           } else if((activeTabs[i] == 0 && payload.barangay) || (activeTabs[i] == 1 && (payload.fullName && payload.address))) {
             validForms.push(payload);
           }
+        } else {
+          if(!payload.fullName || !payload.address) {
+            errorCounter.count += 1;
+            break;
+          } else if(totalQty > parseInt(payload.totalPieces)) {
+            errorCounter.count += 1;
+            errorCounter.insufficient = true;
+            break;
+          }else {
+            validForms.push(payload);
+          }
         }
-
       }
 
       console.log('validForms :>> ', validForms);
@@ -123,35 +134,68 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
 
           console.log('form :>> ', form);
 
-          let payload = {
+          const payload = {
             ...form,
-            vitaminStock: parseInt(form.vitaminStock)
+            ...(isBarangay
+              ? { totalPieces: Number(form.totalPieces) }
+              : { vitaminStock: Number(form.vitaminStock) })
           };
 
-          const itemDocRef = doc(db, "Inventory", payload.id);
+
+          const collectionName = isBarangay ? 'BarangayInventory' : 'Inventory';
+          const itemDocRef = doc(db, collectionName, payload.id);
           const itemSnap = await getDoc(itemDocRef);
-          if(!itemSnap.exists()) throw new Error("Item not found");
+
+          if (!itemSnap.exists()) {
+            throw new Error("Item not found");
+          }
 
           const itemData = itemSnap.data();
-          const currentStock = itemData.vitaminStock;
+          const currentStock = isBarangay ? itemData.totalPieces : itemData.vitaminStock;
+          console.log('itemData :>> ', itemData);
 
-          if(payload.vitaminStock > currentStock) throw new Error("Insufficient stock.");
+          const requestedQuantity = isBarangay ? payload.totalPieces : payload.vitaminStock;
+
+          if (requestedQuantity > currentStock) {
+            throw new Error("Insufficient stock.");
+          }
 
           // FUNCTION IF THE DISTRIBUTION IS FOR RESIDENT
           if (activeTabs[i] == 1) {
-            // Calculate the new stock value
-            const newStockResident = currentStock - payload.vitaminStock;
+            // // Calculate the new stock value
+            // const newStockResident = currentStock - payload.vitaminStock;
 
-            // Update the stock value in Firestore
-            await updateDoc(itemDocRef, {
-              vitaminStock: newStockResident
-            });
+            // // Update the stock value in Firestore
+            // await updateDoc(itemDocRef, {
+            //   vitaminStock: newStockResident
+            // });
 
-            console.log(`Stock updated. New stock: ${newStockResident}`);
+            // console.log(`Stock updated. New stock: ${newStockResident}`);
+
+            let newStock = 0
+            if(isBarangay) {
+              newStock = currentStock - payload.totalPieces;
+              const piecesPerItem = parseInt(itemData.vaccinePiecesPerItem);
+              const updatedVitaminStock = Math.floor(newStock / piecesPerItem);
+              console.log('updatedVitaminStock :>> ', updatedVitaminStock);
+              //updated medicine  stock
+
+              await updateDoc(itemDocRef, {
+                totalPieces: newStock,
+                vitaminStock: updatedVitaminStock
+              });
+            } else {
+              newStock = currentStock - payload.vitaminStock;
+              await updateDoc(itemDocRef, {
+                vitaminStock: newStock
+              });
+            }
+            console.log(`Stock updated. New stock: ${newStock}`);
+
 
             await createDistribution({
               itemId: payload.id,
-              quantity: payload.vitaminStock,
+              quantity: isBarangay ? payload.totalPieces : payload.vitaminStock,
               distributeType: 'individual',
               distributedBy: user?.rhuOrBarangay || '',
               distributedTo: payload.fullName,
@@ -210,7 +254,7 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                 pendingQuantity: payload.vitaminStock,
                 created_at: new Date().toISOString(),
                 userId: _user?.id,
-                totalPerPiece: newStock * payload.vitaminPiecesPerItem,
+                totalPieces: newStock * payload.vitaminPiecesPerItem,
                 status: 'pending',
                 itemId: payload?.id
               };
@@ -223,7 +267,7 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
               await createDistribution({
                 barangayInventoryId,
                 itemId: payload.id,
-                quantity: payload.vaccineStock,
+                quantity: payload.vitaminStock,
                 distributeType: 'barangay',
                 distributedBy: user?.rhuOrBarangay || '',
                 distributedTo: payload.barangay,
@@ -379,7 +423,7 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                 </div>
 
                   <form className="space-y-4">
-                  {forms.map((_, index: number) => (
+                  {forms.map((_:any, index: number) => (
                       <Accordion key={index} expanded={expanded === index} onChange={handleAccordion(index)}>
                         <AccordionSummary
                           expandIcon={<MdExpandMore />}

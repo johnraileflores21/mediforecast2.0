@@ -18,6 +18,8 @@ import { FaRegCheckCircle } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import ConfirmationModal from "./ConfirmationModal";
 import { createHistoryLog }  from '../../utils/historyService';
+import notificationService from '../../utils/notificationService';
+import { RHUs } from "../../assets/common/constants";
 
 
 interface ModalAddRequestProps {
@@ -200,6 +202,7 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
         .filter((form) => form.itemId && form.requestedQuantity && form.reason);
 
       setLoading(true);
+      // get index where barangay is included
 
       const promises = payloads.map((payload) =>
         addDoc(collection(db, "Requests"), payload)
@@ -207,6 +210,8 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
       await Promise.all(promises);
 
       const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
+      const sentTo = RHUs.findIndex((x: any) => x["barangays"].includes(user?.barangay)) + 1;
+
 
       setForms([requestFormData]); // Reset to initial form
       setShowModalSucces(true);
@@ -217,6 +222,20 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
         performedBy: user?.uid || '',
         remarks: `Requested ${payloads.length} item(s)`,
       })
+
+      await notificationService.createNotification({
+        action: 'request',
+        barangayItemId: null,
+
+        itemId: payloads.map((x) => x.itemId).join(','),
+        itemName: payloads.map((x) => x.itemId).join(','),
+        itemType: 'medicine',
+        quantity: payloads.map((x) => x.requestedQuantity).reduce((a, b) => a + b, 0),
+        description: `Requested ${payloads.length} item(s)`,
+        performedBy: user?.uid || '',
+        sentBy: user?.rhuOrBarangay || '',
+        sentTo: sentTo.toString(),
+      });
 
 
       setTimeout(() => {

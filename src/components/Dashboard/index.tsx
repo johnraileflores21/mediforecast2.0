@@ -109,8 +109,9 @@ const Dashboard: React.FC = () => {
         console.log('user?.rhuOrBarangay :>>', user?.rhuOrBarangay);
         const distributionQuery = query(
           collection(db, "Distributions"),
-          where("distributedBy", "==", user?.rhuOrBarangay)
-        )
+          where("distributedBy", "==", user?.rhuOrBarangay),
+          where("isDistributed", "==", true)
+        );
         // const distributionsCol = collection(db, "Distributions");
         const distributionsSnapshot = await getDocs(distributionQuery);
         const distributionsList: any[] = distributionsSnapshot.docs.map((doc) => ({
@@ -132,9 +133,15 @@ const Dashboard: React.FC = () => {
 
           const unit = RHUs.findIndex((x: any) => x['barangays'].includes(user?.barangay)) + 1;
           // console.log('unit :>> ', unit);
+          const inventoryCollection = isBarangay ? "BarangayInventory" : "Inventory";
+          const inventoryQueries = [
+            where("created_by_unit", "==", isBarangay ? unit.toString() : user?.rhuOrBarangay),
+            ...(isBarangay ? [where("status", "==", "approved")] : [])
+          ];
+
           const inventoryQuery = query(
-            collection(db, isBarangay ? "BarangayInventory" : "Inventory"),
-            where("created_by_unit", "==", isBarangay ? unit.toString() : user?.rhuOrBarangay)
+            collection(db, inventoryCollection),
+            ...inventoryQueries
           );
 
           const inventorySnapshot = await getDocs(inventoryQuery);

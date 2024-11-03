@@ -11,6 +11,7 @@ import RequestAdd from "../components/Request/RequestAdd";
 import PDFPreviewModal from "./PDFPreviewModal";
 import {RHUs} from "../assets/common/constants";
 import { createHistoryLog }  from '../utils/historyService';
+import notificationService from '../utils/notificationService';
 import { useConfirmation } from '../hooks/useConfirmation';
 
 
@@ -170,6 +171,19 @@ const Request = () => {
                 remarks: 'Request has been approved by ${formatFullName}',
             })
 
+            await notificationService.createNotification({
+                action: 'approve',
+                barangayItemId: null,
+                itemId: id,
+                itemName: '',
+                itemType: '',
+                quantity: 1,
+                description: 'Request has been approved',
+                performedBy: user?.uid || '',
+                sentBy: user?.rhuOrBarangay || '',
+                sentTo: user?.uid || '',
+            });
+
 
             Swal.fire({
                 position: "center",
@@ -304,13 +318,13 @@ const Request = () => {
                 await updateDoc(barangayInventoryRef, { ...barangayInventoryData, [stockType]: updatedStock });
             } else await setDoc(barangayInventoryRef, barangayInventoryData);
 
-            await addDoc(collection(db, "Distributions"), {
-                barangayId,
-                created_at: new Date().toISOString(),
-                itemId,
-                quantity: requestedQuantity,
-                rhuId
-            });
+            // await addDoc(collection(db, "Distributions"), {
+            //     barangayId,
+            //     created_at: new Date().toISOString(),
+            //     itemId,
+            //     quantity: requestedQuantity,
+            //     rhuId
+            // });
 
             await updateDoc(requestDocRef, { status: "approved" });
 

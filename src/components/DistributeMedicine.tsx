@@ -11,6 +11,8 @@ import { MdExpandMore } from 'react-icons/md';
 
 import { createHistoryLog }  from '../utils/historyService';
 import { createDistribution } from '../utils/distributionService';
+import notificationService from '../utils/notificationService';
+
 import { useConfirmation } from '../hooks/useConfirmation';
 
 interface ModalDistributeProps {
@@ -37,12 +39,11 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
   useEffect(() => {
     console.log('showModal :>> ', showModal);
     console.log("distribute :>> ", data);
-    const remainingPieces = (data?.totalPerPiece || 0) - (data?.totalDistributed || 0);
-    const totalPieces = remainingPieces % (data?.medicinePiecesPerItem || 0);
-    console.log('totalPieces :>> ', totalPieces);
+    // const remainingPieces = (data?.totalPerPiece || 0) - (data?.totalDistributed || 0);
+    // const totalPieces = remainingPieces % (data?.medicinePiecesPerItem || 0);
     if(data) {
-      setMedicine({...data, totalPieces});
-      setForms([{ ...data, totalPieces }]);
+      setMedicine({...data});
+      setForms([{ ...data}]);
       setOriginalQuantity(data.medicineStock);
     };
   }, [data]);
@@ -92,27 +93,39 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
     setActiveTabs([...activeTabs, 0]);
   }
 
-  // TODO: handleSubmit
 
   const handleConfirmSubmit = async () => {
     try {
       setLoading(true);
-
       console.log("forms :>> ", forms);
-      const totalQty = forms.reduce((prev: any, acc: any) => parseInt(prev) + parseInt(acc.medicineStock), 0);
+
+
+      let totalQty = 0;
+      let updatedMedicineStock = 0;
       let errorCounter = { count: 0, insufficient: false };
       let validForms = [];
 
+
+      if(isBarangay) {
+        totalQty = forms.reduce((prev: any, acc: any) => parseInt(prev) + parseInt(acc.totalPieces), 0);
+      } else {
+        totalQty = forms.reduce((prev: any, acc: any) => parseInt(prev) + parseInt(acc.medicineStock), 0);
+      }
+
+
+
       console.log('totalQty :>> ', totalQty);
-      console.log('medicine.medicineStock :>> ', medicine.medicineStock);
+      console.log('medicine :>> ', medicine);
 
       for(let i = 0; i < forms.length; i++) {
 
         let form = forms[i];
 
-        let payload = {
+        const payload = {
           ...form,
-          medicineStock: parseInt(form.medicineStock)
+          ...(isBarangay
+            ? { totalPieces: Number(form.totalPieces) }
+            : { medicineStock: Number(form.medicineStock) })
         };
 
         console.log('payload :>> ', payload);
@@ -133,7 +146,11 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
           if(!payload.fullName || !payload.address) {
             errorCounter.count += 1;
             break;
-          } else {
+          } else if(totalQty > parseInt(medicine.totalPieces)) {
+            errorCounter.count += 1;
+            errorCounter.insufficient = true;
+            break;
+          }else {
             validForms.push(payload);
           }
         }
@@ -161,6 +178,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
         });
       }
 
+
       if(validForms.length == forms.length) {
 
         for(let i = 0; i < validForms.length; i++) {
@@ -169,43 +187,78 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
 
           console.log('form :>> ', form);
 
-          let payload = {
+          const payload = {
             ...form,
-            medicineStock: parseInt(form.medicineStock)
+            ...(isBarangay
+              ? { totalPieces: Number(form.totalPieces) }
+              : { medicineStock: Number(form.medicineStock) })
           };
 
-          const itemDocRef = isBarangay ? doc(db, 'BarangayInventory', payload.id) : doc(db, "Inventory", payload.id);
+          const collectionName = isBarangay ? 'BarangayInventory' : 'Inventory';
+          const itemDocRef = doc(db, collectionName, payload.id);
           const itemSnap = await getDoc(itemDocRef);
-          if(!itemSnap.exists()) throw new Error("Item not found");
+
+          if (!itemSnap.exists()) {
+            throw new Error("Item not found");
+          }
 
           const itemData = itemSnap.data();
-          const currentStock = itemData.medicineStock;
+          const currentStock = isBarangay ? itemData.totalPieces : itemData.medicineStock;
           console.log('itemData :>> ', itemData);
 
-          if(payload.medicineStock > currentStock) throw new Error("Insufficient stock.");
+          const requestedQuantity = isBarangay ? payload.totalPieces : payload.medicineStock;
+
+          if (requestedQuantity > currentStock) {
+            throw new Error("Insufficient stock.");
+          }
 
           // FUNCTION IF THE DISTRIBUTION IS FOR RESIDENT
           if (isBarangay || activeTabs[i] == 1) {
             console.log('payload resident :>> ', payload);
 
-            // Calculate the new stock value
-            const newStockResident = currentStock - payload.medicineStock;
+            let newStock = 0
+            if(isBarangay) {
+              newStock = currentStock - payload.totalPieces;
+              const piecesPerItem = parseInt(itemData.medicinePiecesPerItem);
+              const updatedMedicineStock = Math.floor(newStock / piecesPerItem);
+              console.log('updatedMedicineStock :>> ', updatedMedicineStock);
+              //updated medicine  stock
 
-            // Update the stock value in Firestore
-            await updateDoc(itemDocRef, {
-              medicineStock: newStockResident
-            });
-
-            console.log(`Stock updated. New stock: ${newStockResident}`);
+              await updateDoc(itemDocRef, {
+                totalPieces: newStock,
+                medicineStock: updatedMedicineStock
+              });
+            } else {
+              newStock = currentStock - payload.medicineStock;
+              await updateDoc(itemDocRef, {
+                medicineStock: newStock
+              });
+            }
+            console.log(`Stock updated. New stock: ${newStock}`);
 
             await createDistribution({
               itemId: payload.id,
-              quantity: payload.medicineStock,
+              quantity: isBarangay ? payload.totalPieces : payload.medicineStock,
               distributeType: 'individual',
               distributedBy: user?.rhuOrBarangay || '',
               distributedTo: payload.fullName,
               isDistributed: true
             });
+
+            await notificationService.createNotification({
+              action: 'distribute',
+              barangayItemId: null,
+              itemId: payload.id,
+              itemName: payload.medicineBrandName,
+              itemType: 'medicine',
+              quantity: isBarangay ? payload.totalPieces : payload.medicineStock,
+              description: `Distributed ${isBarangay ? payload.totalPieces : payload.medicineStock} units of ${payload.medicineBrandName}`,
+              performedBy: user?.uid || '',
+              sentBy: user?.rhuOrBarangay || '',
+              sentTo: payload.fullName,
+            });
+
+
 
             await createHistoryLog({
               actionType: "distribute",
@@ -260,7 +313,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                 pendingQuantity: payload.medicineStock,
                 created_at: new Date().toISOString(),
                 userId: _user?.id,
-                totalPerPiece: newStock * payload.medicinePiecesPerItem,
+                totalPieces: newStock * payload.medicinePiecesPerItem,
                 status: 'pending',
                 itemId: payload?.id
               };
@@ -288,6 +341,19 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                 distributedBy: user?.rhuOrBarangay || '',
                 distributedTo: payload.barangay,
                 isDistributed: false
+              });
+
+              await notificationService.createNotification({
+                action: 'distribute',
+                itemId: payload.id,
+                barangayItemId: barangayInventoryId,
+                itemName: payload.medicineBrandName,
+                itemType: 'medicine',
+                quantity: payload.medicineStock,
+                description: `Distribution of ${payload.medicineStock} units of ${payload.medicineBrandName} to ${payload.barangay} is pending`,
+                performedBy: user?.uid || '',
+                sentBy: user?.rhuOrBarangay || '',
+                sentTo: payload.barangay,
               });
 
 
@@ -412,7 +478,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                             <button type="button" onClick={() => handleTabChange(index, 1)} className={`px-4 py-2 ${activeTabs[index] === 1 ? "bg-gray-300" : "bg-gray-200"}`}>Resident</button>
                           </div>}
 
-                          {/* {isBarangay ?
+                          {isBarangay ?
                             <div className="w-full">
                               <label
                                 htmlFor="totalPieces"
@@ -443,22 +509,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                               />
                             </div>
-                          } */}
-                          <div className="w-full">
-                              <label
-                                htmlFor="medicineStock"
-                                className="block text-sm font-medium text-gray-700"
-                              >
-                                Quantity
-                              </label>
-                              <input
-                                type="number"
-                                id="medicineStock"
-                                value={forms[index].medicineStock}
-                                onChange={(e) => handleFormsChange(e, 'medicineStock', index)}
-                                className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                              />
-                            </div>
+                          }
                           <br/>
 
                           {!isBarangay && activeTabs[index] == 0 ? (
@@ -571,7 +622,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                       </div>
                     </div>
                     <div className="flex flex-row">
-                      {/* {isBarangay ?
+                      {isBarangay ?
                         <div className="w-full">
                           <label
                             htmlFor="totalPieces"
@@ -604,23 +655,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                             disabled
                           />
                         </div>
-                      } */}
-                      <div className="w-full">
-                          <label
-                            htmlFor="medicineStock"
-                            className="block text-sm font-medium text-gray-700"
-                          >
-                            Quantity
-                          </label>
-                          <input
-                            type="number"
-                            id="medicineStock"
-                            value={medicine.medicineStock}
-                            onChange={(e) => handleChange(e, 'medicineStock')}
-                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                            disabled
-                          />
-                        </div>
+                      }
                       <div className="w-full">
                         <label
                           htmlFor="medicineLotNo"

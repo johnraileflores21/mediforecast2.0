@@ -25,6 +25,7 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { getTypes, RHUs } from "../assets/common/constants";
 import { createHistoryLog }  from '../utils/historyService';
+import notificationService from '../utils/notificationService';
 import { useConfirmation } from '../hooks/useConfirmation';
 
 const Try: React.FC = () => {
@@ -255,6 +256,25 @@ const Try: React.FC = () => {
           querySnapshot.forEach(async (docSnapshot) => {
               const distributionDocRef = doc(db, 'Distributions', docSnapshot.id);
               await updateDoc(distributionDocRef, { isDistributed: true });
+
+
+              // get the index of the barangay where the user belongs
+              const sentTo = RHUs.findIndex((x: any) => x['barangays'].includes(user?.barangay)) + 1;
+
+              await notificationService.createNotification({
+                action: 'receive',
+                barangayItemId: distributionBarangayId,
+                itemId: data.itemId,
+                itemName: data.medicineBrandName || data.vaccineName || data.vitaminBrandName,
+                itemType: data.type,
+                quantity: data.pendingQuantity,
+                description: `Received ${data.pendingQuantity} ${data.medicineBrandName || data.vaccineName || data.vitaminBrandName} by ${user?.barangay || ''}`,
+                performedBy: user?.uid || '',
+                sentBy: user?.uid || '',
+                sentTo: sentTo.toString(),
+              });
+
+
               console.log(`Updated document ${docSnapshot.id} with isDistributed: true`);
           });
       } else {
@@ -668,7 +688,7 @@ const Try: React.FC = () => {
                                   : 'bg-gray-100 text-gray-800'
                           }`}
                       >
-                          {itemData.status.replace("_", " ").toUpperCase()}
+                          {itemData?.status ? itemData.status.replace("_", " ").toUpperCase() : ''}
                       </span>
                   </td>
                   {user?.role.includes('Barangay') && <td className="px-6 py-4">

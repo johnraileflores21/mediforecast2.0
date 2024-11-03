@@ -45,15 +45,9 @@ const DistributeVaccine: React.FC<DistributeVaccineProps> = ({
     if(data) {
       console.log('showModal :>> ', showModal);
       console.log("distribute :>> ", data);
-      const remainingPieces = (data?.totalPerPiece || 0) - (data?.totalDistributed || 0);
-
-      console.log('remainingPieces :>> ', remainingPieces);
-      const totalPieces = remainingPieces % (data?.vaccinePiecesPerItem || 0);
-      console.log('totalPieces :>> ', totalPieces);
-
       if(data) {
         setVaccine(data);
-        setForms([{ ...data, totalPieces }]);
+        setForms([{ ...data }]);
         setOriginalQuantity(data.vaccineStock);
       }
 
@@ -68,22 +62,29 @@ const DistributeVaccine: React.FC<DistributeVaccineProps> = ({
     try {
       setLoading(true);
 
-      console.log("forms :>> ", forms);
-      const totalQty = forms.reduce((prev: any, acc: any) => parseInt(prev) + parseInt(acc.vaccineStock), 0);
+      let totalQty = 0;
       let errorCounter = { count: 0, insufficient: false };
       let validForms = [];
 
-      console.log('totalQty :>> ', totalQty);
-      console.log('vaccine.vaccineStock :>> ', vaccine.vaccineStock);
+
+      if(isBarangay) {
+        totalQty = forms.reduce((prev: any, acc: any) => parseInt(prev) + parseInt(acc.totalPieces), 0);
+      } else {
+        totalQty = forms.reduce((prev: any, acc: any) => parseInt(prev) + parseInt(acc.vaccineStock), 0);
+      }
 
       for(let i = 0; i < forms.length; i++) {
 
         let form = forms[i];
 
-        let payload = {
+        const payload = {
           ...form,
-          vaccineStock: parseInt(form.vaccineStock)
+          ...(isBarangay
+            ? { totalPieces: Number(form.totalPieces) }
+            : { vaccineStock: Number(form.vaccineStock) })
         };
+
+        console.log('payload :>> ', payload);
 
         if(!isBarangay) {
           if((!payload.barangay && activeTabs[i] == 0) || ((!payload.fullName || !payload.address) && activeTabs[i] == 1)) {
@@ -94,6 +95,17 @@ const DistributeVaccine: React.FC<DistributeVaccineProps> = ({
             errorCounter.insufficient = true;
             break;
           } else if((activeTabs[i] == 0 && payload.barangay) || (activeTabs[i] == 1 && (payload.fullName && payload.address))) {
+            validForms.push(payload);
+          }
+        } else {
+          if(!payload.fullName || !payload.address) {
+            errorCounter.count += 1;
+            break;
+          } else if(totalQty > parseInt(payload.totalPieces)) {
+            errorCounter.count += 1;
+            errorCounter.insufficient = true;
+            break;
+          }else {
             validForms.push(payload);
           }
         }
@@ -128,35 +140,66 @@ const DistributeVaccine: React.FC<DistributeVaccineProps> = ({
 
           console.log('form :>> ', form);
 
-          let payload = {
+
+          const payload = {
             ...form,
-            vaccineStock: parseInt(form.vaccineStock)
+            ...(isBarangay
+              ? { totalPieces: Number(form.totalPieces) }
+              : { vaccineStock: Number(form.vaccineStock) })
           };
 
-          const itemDocRef = doc(db, "Inventory", payload.id);
+
+          const collectionName = isBarangay ? 'BarangayInventory' : 'Inventory';
+          const itemDocRef = doc(db, collectionName, payload.id);
           const itemSnap = await getDoc(itemDocRef);
-          if(!itemSnap.exists()) throw new Error("Item not found");
+
+          if (!itemSnap.exists()) {
+            throw new Error("Item not found");
+          }
 
           const itemData = itemSnap.data();
-          const currentStock = itemData.vaccineStock;
+          const currentStock = isBarangay ? itemData.totalPieces : itemData.vaccineStock;
+          console.log('itemData :>> ', itemData);
 
-          if(payload.vaccineStock > currentStock) throw new Error("Insufficient stock.");
+          const requestedQuantity = isBarangay ? payload.totalPieces : payload.vaccineStock;
+
+          if (requestedQuantity > currentStock) {
+            throw new Error("Insufficient stock.");
+          }
 
           // FUNCTION IF THE DISTRIBUTION IS FOR RESIDENT
-          if (activeTabs[i] == 1) {
-            // Calculate the new stock value
-            const newStockResident = currentStock - payload.vaccineStock;
+          if (isBarangay || activeTabs[i] == 1) {
+            // // Calculate the new stock value
+            // const newStockResident = currentStock - payload.vaccineStock;
 
-            // Update the stock value in Firestore
-            await updateDoc(itemDocRef, {
-              vaccineStock: newStockResident
-            });
+            // // Update the stock value in Firestore
+            // await updateDoc(itemDocRef, {
+            //   vaccineStock: newStockResident
+            // });
 
+            let newStock = 0
+            if(isBarangay) {
+              newStock = currentStock - payload.totalPieces;
+              const piecesPerItem = parseInt(itemData.vaccinePiecesPerItem);
+              const updatedVaccineStock = Math.floor(newStock / piecesPerItem);
+              console.log('updatedVaccineStock :>> ', updatedVaccineStock);
+              //updated medicine  stock
 
-            console.log(`Stock updated. New stock: ${newStockResident}`);
+              await updateDoc(itemDocRef, {
+                totalPieces: newStock,
+                vaccineStock: updatedVaccineStock
+              });
+            } else {
+              newStock = currentStock - payload.vaccineStock;
+              await updateDoc(itemDocRef, {
+                vaccineStock: newStock
+              });
+            }
+            console.log(`Stock updated. New stock: ${newStock}`);
+
             await createDistribution({
               itemId: payload.id,
-              quantity: payload.vaccineStock,
+              quantity: isBarangay ? payload.totalPieces : payload.vaccineStock,
               distributeType: 'individual',
               distributedBy: user?.rhuOrBarangay || '',
               distributedTo: payload.fullName,
@@ -213,7 +256,7 @@ const DistributeVaccine: React.FC<DistributeVaccineProps> = ({
                 pendingQuantity: payload.vaccineStock,
                 created_at: new Date().toISOString(),
                 userId: _user?.id,
-                totalPerPiece: newStock * payload.vaccinePiecesPerItem,
+                totalPieces: newStock * payload.vaccinePiecesPerItem,
                 status: 'pending',
                 itemId: payload?.id
               };
@@ -380,7 +423,7 @@ const DistributeVaccine: React.FC<DistributeVaccineProps> = ({
                   </div>
 
                   <form className="space-y-4">
-                  {forms.map((_, index: number) => (
+                  {forms.map((_: any, index: number) => (
                       <Accordion key={index} expanded={expanded === index} onChange={handleAccordion(index)}>
                         <AccordionSummary
                           expandIcon={<MdExpandMore />}
@@ -545,22 +588,40 @@ const DistributeVaccine: React.FC<DistributeVaccineProps> = ({
                       </div>
                     </div>
                     <div className="flex flex-row">
-                      <div className="w-full">
-                        <label
-                          htmlFor="vaccineStock"
-                          className="block text-sm font-medium text-gray-700"
-                        >
-                          Quantity
-                        </label>
-                        <input
-                          type="number"
-                          id="vaccineStock"
-                          value={vaccine.vaccineStock}
-                          onChange={(e) => handleChange(e, 'vaccineStock')}
-                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-                          disabled
-                        />
-                      </div>
+                      {isBarangay ?
+                        <div className="w-full">
+                          <label
+                            htmlFor="totalPieces"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Quantity
+                          </label>
+                          <input
+                            type="number"
+                            id="totalPieces"
+                            value={vaccine.totalPieces}
+                            onChange={(e) => handleChange(e, 'totalPieces')}
+                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                            disabled
+                          />
+                        </div> :
+                        <div className="w-full">
+                          <label
+                            htmlFor="vitaminStock"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Quantity
+                          </label>
+                          <input
+                            type="number"
+                            id="vitaminStock"
+                            value={vaccine.vaccineStock}
+                            onChange={(e) => handleChange(e, 'vitaminStock')}
+                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                            disabled
+                          />
+                        </div>
+                      }
 
                       <div className="w-full">
                         <label

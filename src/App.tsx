@@ -43,12 +43,14 @@ import Sucad from "./components/SuperAdmin/BarangayHealthCenter/Sucad";
 import Sulipan from "./components/SuperAdmin/BarangayHealthCenter/Sulipan";
 import Tabuyuc from "./components/SuperAdmin/BarangayHealthCenter/Tabuyuc";
 import { ConfirmationProvider } from './components/ConfirmationContext';
+import InventoryListener from "./listeners/InventoryListener";
 
 import PrivateRouteAdmin from "./components/SuperAdmin/PrivateRouteAdmin";
 const App = () => {
   return (
     <ConfirmationProvider>
     <UserProvider>
+      <InventoryListener />
       <Routes>
         {/* Super Admin */}
         <Route path="/administrator" element={<AdminLogin />} />
