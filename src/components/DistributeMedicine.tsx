@@ -5,9 +5,15 @@ import { MdCancel } from "react-icons/md";
 import { useUser } from "./User";
 import { IoMdClose } from "react-icons/io";
 import Swal from "sweetalert2";
-import { RHUs } from "../assets/common/constants";
+import { getTypes, RHUs } from "../assets/common/constants";
 import { Accordion, AccordionSummary, AccordionDetails, Typography } from '@mui/material';
 import { MdExpandMore } from 'react-icons/md';
+
+import { createHistoryLog }  from '../utils/historyService';
+import { createDistribution } from '../utils/distributionService';
+import notificationService from '../utils/notificationService';
+
+import { useConfirmation } from '../hooks/useConfirmation';
 
 interface ModalDistributeProps {
   showModal: boolean;
@@ -15,6 +21,8 @@ interface ModalDistributeProps {
   closeModal: (bool: any) => void;
 }
 export default function ModalDistribute({ showModal, closeModal, data }: ModalDistributeProps): any {
+  const confirm = useConfirmation();
+
   const [medicine, setMedicine] = useState<any | null>(null);
   const [loading, setLoading] = useState<any | null>(false);
   const { user } = useUser();
@@ -31,12 +39,11 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
   useEffect(() => {
     console.log('showModal :>> ', showModal);
     console.log("distribute :>> ", data);
-    const remainingPieces = (data?.totalPerPiece || 0) - (data?.totalDistributed || 0);
-    const totalPieces = remainingPieces % (data?.medicinePiecesPerItem || 0);
-    console.log('totalPieces :>> ', totalPieces);
+    // const remainingPieces = (data?.totalPerPiece || 0) - (data?.totalDistributed || 0);
+    // const totalPieces = remainingPieces % (data?.medicinePiecesPerItem || 0);
     if(data) {
-      setMedicine({...data, totalPieces});
-      setForms([{ ...data, totalPieces }]);
+      setMedicine({...data});
+      setForms([{ ...data}]);
       setOriginalQuantity(data.medicineStock);
     };
   }, [data]);
@@ -76,7 +83,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
       }
       return form;
     });
-  
+
     setForms(updatedForms);
     console.log("Updated forms: ", updatedForms);
   };
@@ -87,41 +94,70 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
   }
 
 
-  const handleSubmit = async () => {
+  const handleConfirmSubmit = async () => {
     try {
       setLoading(true);
-
       console.log("forms :>> ", forms);
-      const totalQty = forms.reduce((prev: any, acc: any) => prev + acc.medicineStock, 0);
+
+
+      let totalQty = 0;
+      let updatedMedicineStock = 0;
       let errorCounter = { count: 0, insufficient: false };
       let validForms = [];
 
+
+      if(isBarangay) {
+        totalQty = forms.reduce((prev: any, acc: any) => parseInt(prev) + parseInt(acc.totalPieces), 0);
+      } else {
+        totalQty = forms.reduce((prev: any, acc: any) => parseInt(prev) + parseInt(acc.medicineStock), 0);
+      }
+
+
+
       console.log('totalQty :>> ', totalQty);
-      console.log('medicine.medicineStock :>> ', medicine.medicineStock);
+      console.log('medicine :>> ', medicine);
 
       for(let i = 0; i < forms.length; i++) {
-        
+
         let form = forms[i];
 
-        let payload = {
+        const payload = {
           ...form,
-          medicineStock: parseInt(form.medicineStock)
+          ...(isBarangay
+            ? { totalPieces: Number(form.totalPieces) }
+            : { medicineStock: Number(form.medicineStock) })
         };
+
+        console.log('payload :>> ', payload);
 
         if(!isBarangay) {
           if((!payload.barangay && activeTabs[i] == 0) || ((!payload.fullName || !payload.address) && activeTabs[i] == 1)) {
             errorCounter.count += 1;
             break;
           } else if(totalQty > parseInt(medicine.medicineStock)) {
+
             errorCounter.count += 1;
             errorCounter.insufficient = true;
             break;
           } else if((activeTabs[i] == 0 && payload.barangay) || (activeTabs[i] == 1 && (payload.fullName && payload.address))) {
             validForms.push(payload);
           }
+        } else  {
+          if(!payload.fullName || !payload.address) {
+            errorCounter.count += 1;
+            break;
+          } else if(totalQty > parseInt(medicine.totalPieces)) {
+            errorCounter.count += 1;
+            errorCounter.insufficient = true;
+            break;
+          }else {
+            validForms.push(payload);
+          }
         }
-
       }
+
+      console.log('validForms :>> :>> ', validForms);
+      console.log('errorCounter :>> ', errorCounter);
 
       if(errorCounter.count > 0 && !errorCounter.insufficient) {
         return Swal.fire({
@@ -132,6 +168,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
           timer: 1000,
         });
       } else if(errorCounter.insufficient) {
+        console.log('errorCounter.insufficient :>> ', errorCounter.insufficient);
         return Swal.fire({
           position: "center",
           icon: "error",
@@ -141,279 +178,219 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
         });
       }
 
+
       if(validForms.length == forms.length) {
+
         for(let i = 0; i < validForms.length; i++) {
+
           const form = validForms[i];
 
-          let payload = {
+          console.log('form :>> ', form);
+
+          const payload = {
             ...form,
-            medicineStock: parseInt(form.medicineStock)
+            ...(isBarangay
+              ? { totalPieces: Number(form.totalPieces) }
+              : { medicineStock: Number(form.medicineStock) })
           };
 
-          const itemDocRef = doc(db, "Inventory", payload.id);
+          const collectionName = isBarangay ? 'BarangayInventory' : 'Inventory';
+          const itemDocRef = doc(db, collectionName, payload.id);
           const itemSnap = await getDoc(itemDocRef);
-          if(!itemSnap.exists()) throw new Error("Item not found");
+
+          if (!itemSnap.exists()) {
+            throw new Error("Item not found");
+          }
 
           const itemData = itemSnap.data();
-          const currentStock = itemData.medicineStock;
-    
-          if(payload.medicineStock > currentStock) throw new Error("Insufficient stock.");
-    
-          const userQuery = query(
-            collection(db, "Users"),
-            where("barangay", "==", payload.barangay)
-          );
-    
-          const userSnap = await getDocs(userQuery);
-          console.log("userSnap :>> ", userSnap);
-          const userData = userSnap.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          const filteredUser = userData.filter((x: any) => x?.role.includes('Barangay'));
-          if (filteredUser.length > 0) {
-            // await updateDoc(itemDocRef, { medicineStock: currentStock - payload.medicineStock });
-    
-            const _user = filteredUser[0];
-    
-            const barangayInventoryRef = doc(db, "BarangayInventory", payload.id);
-            const barangayInventorySnap = await getDoc(barangayInventoryRef);
-            const existingData = barangayInventorySnap.data();
-    
-            const _currentStock = existingData?.medicineStock || 0;
-            const newStock = parseInt(payload.medicineStock) + _currentStock;
-    
-            const pendingDistributionData = {
-              ...itemData,
-              medicineStock: newStock,
-              totalQuantity: (existingData?.totalQuantity + newStock) || newStock,
-              pendingQuantity: payload.medicineStock,
-              created_at: new Date().toISOString(),
-              userId: _user?.id,
-              totalPerPiece: newStock * payload.medicinePiecesPerItem,
-              status: 'pending',
-              itemId: payload?.id
-            };
+          const currentStock = isBarangay ? itemData.totalPieces : itemData.medicineStock;
+          console.log('itemData :>> ', itemData);
 
-            console.log('pendingDistributionData :>> ', pendingDistributionData);
-            await addDoc(collection(db, "BarangayInventory"), pendingDistributionData);
+          const requestedQuantity = isBarangay ? payload.totalPieces : payload.medicineStock;
 
+          if (requestedQuantity > currentStock) {
+            throw new Error("Insufficient stock.");
+          }
+
+          // FUNCTION IF THE DISTRIBUTION IS FOR RESIDENT
+          if (isBarangay || activeTabs[i] == 1) {
+            console.log('payload resident :>> ', payload);
+
+            let newStock = 0
+            if(isBarangay) {
+              newStock = currentStock - payload.totalPieces;
+              const piecesPerItem = parseInt(itemData.medicinePiecesPerItem);
+              const updatedMedicineStock = Math.floor(newStock / piecesPerItem);
+              console.log('updatedMedicineStock :>> ', updatedMedicineStock);
+              //updated medicine  stock
+
+              await updateDoc(itemDocRef, {
+                totalPieces: newStock,
+                medicineStock: updatedMedicineStock
+              });
+            } else {
+              newStock = currentStock - payload.medicineStock;
+              await updateDoc(itemDocRef, {
+                medicineStock: newStock
+              });
+            }
+            console.log(`Stock updated. New stock: ${newStock}`);
+
+            await createDistribution({
+              itemId: payload.id,
+              quantity: isBarangay ? payload.totalPieces : payload.medicineStock,
+              distributeType: 'individual',
+              distributedBy: user?.rhuOrBarangay || '',
+              distributedTo: payload.fullName,
+              isDistributed: true
+            });
+
+            await notificationService.createNotification({
+              action: 'distribute',
+              barangayItemId: null,
+              itemId: payload.id,
+              itemName: payload.medicineBrandName,
+              itemType: 'medicine',
+              quantity: isBarangay ? payload.totalPieces : payload.medicineStock,
+              description: `Distributed ${isBarangay ? payload.totalPieces : payload.medicineStock} units of ${payload.medicineBrandName}`,
+              performedBy: user?.uid || '',
+              sentBy: user?.rhuOrBarangay || '',
+              sentTo: payload.fullName,
+            });
+
+
+
+            await createHistoryLog({
+              actionType: "distribute",
+              itemId: payload.id,
+              itemName: payload.medicineBrandName,
+              fullName: payload.fullName,
+              barangay: payload.barangay,
+              performedBy: payload.userId,
+              remarks: `Distributed ${payload.medicineStock} units to ${payload.fullName}`,
+            });
 
             Swal.fire({
               position: "center",
               icon: "success",
-              title: `${payload.medicineBrandName} has been scheduled for distribution to ${payload.barangay}`,
+              title: `${payload.medicineBrandName} has been distributed to ${payload.fullName}`,
               showConfirmButton: false,
               timer: 1500,
             });
 
           } else {
-            Swal.fire({
-              position: "center",
-              icon: "error",
-              title: `No existing user for ${payload.barangay}`,
-              showConfirmButton: false,
-              timer: 1000,
-            });
+            console.log('payload barangay :>> ', payload);
+            const userQuery = query(
+              collection(db, "Users"),
+              where("barangay", "==", payload.barangay)
+            );
+
+
+            const userSnap = await getDocs(userQuery);
+            console.log("userSnap :>> ", userSnap);
+            const userData = userSnap.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+            console.log("userData :>> ", userData);
+            const filteredUser = userData.filter((x: any) => x?.role.includes('Barangay'));
+            if (filteredUser.length > 0) {
+              // await updateDoc(itemDocRef, { medicineStock: currentStock - payload.medicineStock });
+
+              const _user = filteredUser[0];
+
+              const barangayInventoryRef = doc(db, "BarangayInventory", payload.id);
+              const barangayInventorySnap = await getDoc(barangayInventoryRef);
+              const existingData = barangayInventorySnap.data();
+
+              const _currentStock = existingData?.medicineStock || 0;
+              const newStock = parseInt(payload.medicineStock) + _currentStock;
+
+              const pendingDistributionData = {
+                ...itemData,
+                medicineStock: newStock,
+                totalQuantity: (existingData?.totalQuantity + newStock) || newStock,
+                pendingQuantity: payload.medicineStock,
+                created_at: new Date().toISOString(),
+                userId: _user?.id,
+                totalPieces: newStock * payload.medicinePiecesPerItem,
+                status: 'pending',
+                itemId: payload?.id
+              };
+              console.log('pendingDistributionData :>> ', pendingDistributionData);
+
+              if('id' in pendingDistributionData) delete (pendingDistributionData as any).id;
+
+              const barangayInventoryReff= await addDoc(collection(db, "BarangayInventory"), pendingDistributionData);
+              const barangayInventoryId = barangayInventoryReff.id;
+              // console.log('createDistribution :>> ', {
+              //   barangayInventoryId,
+              //   itemId: payload.id,
+              //   quantity: payload.medicineStock,
+              //   distributeType: 'barangay',
+              //   distributedBy: user?.rhuOrBarangay || '',
+              //   distributedTo: payload.barangay,
+              //   isDistributed: false
+              // });
+
+              await createDistribution({
+                barangayInventoryId,
+                itemId: payload.id,
+                quantity: payload.medicineStock,
+                distributeType: 'barangay',
+                distributedBy: user?.rhuOrBarangay || '',
+                distributedTo: payload.barangay,
+                isDistributed: false
+              });
+
+              await notificationService.createNotification({
+                action: 'distribute',
+                itemId: payload.id,
+                barangayItemId: barangayInventoryId,
+                itemName: payload.medicineBrandName,
+                itemType: 'medicine',
+                quantity: payload.medicineStock,
+                description: `Distribution of ${payload.medicineStock} units of ${payload.medicineBrandName} to ${payload.barangay} is pending`,
+                performedBy: user?.uid || '',
+                sentBy: user?.rhuOrBarangay || '',
+                sentTo: payload.barangay,
+              });
+
+
+              await createHistoryLog({
+                actionType: "pending-distribution",
+                itemId: payload.id,
+                itemName: payload.medicineBrandName,
+                barangay: payload.barangay,
+                performedBy: _user.id,
+                remarks: `Pending distribution of ${payload.medicineStock} units to ${payload.barangay}`,
+              });
+
+
+              Swal.fire({
+                position: "center",
+                icon: "success",
+                title: `${payload.medicineBrandName} has been scheduled for distribution to ${payload.barangay}`,
+                showConfirmButton: false,
+                timer: 1500,
+              });
+
+            } else {
+              Swal.fire({
+                position: "center",
+                icon: "error",
+                title: `No existing user for ${payload.barangay}`,
+                showConfirmButton: false,
+                timer: 1000,
+              });
+            }
           }
         }
-        // else {
-        //   const itemDocRef = doc(db, "BarangayInventory", medicine.id);
-        //   const itemSnap = await getDoc(itemDocRef);
-        //   if(!itemSnap.exists()) throw new Error("Item not found in Barangay Inventory");
 
-        //   const itemData = itemSnap.data();
-        //   let totalPerPiece = parseInt(itemData.totalPerPiece);
-        //   let currentStock = parseInt(itemData.medicineStock);
-        //   let quantityToDistribute = parseInt(medicine.totalPieces);
-        //   let medicinePiecesPerItem = parseInt(medicine.medicinePiecesPerItem);
-
-        //   if(quantityToDistribute > totalPerPiece) {
-        //     throw new Error("Insufficient stock to distribute this quantity.");
-        //   }
-
-        //   totalPerPiece -= quantityToDistribute;
-        //   while(quantityToDistribute > 0) {
-        //     if(quantityToDistribute <= currentStock * medicinePiecesPerItem) {
-        //       currentStock -= Math.ceil(quantityToDistribute / medicinePiecesPerItem);
-        //       quantityToDistribute = 0;
-        //     } else {
-        //       quantityToDistribute -= currentStock * medicinePiecesPerItem;
-        //       currentStock = 0;
-        //     }
-        //   }
-
-        //   await updateDoc(itemDocRef, {
-        //     totalPerPiece: ((totalPerPiece) || parseInt(medicine.medicinePiecesPerItem || 0)),
-        //     medicineStock: currentStock,
-        //   });
-
-        //   Swal.fire({
-        //     position: "center",
-        //     icon: "success",
-        //     title: `${medicine.medicineBrandName} has been successfully distributed to ${medicine.fullName}`,
-        //     showConfirmButton: false,
-        //     timer: 1500,
-        //   });
-
-        // }
-    
-        // closeModal(true);
-        // }
       }
 
-      // let payload = {
-      //   ...medicine,
-      //   medicineStock: parseInt(medicine.medicineStock)
-      // };
-
-      // if(!isBarangay) {
-      //   if (!payload.barangay && activeTab == 0) {
-      //     return Swal.fire({
-      //       position: "center",
-      //       icon: "error",
-      //       title: `Barangay is required`,
-      //       showConfirmButton: false,
-      //       timer: 1000,
-      //     });
-      //   } else if(activeTab == 1 && (!payload.fullName || !payload.address)) {
-      //     return Swal.fire({
-      //       position: "center",
-      //       icon: "error",
-      //       title: `Name and address fields are required`,
-      //       showConfirmButton: false,
-      //       timer: 1000,
-      //     });
-      //   } else if(activeTab == 1 && payload.fullName && payload.address) {
-      //     const distributeQty = payload.medicineStock;
-      //     payload.medicineStock = originalQuantity;
-
-      //     const inventoryRef = doc(db, 'Inventory', payload.id);
-      //     await updateDoc(inventoryRef, { medicineStock: originalQuantity - (distributeQty || 0) });
-
-      //     Swal.fire({
-      //       position: "center",
-      //       icon: "success",
-      //       title: `${payload.medicineBrandName} has been distributed to ${payload.fullName}`,
-      //       showConfirmButton: false,
-      //       timer: 1500,
-      //     });
-
-      //     closeModal(true);
-
-      //     return;
-      //   }
-    
-      //   const itemDocRef = doc(db, "Inventory", medicine.id);
-      //   const itemSnap = await getDoc(itemDocRef);
-      //   if(!itemSnap.exists()) throw new Error("Item not found");
-  
-      //   const itemData = itemSnap.data();
-      //   const currentStock = itemData.medicineStock;
-  
-      //   if(payload.medicineStock > currentStock) throw new Error("Insufficient stock.");
-  
-      //   const userQuery = query(
-      //     collection(db, "Users"),
-      //     where("barangay", "==", payload.barangay)
-      //   );
-  
-      //   const userSnap = await getDocs(userQuery);
-      //   console.log("userSnap :>> ", userSnap);
-      //   const userData = userSnap.docs.map(doc => ({
-      //     id: doc.id,
-      //     ...doc.data(),
-      //   }));
-      //   const filteredUser = userData.filter((x: any) => x?.role.includes('Barangay'));
-      //   if (filteredUser.length > 0) {
-      //     // await updateDoc(itemDocRef, { medicineStock: currentStock - payload.medicineStock });
-  
-      //     const _user = filteredUser[0];
-  
-      //     const barangayInventoryRef = doc(db, "BarangayInventory", payload.id);
-      //     const barangayInventorySnap = await getDoc(barangayInventoryRef);
-      //     const existingData = barangayInventorySnap.data();
-  
-      //     const _currentStock = existingData?.medicineStock || 0;
-      //     const newStock = parseInt(payload.medicineStock) + _currentStock;
-  
-      //     const pendingDistributionData = {
-      //       ...itemData,
-      //       medicineStock: newStock,
-      //       totalQuantity: (existingData?.totalQuantity + newStock) || newStock,
-      //       pendingQuantity: payload.medicineStock,
-      //       created_at: new Date().toISOString(),
-      //       userId: _user?.id,
-      //       totalPerPiece: newStock * payload.medicinePiecesPerItem,
-      //       status: 'pending',
-      //       itemId: medicine?.id
-      //     };
-
-      //     console.log('pendingDistributionData :>> ', pendingDistributionData);
-      //     await addDoc(collection(db, "BarangayInventory"), pendingDistributionData);
-
-
-      //     Swal.fire({
-      //       position: "center",
-      //       icon: "success",
-      //       title: `${payload.medicineBrandName} has been scheduled for distribution to ${payload.barangay}`,
-      //       showConfirmButton: false,
-      //       timer: 1500,
-      //     });
-
-      //   } else {
-      //     Swal.fire({
-      //       position: "center",
-      //       icon: "error",
-      //       title: `No existing user for ${payload.barangay}`,
-      //       showConfirmButton: false,
-      //       timer: 1000,
-      //     });
-      //   }
-      // } else {
-      //   const itemDocRef = doc(db, "BarangayInventory", medicine.id);
-      //   const itemSnap = await getDoc(itemDocRef);
-      //   if(!itemSnap.exists()) throw new Error("Item not found in Barangay Inventory");
-
-      //   const itemData = itemSnap.data();
-      //   let totalPerPiece = parseInt(itemData.totalPerPiece);
-      //   let currentStock = parseInt(itemData.medicineStock);
-      //   let quantityToDistribute = parseInt(medicine.totalPieces);
-      //   let medicinePiecesPerItem = parseInt(medicine.medicinePiecesPerItem);
-
-      //   if(quantityToDistribute > totalPerPiece) {
-      //     throw new Error("Insufficient stock to distribute this quantity.");
-      //   }
-
-      //   totalPerPiece -= quantityToDistribute;
-      //   while(quantityToDistribute > 0) {
-      //     if(quantityToDistribute <= currentStock * medicinePiecesPerItem) {
-      //       currentStock -= Math.ceil(quantityToDistribute / medicinePiecesPerItem);
-      //       quantityToDistribute = 0;
-      //     } else {
-      //       quantityToDistribute -= currentStock * medicinePiecesPerItem;
-      //       currentStock = 0;
-      //     }
-      //   }
-
-      //   await updateDoc(itemDocRef, {
-      //     totalPerPiece: ((totalPerPiece) || parseInt(medicine.medicinePiecesPerItem || 0)),
-      //     medicineStock: currentStock,
-      //   });
-
-      //   Swal.fire({
-      //     position: "center",
-      //     icon: "success",
-      //     title: `${medicine.medicineBrandName} has been successfully distributed to ${medicine.fullName}`,
-      //     showConfirmButton: false,
-      //     timer: 1500,
-      //   });
-
-      // }
-  
-      // closeModal(true);
-
     } catch(error: any) {
+      console.error("Error distributing medicine: ", error);
       Swal.fire({
         position: "center",
         icon: "error",
@@ -425,6 +402,17 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
       setLoading(false);
     }
   }
+
+  const handleSubmit = async () => {
+    const isConfirmed = await confirm({
+      title: 'Confirm Submission',
+      message: 'Are you sure you want to distribute this medicine?',
+    });
+
+    if (isConfirmed) {
+      handleConfirmSubmit();
+    }
+  };
 
 
   return (
@@ -472,7 +460,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                   <form className="space-y-4">
 
 
-                    {forms.map((_, index: number) => (
+                    {forms.map((_: any, index: number) => (
                       <Accordion key={index} expanded={expanded === index} onChange={handleAccordion(index)}>
                         <AccordionSummary
                           expandIcon={<MdExpandMore />}
@@ -505,7 +493,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                                 onChange={(e) => handleFormsChange(e, 'totalPieces', index)}
                                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                               />
-                            </div> : 
+                            </div> :
                             <div className="w-full">
                               <label
                                 htmlFor="medicineStock"
@@ -650,7 +638,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                             disabled
                           />
-                        </div> : 
+                        </div> :
                         <div className="w-full">
                           <label
                             htmlFor="medicineStock"
@@ -755,7 +743,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                       />
                     </div>
 
-                    
+
                     <div className="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse w-full">
                       <button
                         type="button"

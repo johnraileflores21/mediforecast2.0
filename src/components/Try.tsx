@@ -24,8 +24,13 @@ import DistributeVaccine from "./DistributeVaccine";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { getTypes, RHUs } from "../assets/common/constants";
+import { createHistoryLog }  from '../utils/historyService';
+import notificationService from '../utils/notificationService';
+import { useConfirmation } from '../hooks/useConfirmation';
 
 const Try: React.FC = () => {
+  const confirm = useConfirmation();
+
   const [items, setItems] = useState<any[]>([]);
   const [pendingItems, setPendingItems] = useState<any[]>([]);
   const [modalAdd, setModalAdd] = useState(false);
@@ -56,6 +61,7 @@ const Try: React.FC = () => {
     try {
 
       const unit = RHUs.findIndex((x: any) => x['barangays'].includes(user?.barangay)) + 1;
+      console.log('unit :>> ', unit);
 
       const inventoryQuery = query(
         collection(db, isBarangay ? "BarangayInventory" : "Inventory"),
@@ -129,12 +135,25 @@ const Try: React.FC = () => {
             text: "Item has been deleted.",
             icon: "success",
           });
+
+          const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
+          await createHistoryLog({
+            actionType: 'delete',
+            itemId: id,
+            itemName: '',
+            fullName: formatFullName,
+            barangay: '',
+            performedBy: user?.uid || '',
+            remarks: `Deleted item with id ${id}`,
+          })
+
           fetchData();
         } catch (error) {
           console.error("Error deleting document: ", error);
         }
       }
     });
+
   };
 
   const handleView = (item: any) => {
@@ -176,7 +195,7 @@ const Try: React.FC = () => {
     setModalEditVitamin(false);
   }
 
-  const handleDistribute = (item: any) => {
+  const handleDistribute = async (item: any) => {
     setForm(item);
     if(item.type === "Medicine") {
       setModalDistribute(true);
@@ -200,22 +219,91 @@ const Try: React.FC = () => {
     setForm(null);
   };
 
+
+
+
+
+
   /**
    * @description todo: update inventory (deduct stock), add to brgy inventory and update status to approved
-   * @param data 
+   * @param data
    */
+
+
   const handleApprove = async (data: any) => {
+    const isConfirmed = await confirm({
+      title: 'Confirm Submission',
+      message: 'Are you sure you want to receive this item?',
+    });
+
+    if(!isConfirmed) return;
+
     try {
 
-      console.log('data :>> ', data);
       const barangayInventoryRef = doc(db, 'BarangayInventory', data.id);
-      await updateDoc(barangayInventoryRef, {
-        status: 'approved',
-      });
+      const distributionBarangayId = barangayInventoryRef.id;
+      console.log('distributionBarangayId :>> ', distributionBarangayId);
+
+      const distributionsQuery = query(
+        collection(db, 'Distributions'),
+        where('barangayInventoryId', '==', distributionBarangayId)
+      );
+
+      const querySnapshot = await getDocs(distributionsQuery);
+
+
+      if (!querySnapshot.empty) {
+          querySnapshot.forEach(async (docSnapshot) => {
+              const distributionDocRef = doc(db, 'Distributions', docSnapshot.id);
+              await updateDoc(distributionDocRef, { isDistributed: true });
+
+
+              // get the index of the barangay where the user belongs
+              const sentTo = RHUs.findIndex((x: any) => x['barangays'].includes(user?.barangay)) + 1;
+
+              await notificationService.createNotification({
+                action: 'receive',
+                barangayItemId: distributionBarangayId,
+                itemId: data.itemId,
+                itemName: data.medicineBrandName || data.vaccineName || data.vitaminBrandName,
+                itemType: data.type,
+                quantity: data.pendingQuantity,
+                description: `Received ${data.pendingQuantity} ${data.medicineBrandName || data.vaccineName || data.vitaminBrandName} by ${user?.barangay || ''}`,
+                performedBy: user?.uid || '',
+                sentBy: user?.uid || '',
+                sentTo: sentTo.toString(),
+              });
+
+
+              console.log(`Updated document ${docSnapshot.id} with isDistributed: true`);
+          });
+      } else {
+          console.log('No matching distribution found with barangayInventoryId:', distributionBarangayId);
+      }
+
+
+
+      // Check if the document exists
+      const barangayInventoryDoc = await getDoc(barangayInventoryRef);
+      console.log('data.id :>> ', data.id);
+
+      if(!barangayInventoryDoc.exists()) {
+        throw new Error(`No document found to update: ${data.id}`);
+      }
+        await updateDoc(barangayInventoryRef, {
+          status: 'approved',
+        });
+        console.log('Document approved.');
+
+
+      console.log('data.itemId :>> ', data.itemId);
 
       const inventoryRef = doc(db, 'Inventory', data.itemId);
       const inventoryDoc = await getDoc(inventoryRef);
-      
+
+
+
+
       if(inventoryDoc.exists()) {
 
         const stockData = inventoryDoc.data();
@@ -228,14 +316,26 @@ const Try: React.FC = () => {
         console.log('currentStock :>> ', currentStock);
         const newStock = currentStock - data.pendingQuantity;
 
+        const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
+        const itemName = typeVal == 'vaccine' ? data[`${typeVal}Name`] : data[`${typeVal}BrandName`];
         if(newStock >= 0) {
+          await createHistoryLog({
+            actionType: 'receive',
+            itemId: data.itemId,
+            itemName: itemName,
+            fullName: formatFullName,
+            barangay: user?.barangay || '',
+            performedBy: user?.uid || '',
+            remarks: `Received ${data.pendingQuantity} ${itemName}`,
+          })
+
           await updateDoc(inventoryRef, {
             [`${typeVal}Stock`]: newStock,
           });
           Swal.fire({
             position: "center",
             icon: "success",
-            title: `${data[`${typeVal}BrandName`]} has been added to your inventory`,
+            title: `${itemName} has been added to your inventory`,
             showConfirmButton: false,
             timer: 1500,
           });
@@ -259,6 +359,7 @@ const Try: React.FC = () => {
       }
 
     } catch (error) {
+      console.error("Error approving item: ", error);
       Swal.fire({
         position: "center",
         icon: "error",
@@ -274,9 +375,9 @@ const Try: React.FC = () => {
 
   const handleDecline = async (id: string) => {
     try {
-      
+
     } catch (error) {
-      
+
     }
   }
 
@@ -429,6 +530,7 @@ const Try: React.FC = () => {
                           item.vitaminStock  !== null) && (
                           <div>
                               <span>Stock: {(item.medicineStock || 0) || (item.vitaminStock || 0) || (item.vaccineStock || 0)}</span>
+                              {/* {item.id} */}
                             <div>
                               <span>
                                 {
@@ -438,7 +540,7 @@ const Try: React.FC = () => {
                                         : `${item.medicinePiecesPerItem}
                                           ${(item.medicineDosageForm || "").toLowerCase()}${parseInt(item.medicinePiecesPerItem) > 1 ? "s" : ""}
                                           per ${item.medicinePackaging}`)
-                                    
+
                                     : (item.vitaminClassification)
                                       ? (item.vitaminClassification.includes('ml')
                                           ? `${item.vitaminPiecesPerItem} per ${item.vitaminPackaging}`
@@ -560,14 +662,13 @@ const Try: React.FC = () => {
                   key={index}
                   className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
               >
-                  <td className="px-6 py-4 text-gray-900">
-                      {
-                          `${itemData.medicineBrandName || itemData.vitaminBrandName || itemData.vaccineName}
-                          ${itemData.type !== 'vaccine' && `(${
-                              itemData.medicineGenericName ||
-                              itemData.vitaminGenericName
-                          })`}`
-                      }
+                 <td className="px-6 py-4 text-gray-900">
+                    {`${itemData.medicineBrandName || itemData.vitaminBrandName || itemData.vaccineName}`}
+                    {itemData.type.toLowerCase() !== 'vaccine' && (
+                      <>
+                        {` (${itemData.medicineGenericName || itemData.vitaminGenericName})`}
+                      </>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-gray-900">
                       {itemData.pendingQuantity}
@@ -578,7 +679,7 @@ const Try: React.FC = () => {
                   <td className="px-6 py-2">
                       <span
                           className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
-                              itemData.status === 'approved' 
+                              itemData.status === 'approved'
                                   ? 'bg-green-100 text-green-800'
                                   : itemData.status === 'pending'
                                   ? 'bg-yellow-100 text-yellow-800'
@@ -587,7 +688,7 @@ const Try: React.FC = () => {
                                   : 'bg-gray-100 text-gray-800'
                           }`}
                       >
-                          {itemData.status.replace("_", " ").toUpperCase()}
+                          {itemData?.status ? itemData.status.replace("_", " ").toUpperCase() : ''}
                       </span>
                   </td>
                   {user?.role.includes('Barangay') && <td className="px-6 py-4">

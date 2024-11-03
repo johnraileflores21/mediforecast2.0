@@ -1,11 +1,26 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../../firebase";
-import { collection, onSnapshot, deleteDoc, doc, query, where, getDocs, getDoc, addDoc } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  deleteDoc,
+  doc,
+  query,
+  where,
+  getDocs,
+  getDoc,
+  addDoc,
+} from "firebase/firestore";
 import { IoMdClose } from "react-icons/io";
 import { useUser } from "../User";
 import { requestFormData } from "../../assets/common/constants";
 import { FaRegCheckCircle } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
+import ConfirmationModal from "./ConfirmationModal";
+import { createHistoryLog }  from '../../utils/historyService';
+import notificationService from '../../utils/notificationService';
+import { RHUs } from "../../assets/common/constants";
+
 
 interface ModalAddRequestProps {
   closeModal: (bool: any) => void;
@@ -14,7 +29,7 @@ interface ModalAddRequestProps {
 
 const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
   showModal,
-  closeModal
+  closeModal,
 }) => {
   const [forms, setForms] = useState<any[]>([requestFormData]);
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
@@ -23,6 +38,8 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [itemsLoading, setItemsLoading] = useState<boolean>(false);
   const { user } = useUser();
+
+  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -37,7 +54,7 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
     try {
       setItemsLoading(true);
       const inventorySnap = await getDocs(collection(db, "Inventory"));
-      const inventoryItems: any = inventorySnap.docs.map(doc => ({
+      const inventoryItems: any = inventorySnap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
@@ -53,12 +70,23 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
         if (userSnap.exists()) {
           const userData = userSnap.data();
           const RHUs = [
-            { "barangays": ["Sulipan", "San Juan", "Capalangan", "Sucad", "Colgante"] },
-            { "barangays": ["Tabuyuc", "Balucuc", "Cansinala", "Calantipe"] },
-            { "barangays": ["San Vicente", "Sampaloc", "Paligui"] }
+            {
+              barangays: [
+                "Sulipan",
+                "San Juan",
+                "Capalangan",
+                "Sucad",
+                "Colgante",
+              ],
+            },
+            { barangays: ["Tabuyuc", "Balucuc", "Cansinala", "Calantipe"] },
+            { barangays: ["San Vicente", "Sampaloc", "Paligui"] },
           ];
 
-          const unit = RHUs.findIndex((x: any) => x['barangays'].includes(user?.barangay)) + 1;
+          const unit =
+            RHUs.findIndex((x: any) =>
+              x["barangays"].includes(user?.barangay)
+            ) + 1;
 
           if (userData.rhuOrBarangay === unit.toString()) {
             filteredItems.push(item);
@@ -83,7 +111,11 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
   const handleChange = (index: number, e: any) => {
     const findItem = items.find((x: any) => x.id === e.target.value);
     const newForms = [...forms];
-    newForms[index] = { ...newForms[index], itemId: findItem.id, rhuId: findItem.userId };
+    newForms[index] = {
+      ...newForms[index],
+      itemId: findItem.id,
+      rhuId: findItem.userId,
+    };
     setForms(newForms);
     const newSelectedItems = [...selectedItems];
     newSelectedItems[index] = findItem;
@@ -101,31 +133,45 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
   };
 
   const getDosageForm = (item: any) => {
-    return item?.medicineDosageForm || item?.vaccineDosageForm || item?.vitaminDosageForm;
+    return (
+      item?.medicineDosageForm ||
+      item?.vaccineDosageForm ||
+      item?.vitaminDosageForm
+    );
   };
 
   const getGenericName = (item: any) => {
-    return item?.medicineGenericName || item?.vaccineGenericName || item?.vitaminGenericName;
+    return (
+      item?.medicineGenericName ||
+      item?.vaccineGenericName ||
+      item?.vitaminGenericName
+    );
   };
 
   const getDosage = (item: any) => {
-    return item?.medicineDosageStrength || item?.vaccineDosageStrength || item?.vitaminDosageStrength;
+    return (
+      item?.medicineDosageStrength ||
+      item?.vaccineDosageStrength || item?.vaccineDosageForm ||
+      item?.vitaminDosageStrength
+    );
   };
 
   const getLotNo = (item: any) => {
-    return item?.medicineLotNo || item?.vaccineLotNo || item?.vitaminLotNo;
+    return item?.medicineLotNo || item?.vaccineBatchNo || item?.vitaminLotNo;
   };
 
   const handleSubmit = async () => {
     try {
-      const payloads = forms.map(form => ({
-        ...form,
-        requestedQuantity: parseInt(form.requestedQuantity),
-        userId: user?.uid,
-        created_at: new Date(),
-        barangay: user?.rhuOrBarangay || user?.barangay,
-        status: 'pending'
-      })).filter(form => form.itemId && form.requestedQuantity && form.reason);
+      const payloads = forms
+        .map((form) => ({
+          ...form,
+          requestedQuantity: parseInt(form.requestedQuantity),
+          userId: user?.uid,
+          created_at: new Date(),
+          barangay: user?.rhuOrBarangay || user?.barangay,
+          status: "pending",
+        }))
+        .filter((form) => form.itemId && form.requestedQuantity && form.reason);
 
       if (payloads.length === 0) {
         return toast.error("Fill out required fields", {
@@ -133,26 +179,125 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
         });
       }
 
-      setLoading(true);
+      // Open ConfirmationModal before proceeding
+      setIsConfirmationModalOpen(true);
+    } catch (error: any) {
+      toast.error("An unexpected error occurred during submission.", {
+        position: "top-right",
+      });
+    }
+  };
 
-      const promises = payloads.map(payload => addDoc(collection(db, "Requests"), payload));
+  const handleConfirmSubmit = async () => {
+    try {
+      const payloads = forms
+        .map((form) => ({
+          ...form,
+          requestedQuantity: parseInt(form.requestedQuantity),
+          userId: user?.uid,
+          created_at: new Date(),
+          barangay: user?.rhuOrBarangay || user?.barangay,
+          status: "pending",
+        }))
+        .filter((form) => form.itemId && form.requestedQuantity && form.reason);
+
+      setLoading(true);
+      // get index where barangay is included
+
+      const promises = payloads.map((payload) =>
+        addDoc(collection(db, "Requests"), payload)
+      );
       await Promise.all(promises);
+
+      const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
+      const sentTo = RHUs.findIndex((x: any) => x["barangays"].includes(user?.barangay)) + 1;
+
 
       setForms([requestFormData]); // Reset to initial form
       setShowModalSucces(true);
+      await createHistoryLog({
+        actionType: 'request',
+        fullName: formatFullName,
+        barangay: user?.barangay,
+        performedBy: user?.uid || '',
+        remarks: `Requested ${payloads.length} item(s)`,
+      })
+
+      await notificationService.createNotification({
+        action: 'request',
+        barangayItemId: null,
+
+        itemId: payloads.map((x) => x.itemId).join(','),
+        itemName: payloads.map((x) => x.itemId).join(','),
+        itemType: 'medicine',
+        quantity: payloads.map((x) => x.requestedQuantity).reduce((a, b) => a + b, 0),
+        description: `Requested ${payloads.length} item(s)`,
+        performedBy: user?.uid || '',
+        sentBy: user?.rhuOrBarangay || '',
+        sentTo: sentTo.toString(),
+      });
+
 
       setTimeout(() => {
         setShowModalSucces(false);
         closeModal(true);
       }, 1000);
 
+      toast.success("Request submitted successfully!", {
+        position: "top-right",
+      });
     } catch (error: any) {
+      console.error("Error submitting request:", error);
       toast.error("Unable to add request", {
         position: "top-right",
       });
     } finally {
       setLoading(false);
+      setIsConfirmationModalOpen(false);
     }
+  };
+
+  // const handleSubmit = async () => {
+  //   try {
+  //     const payloads = forms.map(form => ({
+  //       ...form,
+  //       requestedQuantity: parseInt(form.requestedQuantity),
+  //       userId: user?.uid,
+  //       created_at: new Date(),
+  //       barangay: user?.rhuOrBarangay || user?.barangay,
+  //       status: 'pending'
+  //     })).filter(form => form.itemId && form.requestedQuantity && form.reason);
+
+  //     if (payloads.length === 0) {
+  //       return toast.error("Fill out required fields", {
+  //         position: "top-right",
+  //       });
+  //     }
+
+  //     setLoading(true);
+
+  //     const promises = payloads.map(payload => addDoc(collection(db, "Requests"), payload));
+  //     await Promise.all(promises);
+
+  //     setForms([requestFormData]); // Reset to initial form
+  //     setShowModalSucces(true);
+
+  //     setTimeout(() => {
+  //       setShowModalSucces(false);
+  //       closeModal(true);
+  //     }, 1000);
+
+  //   } catch (error: any) {
+  //     toast.error("Unable to add request", {
+  //       position: "top-right",
+  //     });
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  const handleCancel = () => {
+    setIsConfirmationModalOpen(false);
   };
 
   const addAnotherItem = () => {
@@ -163,6 +308,12 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
   return (
     <>
       <ToastContainer />
+
+      <ConfirmationModal
+        isOpen={isConfirmationModalOpen}
+        onConfirm={handleConfirmSubmit}
+        onCancel={handleCancel}
+      />
       {showModalSuccess && (
         <div className="fixed inset-0 flex justify-end items-start z-50 p-4">
           <div
@@ -204,16 +355,16 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
               </div>
 
               <div className="mt-4">
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={addAnotherItem}
-                  className="mt-4 inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm"
-                >
-                  Add Another Item
-                </button>
-              </div>
-              <br />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={addAnotherItem}
+                    className="mt-4 inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm"
+                  >
+                    Add Another Item
+                  </button>
+                </div>
+                <br />
                 {forms.map((form, index) => (
                   <form key={index} className="space-y-4">
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -230,13 +381,15 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
                             onChange={(e) => handleChange(index, e)}
                             className="block appearance-none w-full p-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:black focus:border-black sm:text-base"
                           >
-                            <option disabled selected>{itemsLoading ? 'Loading..' : 'Please Select'}</option>
+                            <option disabled selected>
+                              {itemsLoading ? "Loading.." : "Please Select"}
+                            </option>
                             {items.map((item: any) => (
-                              <option key={item.id} value={item.id}>{
-                                item.medicineBrandName ||
-                                item.vitaminBrandName ||
-                                item.vaccineBrandName
-                              }</option>
+                              <option key={item.id} value={item.id}>
+                                {item.medicineBrandName ||
+                                  item.vitaminBrandName ||
+                                  item.vaccineName}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -252,7 +405,9 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
                           type="number"
                           id={`requestedQuantity-${index}`}
                           value={form.requestedQuantity}
-                          onChange={(e) => onInputChange(index, e, 'requestedQuantity')}
+                          onChange={(e) =>
+                            onInputChange(index, e, "requestedQuantity")
+                          }
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                         />
                       </div>
@@ -270,7 +425,7 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
                         id={`reason-${index}`}
                         placeholder="Please enter your reason"
                         value={form.reason}
-                        onChange={(e) => onInputChange(index, e, 'reason')}
+                        onChange={(e) => onInputChange(index, e, "reason")}
                       />
                     </div>
                     {selectedItems[index] && (
@@ -280,12 +435,26 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
                         </h3>
                         <br />
                         <div className="flex flex-col gap-2">
-                          <p>Form: <b>{getDosageForm(selectedItems[index])}</b></p>
-                          <p>Type: <b>{selectedItems[index]?.type}</b></p>
-                          <p>Generic Name: <b>{getGenericName(selectedItems[index])}</b></p>
-                          <p>Dosage: <b>{getDosage(selectedItems[index])}</b></p>
-                          <p>Lot No: <b>{getLotNo(selectedItems[index])}</b></p>
-                          <p>From: <b>Unit {selectedItems[index]?.created_by_unit}</b></p>
+                          <p>
+                            Form: <b>{getDosageForm(selectedItems[index])}</b>
+                          </p>
+                          <p>
+                            Type: <b>{selectedItems[index]?.type}</b>
+                          </p>
+                          <p>
+                            Generic Name:{" "}
+                            <b>{getGenericName(selectedItems[index])}</b>
+                          </p>
+                          <p>
+                            Dosage: <b>{getDosage(selectedItems[index])}</b>
+                          </p>
+                          <p>
+                            Lot No: <b>{getLotNo(selectedItems[index])}</b>
+                          </p>
+                          <p>
+                            From:{" "}
+                            <b>Unit {selectedItems[index]?.created_by_unit}</b>
+                          </p>
                         </div>
                       </div>
                     )}
@@ -297,7 +466,9 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
                     type="button"
                     disabled={loading}
                     onClick={handleSubmit}
-                    className={`${loading && 'opacity-[0.5]'} w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm`}
+                    className={`${
+                      loading && "opacity-[0.5]"
+                    } w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm`}
                   >
                     Submit
                   </button>

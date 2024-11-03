@@ -42,7 +42,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
           try {
             const docRef = doc(db, "Users", authUser.uid);
             const docSnap = await getDoc(docRef);
-            console.log("uid :>> ", authUser.uid);
+            // console.log("uid :>> ", authUser.uid);
 
             if (docSnap.exists()) {
               const userData = docSnap.data();
@@ -56,7 +56,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
                 uid: authUser.uid,
                 role: userData.role
               };
-              console.log("userPayload :>> ", userPayload);
+              // console.log("userPayload :>> ", userPayload);
 
               setUser(userPayload);
             } else {

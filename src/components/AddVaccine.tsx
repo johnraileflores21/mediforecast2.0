@@ -8,6 +8,8 @@ import { FaCaretDown, FaUpload } from "react-icons/fa";
 import { useUser } from "./User";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { dosage_forms, medical_packaging, vaccineFormData } from "../assets/common/constants";
+import { createHistoryLog } from "../utils/historyService";
+import { useConfirmation } from '../hooks/useConfirmation';
 
 interface ModalAddVaccineProps {
   showModal: boolean;
@@ -38,6 +40,8 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
     reset,
     formState: { errors },
   } = useForm<FormData>();
+  const confirm = useConfirmation();
+
   const [showModalSuccess, setShowModalSuccess] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -67,6 +71,13 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
   };
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
+    const isConfirmed = await confirm({
+      title: 'Confirm Submission',
+      message: 'Are you sure you want to add this vaccine?',
+    });
+
+    if (!isConfirmed) return;
+
     data.vaccineDosageForm = selectedOption;
     data.vaccinePackaging = selectedPackaging;
 
@@ -107,6 +118,19 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
         setShowModalSuccess(false);
         closeModal(true);
       }, 1000);
+
+      const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
+
+      await createHistoryLog({
+        actionType: 'create',
+        itemId: docRef.id,
+        itemName: data.vaccineName,
+        fullName: formatFullName,
+        barangay: '',
+        performedBy: user?.uid || '',
+        remarks: `Vaccine ${data.vaccineName} has been added to the inventory`,
+      })
+
     } catch (error) {
       console.error("Error adding document: ", error);
     } finally {

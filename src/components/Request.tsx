@@ -8,15 +8,24 @@ import { collection, onSnapshot, updateDoc, addDoc, doc, query, where, getDoc, s
 import { db } from "../firebase";
 import Swal from "sweetalert2";
 import RequestAdd from "../components/Request/RequestAdd";
+import PDFPreviewModal from "./PDFPreviewModal";
+import {RHUs} from "../assets/common/constants";
+import { createHistoryLog }  from '../utils/historyService';
+import notificationService from '../utils/notificationService';
+import { useConfirmation } from '../hooks/useConfirmation';
+
 
 
 const Request = () => {
+    const confirm = useConfirmation();
+
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [selectedOption, setSelectedOption] = useState<string>("All");
     const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [modalAdd, setModalAdd] = useState(false);
+    const [modalPDF, setModalPDF] = useState(false);
     const { user } = useUser();
 
     const handleAdd = () => {
@@ -38,22 +47,22 @@ const Request = () => {
         .filter(
             (itemData) =>
                 selectedOption === "All" ||
-                (selectedOption === "Medicines" && itemData.item.type === "Medicine") ||
-                (selectedOption === "Vaccines" && itemData.item.type === "Vaccine") ||
-                (selectedOption === "Vitamins" && itemData.item.type === "Vitamin")
+                (selectedOption === "Medicines" && itemData?.item?.type === "Medicine") ||
+                (selectedOption === "Vaccines" && itemData?.item?.type === "Vaccine") ||
+                (selectedOption === "Vitamins" && itemData?.item?.type === "Vitamin")
         )
         .filter(
             (itemData) =>
-                itemData.item.medicineBrandName
+                itemData?.item?.medicineBrandName
                     ?.toLowerCase()
                     .includes(searchQuery.toLowerCase()) ||
-                itemData.item.medicineGenericName
+                itemData?.item?.medicineGenericName
                     ?.toLowerCase()
                     .includes(searchQuery.toLowerCase()) ||
-                itemData.item.vaccineName
+                itemData?.item?.vaccineName
                     ?.toLowerCase()
                     .includes(searchQuery.toLowerCase()) ||
-                itemData.item.vitaminBrandName
+                itemData?.item?.vitaminBrandName
                     ?.toLowerCase()
                     .includes(searchQuery.toLowerCase())
         );
@@ -74,11 +83,11 @@ const Request = () => {
 
                         const itemRef = doc(db, "Inventory", requestData.itemId);
                         const itemSnap = await getDoc(itemRef);
-    
+
                         let itemData = null;
                         if(itemSnap.exists())
                             itemData = { id: itemSnap.id, ...itemSnap.data() };
-    
+
                         return {
                             id: docSnapshot.id,
                             ...requestData,
@@ -86,8 +95,9 @@ const Request = () => {
                         };
                     })
                 );
-    
+
                 setItems(itemsData);
+                console.log('itemsData :>>', itemsData);
                 console.log(itemsData);
             });
         } catch(error) {
@@ -100,12 +110,19 @@ const Request = () => {
             setLoading(false);
         }
     }
-    
+
     useEffect(() => {
         loadData();
     }, [])
 
     const handleDecline = async (id: string) => {
+        const isConfirmed = await confirm({
+            title: 'Confirm Submission',
+            message: 'Are you sure you want to decline this item?',
+          });
+
+         if(!isConfirmed) return;
+
         try {
             setLoading(true);
             const requestDocRef = doc(db, "Requests", id);
@@ -133,10 +150,40 @@ const Request = () => {
     }
 
     const handleApprove = async (id: string) => {
+        const isConfirmed = await confirm({
+            title: 'Confirm Submission',
+            message: 'Are you sure you want to approve this item?',
+          });
+
+        if(!isConfirmed) return;
         try {
             setLoading(true);
             const requestDocRef = doc(db, "Requests", id);
             await updateDoc(requestDocRef, { status: "for_confirmation" });
+
+            const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
+
+            await createHistoryLog({
+                actionType: 'approved-request',
+                itemId: id,
+                fullName: formatFullName,
+                performedBy: user?.uid || '',
+                remarks: 'Request has been approved by ${formatFullName}',
+            })
+
+            await notificationService.createNotification({
+                action: 'approve',
+                barangayItemId: null,
+                itemId: id,
+                itemName: '',
+                itemType: '',
+                quantity: 1,
+                description: 'Request has been approved',
+                performedBy: user?.uid || '',
+                sentBy: user?.rhuOrBarangay || '',
+                sentTo: user?.uid || '',
+            });
+
 
             Swal.fire({
                 position: "center",
@@ -149,19 +196,19 @@ const Request = () => {
 
             // const requestDocRef = doc(db, "Requests", id);
             // const requestSnap = await getDoc(requestDocRef);
-    
+
             // if(!requestSnap.exists()) throw new Error("Request not found");
-    
+
             // const requestData = requestSnap.data();
             // const { rhuId, userId: barangayId, itemId, requestedQuantity } = requestData;
 
             // const itemDocRef = doc(db, "Inventory", itemId);
             // const itemSnap = await getDoc(itemDocRef);
             // if(!itemSnap.exists()) throw new Error("Item not found");
-    
+
             // const itemData = itemSnap.data();
             // const currentStock = itemData.medicineStock || itemData.vitaminStock || itemData.vaccineStock;
-    
+
             // if(requestedQuantity > currentStock) throw new Error("Insufficient stock.");
 
             // const stockTypes = ['medicineStock', 'vitaminStock', 'vaccineStock'];
@@ -230,19 +277,19 @@ const Request = () => {
 
             const requestDocRef = doc(db, "Requests", id);
             const requestSnap = await getDoc(requestDocRef);
-    
+
             if(!requestSnap.exists()) throw new Error("Request not found");
-    
+
             const requestData = requestSnap.data();
             const { rhuId, userId: barangayId, itemId, requestedQuantity } = requestData;
 
             const itemDocRef = doc(db, "Inventory", itemId);
             const itemSnap = await getDoc(itemDocRef);
             if(!itemSnap.exists()) throw new Error("Item not found");
-    
+
             const itemData = itemSnap.data();
             const currentStock = itemData.medicineStock || itemData.vitaminStock || itemData.vaccineStock;
-    
+
             if(requestedQuantity > currentStock) throw new Error("Insufficient stock.");
 
             const stockTypes = ['medicineStock', 'vitaminStock', 'vaccineStock'];
@@ -271,15 +318,25 @@ const Request = () => {
                 await updateDoc(barangayInventoryRef, { ...barangayInventoryData, [stockType]: updatedStock });
             } else await setDoc(barangayInventoryRef, barangayInventoryData);
 
-            await addDoc(collection(db, "Distributions"), {
-                barangayId,
-                created_at: new Date().toISOString(),
-                itemId,
-                quantity: requestedQuantity,
-                rhuId
-            });
+            // await addDoc(collection(db, "Distributions"), {
+            //     barangayId,
+            //     created_at: new Date().toISOString(),
+            //     itemId,
+            //     quantity: requestedQuantity,
+            //     rhuId
+            // });
 
             await updateDoc(requestDocRef, { status: "approved" });
+
+            const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
+            await createHistoryLog({
+                actionType: 'received-request',
+                itemId: id,
+                itemName: itemData.medicineBrandName || itemData.vitaminBrandName || itemData.vaccineName,
+                fullName: formatFullName,
+                performedBy: user?.uid || '',
+                remarks: 'Request has been received by ${formatFullName}',
+            });
 
             Swal.fire({
                 position: "center",
@@ -303,9 +360,32 @@ const Request = () => {
             await loadData();
         }
     };
-    
+
+    const handleViewPDF = () => {
+        setModalPDF(true);
+      };
+
+
 
     const handleDropdown = () => setDropdownOpen(!dropdownOpen);
+
+    const filteredPdfHeader = () => {
+        const userBarangay = user?.rhuOrBarangay || "";
+        const rhuIndex = RHUs.findIndex(rhu => rhu.barangays.includes(userBarangay)) + 1;
+
+        const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+        const rhuRomanNumeral = romanNumerals[(rhuIndex == 0 ? parseInt(userBarangay): rhuIndex) - 1];
+
+        console.log('rhuIndex :>>', rhuIndex);
+
+        return {
+            h1: rhuIndex == 0 ?   `Rural Health Unit ${rhuRomanNumeral}`: `${user?.rhuOrBarangay} Health Center`,
+            h2: rhuIndex == 0 ? '' :  `Rural Health Unit ${rhuRomanNumeral}`,
+            h3: "City of San Fernando, Pampanga",
+            title: "Stock Request",
+        }
+    }
+    const pdfHeader = filteredPdfHeader();
     return (
         <DashboardLayout>
             <h1 className="text-3xl font-bold mb-4">Stock Request</h1>
@@ -371,16 +451,26 @@ const Request = () => {
                                 </li>
                             </ul>
                         )}
-                        
+
                     </div>
                 </div>
-                {user?.role.includes('Barangay') && <button
-                    onClick={handleAdd}
-                    className="bg-green-500 text-white p-2 hover:bg-green-700 rounded-md font-bold flex items-center space-x-1"
-                >
-                    <IoMdAddCircle className="w-5 h-5" />
-                    <span>Request</span>
-                </button>}
+                <div className="flex  gap-4">
+
+                    <button
+                        onClick={handleViewPDF}
+                        className="bg-blue-500 text-white p-2 hover:bg-blue-700 rounded-md font-bold flex items-center space-x-1"
+                    >
+                        <FaEye className="w-5 h-5" />
+                        <span>View All Requests</span>
+                    </button>
+                    {user?.role.includes('Barangay') && <button
+                        onClick={handleAdd}
+                        className="bg-green-500 text-white p-2 hover:bg-green-700 rounded-md font-bold flex items-center space-x-1"
+                    >
+                        <IoMdAddCircle className="w-5 h-5" />
+                        <span>Request</span>
+                    </button>}
+                </div>
             </div>
             <div className="bg-white p-6 rounded-lg  mt-8 w-full overflow-x-auto overflow-scroll ">
                 <div className="relative overflow-x-auto  sm:rounded-lg mt-3">
@@ -435,13 +525,12 @@ const Request = () => {
                                         {itemData.barangay}
                                     </td>}
                                     <td className="px-6 py-4 text-gray-900">
-                                        {
-                                            `${itemData.item.medicineBrandName || itemData.item.vitaminBrandName || itemData.item.vaccineName}
-                                            ${itemData.item.type !== 'vaccine' && `(${
-                                                itemData.item.medicineGenericName ||
-                                                itemData.item.vitaminGenericName
-                                            })`}`
-                                        }
+                                        {`${itemData?.item?.medicineBrandName || itemData?.item?.vitaminBrandName || itemData?.item?.vaccineName}`}
+                                        {itemData.item.type.toLowerCase() !== 'vaccine' && (
+                                        <>
+                                            {` (${itemData?.item?.medicineGenericName || itemData?.item?.vitaminGenericName})`}
+                                        </>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 text-gray-900">
                                         {itemData.requestedQuantity}
@@ -452,7 +541,7 @@ const Request = () => {
                                     <td className="px-6 py-2">
                                         <span
                                             className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
-                                                itemData.status === 'approved' 
+                                                itemData.status === 'approved'
                                                     ? 'bg-green-100 text-green-800'
                                                     : itemData.status === 'pending'
                                                     ? 'bg-yellow-100 text-yellow-800'
@@ -518,9 +607,19 @@ const Request = () => {
                         </tbody>
                     </table>
                 </div>
-                
+
 
                 {modalAdd && <RequestAdd showModal={modalAdd} closeModal={closeModalAdd} />}
+                {modalPDF && (
+                    <PDFPreviewModal
+                        showModal={modalPDF}
+                        closeModal={() => setModalPDF(false)}
+                        data={filteredAndSortedItems}
+                        user={user}
+                        header={pdfHeader}
+
+                    />
+                )}
             </div>
 
         </DashboardLayout>

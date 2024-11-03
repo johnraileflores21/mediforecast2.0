@@ -23,6 +23,8 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { v4 } from "uuid";
 import { useUser } from "./User";
+import { createHistoryLog }  from '../utils/historyService';
+import { useConfirmation } from '../hooks/useConfirmation';
 
 interface ModalEditVitaminsProps {
   showModal: boolean;
@@ -34,6 +36,8 @@ const ModalEditVitamins: React.FC<ModalEditVitaminsProps> = ({
   closeModal,
   data,
 }) => {
+  const confirm = useConfirmation();
+
   const [showModalSuccess, setShowModalSucces] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -82,10 +86,9 @@ const ModalEditVitamins: React.FC<ModalEditVitaminsProps> = ({
     }
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleConfirmSubmit = async  () => {
     const now = new Date();
     const dateToday = now.toISOString();
-    e.preventDefault();
     setLoading(true);
     try {
       let imageUrl = formData.vitaminImg;
@@ -112,9 +115,36 @@ const ModalEditVitamins: React.FC<ModalEditVitaminsProps> = ({
         setShowModalSucces(false);
         closeModal(true);
       }, 1000);
+
+      const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
+
+      await createHistoryLog({
+        actionType: 'update',
+        itemId: data.id,
+        itemName: data.vitaminBrandName,
+        fullName: formatFullName,
+        barangay: '',
+        performedBy: user?.uid || '',
+        remarks: `${formatFullName} updated the ${data.vitaminBrandName} medicine`,
+      })
+
     } catch (error) {
       console.error("Error updating document:", error);
     }
+
+  }
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    const isConfirmed = await confirm({
+      title: 'Confirm Submission',
+      message: 'Are you sure you want to edit this vitamin?',
+    });
+
+    if (isConfirmed) {
+      handleConfirmSubmit();
+    }
+
   };
   const handleDeleteImg = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();

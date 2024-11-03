@@ -17,4 +17,13 @@ export interface PatientRecord {
     date: string;
     time: string;
   }
-  
+
+
+export interface ConfirmationOptions {
+  title?: string;
+  message?: string;
+}
+
+export interface ConfirmationContextType {
+  confirm: (options: ConfirmationOptions) => Promise<boolean>;
+}
