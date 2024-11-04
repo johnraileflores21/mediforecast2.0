@@ -16,7 +16,13 @@ export interface PatientRecord {
     phicMemberName: string;
     date: string;
     time: string;
-  }
+    requests?: Request[];
+}
+
+interface Request {
+  rhuOrBarangay: string;
+  status: string;
+}
 
 
 export interface ConfirmationOptions {

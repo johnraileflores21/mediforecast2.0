@@ -1,6 +1,8 @@
 import React, { useState, useEffect, ChangeEvent } from "react";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../firebase";
+import { useUser } from "./User";
+import { RHUs } from "../assets/common/constants";
 
 interface AddPatientProps {
   showModal: boolean;
@@ -15,6 +17,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
   const [broughtByDropdown, setBroughtByDropdown] = useState<boolean>(false);
   const [brought, setBrought] = useState<string>("Brought by");
   const [date, setDate] = useState(new Date());
+  const { user } = useUser();
   const [formData, setFormData] = useState({
     familyName: "",
     firstName: "",
@@ -37,7 +40,15 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
     updated_at: "",
   });
 
+  const userBarangay = user?.rhuOrBarangay || "";
+  const isRHU = userBarangay.length == 1;
+
+  const rhuIndex = isRHU 
+    ? userBarangay
+    : RHUs.findIndex(rhu => rhu.barangays.includes(userBarangay)) + 1;
+
   useEffect(() => {
+    
     const timer = setInterval(() => setDate(new Date()), 1000);
     return function cleanup() {
       clearInterval(timer);
@@ -95,6 +106,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
     const dateToday = currentDate.toISOString();
     cleanedFormData.created_at = dateToday;
     cleanedFormData.updated_at = dateToday;
+    cleanedFormData.rhuOrBarangay = rhuIndex.toString();
     try {
       await addDoc(
         collection(db, "IndividualTreatmentRecord"),
@@ -102,7 +114,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
       );
       console.log("Document successfully written!");
       closeModal();
-      window.location.reload();
+      // window.location.reload();
     } catch (error) {
       console.error("Error adding document: ", error);
       alert(
@@ -365,82 +377,77 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
                         ></textarea>
                       </div>
                       <div className="grid grid-cols-3 gap-4 mt-4">
-                        <div>
-                          <div className="dropdown w-48 relative">
-                            <label
-                              htmlFor="brought"
-                              className="block text-sm font-medium text-gray-700"
-                            >
-                              Brought By
-                            </label>
-                            <div
-                              role="button"
-                              id="status"
-                              tabIndex={0}
-                              onClick={handleBroughtDropdown}
-                              className="border border-gray-300 text-sm rounded-lg py-3 mb-2 text-center text-gray-700 font-bold bg-base"
-                            >
-                              {brought}
-                            </div>
-                            {broughtByDropdown && (
-                              <ul
-                                className="dropdown-content menu rounded-box z-[50] absolute w-52 p-2 shadow-lg bg-white"
-                                tabIndex={0}
-                              >
-                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                  <a
-                                    onClick={() =>
-                                      handleBroughtOption("Choose Brought By")
-                                    }
-                                  >
-                                    Choose Brought By
-                                  </a>
-                                </li>
-                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                  <a
-                                    onClick={() => handleBroughtOption("Self")}
-                                  >
-                                    Self
-                                  </a>
-                                </li>
-                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                  <a
-                                    onClick={() =>
-                                      handleBroughtOption("Police")
-                                    }
-                                  >
-                                    Police
-                                  </a>
-                                </li>
-                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                  <a
-                                    onClick={() =>
-                                      handleBroughtOption("Ambulance")
-                                    }
-                                  >
-                                    Ambulance
-                                  </a>
-                                </li>
-                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                  <a
-                                    onClick={() =>
-                                      handleBroughtOption("Relative")
-                                    }
-                                  >
-                                    Relatives
-                                  </a>
-                                </li>
-                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                  <a
-                                    onClick={() => handleBroughtOption("Other")}
-                                  >
-                                    Other
-                                  </a>
-                                </li>
-                              </ul>
-                            )}
+                      <div>
+                        <div className="dropdown w-48 relative">
+                          <label
+                            htmlFor="brought"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Brought By
+                          </label>
+                          <div
+                            role="button"
+                            id="brought"
+                            tabIndex={0}
+                            onClick={handleBroughtDropdown}
+                            className="border border-gray-300 text-sm rounded-lg py-3 mb-2 text-center text-gray-700 font-bold bg-base"
+                          >
+                            {brought}
                           </div>
+                          {broughtByDropdown && (
+                            <ul
+                              className="dropdown-content menu rounded-box absolute w-52 p-2 shadow-lg bg-white z-[100] top-[-220px]" // Increased z-index
+                              tabIndex={0}
+                            >
+                              <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                <a
+                                  onClick={() =>
+                                    handleBroughtOption("Choose Brought By")
+                                  }
+                                >
+                                  Choose Brought By
+                                </a>
+                              </li>
+                              <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                <a
+                                  onClick={() => handleBroughtOption("Self")}
+                                >
+                                  Self
+                                </a>
+                              </li>
+                              <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                <a
+                                  onClick={() => handleBroughtOption("Police")}
+                                >
+                                  Police
+                                </a>
+                              </li>
+                              <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                <a
+                                  onClick={() => handleBroughtOption("Ambulance")}
+                                >
+                                  Ambulance
+                                </a>
+                              </li>
+                              <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                <a
+                                  onClick={() => handleBroughtOption("Relative")}
+                                >
+                                  Relatives
+                                </a>
+                              </li>
+                              <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                <a
+                                  onClick={() => handleBroughtOption("Other")}
+                                >
+                                  Other
+                                </a>
+                              </li>
+                            </ul>
+                          )}
                         </div>
+                      </div>
+
                         <div>
                           <label
                             htmlFor="philmem"

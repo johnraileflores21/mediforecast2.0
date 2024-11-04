@@ -19,7 +19,7 @@ const PDFPreviewModal = ({ showModal, closeModal, data, user, header }: any) => 
               <PDFViewer style={{ width: '100%', height: '500px' }}>
                 <RequestsPDF data={data} user={user} header={header}/>
               </PDFViewer>
-              <div className="mt-4 text-center">
+              {/* <div className="mt-4 text-center">
                 <PDFDownloadLink
                   document={<RequestsPDF data={data} user={user} header={header} />}
                   fileName="stock_requests.pdf"
@@ -27,7 +27,7 @@ const PDFPreviewModal = ({ showModal, closeModal, data, user, header }: any) => 
                 >
                   {({ loading }) => (loading ? 'Preparing document...' : 'Download PDF')}
                 </PDFDownloadLink>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>

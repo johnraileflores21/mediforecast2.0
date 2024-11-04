@@ -231,7 +231,7 @@ const ModalViewVaccine: React.FC<ModalViewVaccineProps> = ({
                 </PDFViewer>
               </div>
               {/* Download Link */}
-              <div className="mt-4 text-center">
+              {/* <div className="mt-4 text-center">
                 <PDFDownloadLink
                   document={<ReceiptPDF title="Medicine" data={dataForPdf} />}
                   fileName="medicine_receipt.pdf"
@@ -241,7 +241,7 @@ const ModalViewVaccine: React.FC<ModalViewVaccineProps> = ({
                     loading ? "Preparing document..." : "Download PDF"
                   }
                 </PDFDownloadLink>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>

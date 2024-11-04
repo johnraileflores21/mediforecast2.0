@@ -8,6 +8,8 @@ import {
   getDocs,
   DocumentData,
   deleteDoc,
+  where,
+  query,
 } from "firebase/firestore";
 import AddPatient from "./AddPatient";
 import { FaEye, FaCaretDown } from "react-icons/fa";
@@ -24,6 +26,10 @@ import { PDFViewer, PDFDownloadLink } from "@react-pdf/renderer";
 import ScrollToTop from "./ScrollToTop";
 import TryPDF from "./TryPDF";
 import { PatientRecord } from "./type";
+import DownloadSelectedPatients from "./DownloadSelectedPatients";
+import { useUser } from "./User";
+import { RHUs } from "../assets/common/constants";
+import { RequestedITR } from "./RequestedITR";
 
 // interface filteredDataProps {
 //   familyName: string;
@@ -50,24 +56,36 @@ const Individual = () => {
   const [modalEdit, setModalEdit] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [showPDF, setShowPDF] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<PatientRecord | null>(
+  const [selectedPatient, setSelectedPatient] = useState<any>(
     null
   );
 
   const [selectedOption, setSelectedOption] = useState<string>("All");
   const [sortOrder, setSortOrder] = useState<string>("asc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedPatients, setSelectedPatients] = useState<PatientRecord[]>([]);
+  const [isSelectedAll, setIsSelectedAll] = useState<boolean>(false);
+  const [selectedTab, setSelectedTab] = useState<number>(0);
+  const { user } = useUser();
   const itemsPerPage = 5;
 
   const fetchData = async () => {
     try {
-      const querySnapshot = await getDocs(
-        collection(db, "IndividualTreatmentRecord")
+
+      const userBarangay = user?.rhuOrBarangay || "";
+
+      const userQuery = query(
+        collection(db, "IndividualTreatmentRecord"),
+        where("rhuOrBarangay", "==", userBarangay)
       );
-      const data = querySnapshot.docs.map((doc) => ({
+
+      const userSnap = await getDocs(userQuery);
+
+      const data = userSnap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as PatientRecord[];
+      console.log('data :>> ', data);
       setUserData(data);
     } catch (error) {
       console.error("Error fetching:", error);
@@ -77,6 +95,7 @@ const Individual = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
 
   // const formData = {
   //   name: "John Doe",
@@ -121,23 +140,35 @@ const Individual = () => {
     setShowModal(true);
   };
 
+  const handleDeleteAll = () => {
+    setShowModal(true);
+  }
+
   const confirmDelete = async () => {
-    if (deleteId) {
-      try {
+    try {
+      if(deleteId) {
         await deleteDoc(doc(db, "IndividualTreatmentRecord", deleteId));
-        console.log("Document deleted successfully!");
-        fetchData();
-      } catch (error) {
-        console.error("Error deleting document: ", error);
-      } finally {
-        setShowModal(false);
-        setDeleteId(null);
       }
+
+      if(!deleteId && selectedPatients.length > 0) {
+        for(let i = 0; i < selectedPatients.length; i++) {
+          await deleteDoc(doc(db, "IndividualTreatmentRecord", selectedPatients[i].id));
+        }
+      }
+
+      console.log("Document deleted successfully!");
+      fetchData();
+    } catch (error) {
+      console.error("Error deleting document: ", error);
+    } finally {
+      setShowModal(false);
+      setDeleteId(null);
     }
   };
 
   const closeModal = () => {
     setShowModal(false);
+    fetchData();
     setDeleteId(null);
   };
 
@@ -151,6 +182,11 @@ const Individual = () => {
       record.mobileno.toLowerCase().includes(searchQuery.toLowerCase()) ||
       record.dateOfBirth.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+
+  useEffect(() => {
+    setIsSelectedAll(selectedPatients.length === filteredData.length);
+  }, [selectedPatients, filteredData.length]);
 
   const handleSearchInputChange = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -202,65 +238,117 @@ const Individual = () => {
       ];
     }
   }
+  
+  const handleCheckboxChange = (patient: PatientRecord) => {
+    setSelectedPatients((prev) =>
+      prev.some((p) => p.id === patient.id)
+        ? prev.filter((p) => p.id !== patient.id)
+        : [...prev, patient]
+    );
+  };
+
+  const handleSelectAll = () => {
+    const _selectedAll = !isSelectedAll;
+    setIsSelectedAll(_selectedAll);
+    setSelectedPatients(_selectedAll ? filteredData : []);
+  };
+
+
   return (
     <DashboardLayout>
       <div className="flex justify-between">
         <h1 className="text-3xl font-bold mb-4">Files</h1>
-        <div className="flex justify-center items-center mb-4">
-          <div className="dropdown dropdown-end w-28">
-            <div
-              tabIndex={0}
-              role="button"
-              className="bg-teal-600 text-white text-sm rounded-lg py-3.5 mb-2 text-center font-bold flex justify-center items-center"
-            >
-              {selectedOption}
-              <FaCaretDown className="w-4 h-4 text-white ml-1" />
-            </div>
-
-            <ul
-              tabIndex={0}
-              className="dropdown-content menu rounded-box z-[50] relative w-52 p-2 shadow bg-teal-600 text-white"
-            >
-              <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                <a onClick={() => setSelectedOption("All")}>All</a>
-              </li>
-              <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                <a onClick={() => setSelectedOption("A-Z")}>A-Z</a>
-              </li>
-              <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                <a onClick={() => setSelectedOption("Z-A")}>Z-A</a>
-              </li>
-            </ul>
-          </div>
-        </div>
       </div>
+        <div className="flex mb-6">
+          <button
+            className={`px-4 py-2 ${selectedTab === 0 ? "bg-gray-300" : "bg-gray-200"}`}
+            onClick={() => setSelectedTab(0)}
+          >
+            ITR Records
+          </button>
+          <button
+            className={`px-4 py-2 ${selectedTab === 1 ? "bg-gray-300" : "bg-gray-200"}`}
+            onClick={() => setSelectedTab(1)}
+          >
+            Requested Records
+          </button>
+        </div>
 
-      <>
+      {selectedTab === 0 ? <>
         <div className="flex justify-between mb-4">
           <button
             onClick={handleAdd}
-            className="bg-green-500 text-white p-2 hover:bg-green-700 rounded-md font-bold flex items-center space-x-1"
+            className="bg-green-500 text-white p-2 h-12 hover:bg-green-700 rounded-md font-bold flex items-center space-x-1"
           >
             <IoMdAddCircle className="w-5 h-5" />
             <span>Add</span>
           </button>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={handleSearchInputChange}
-              className="border border-gray-300 rounded-md p-2 pl-8"
-            />
-            <IoSearchOutline className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <div className="flex gap-2">
+            <div className="flex justify-center items-center mb-4">
+              <div className="dropdown dropdown-end w-28">
+                <div
+                  tabIndex={0}
+                  role="button"
+                  className="bg-teal-600 text-white text-sm rounded-lg py-3.5 mb-2 text-center font-bold flex justify-center items-center"
+                >
+                  {selectedOption}
+                  <FaCaretDown className="w-4 h-4 text-white ml-1" />
+                </div>
+
+                <ul
+                  tabIndex={0}
+                  className="dropdown-content menu rounded-box z-[50] relative w-52 p-0 shadow bg-teal-600 text-white"
+                >
+                  <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                    <a onClick={() => setSelectedOption("All")}>All</a>
+                  </li>
+                  <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                    <a onClick={() => setSelectedOption("A-Z")}>A-Z</a>
+                  </li>
+                  <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                    <a onClick={() => setSelectedOption("Z-A")}>Z-A</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={handleSearchInputChange}
+                  className="border border-gray-300 rounded-md p-2 pl-8"
+                />
+                <IoSearchOutline className="absolute left-3 top-5 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+              </div>
           </div>
+          
         </div>
 
         <div className="border p-2 m-10 rounded-md shadow-lg">
+            {selectedPatients.length ?
+              <div className="flex justify-between items-center mb-2">
+                <span>{selectedPatients.length} item/s selected</span>
+                <div className="flex space-x-2">
+                  <DownloadSelectedPatients selectedPatients={selectedPatients} />
+                  <button className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onClick={handleDeleteAll}>
+                    <MdDelete className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            : <></>}
           <div className="overflow-x-auto shadow-lg rounded-lg">
             <table className="min-w-full bg-white divide-y divide-gray-300">
               <thead className="bg-teal-700 text-white">
                 <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      checked={isSelectedAll}
+                      onChange={handleSelectAll}
+                    />
+                  </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
                     Family Name
                   </th>
@@ -276,13 +364,13 @@ const Individual = () => {
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
                     Address
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
+                  {/* <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
                     Mobile No
-                  </th>
+                  </th> */}
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
                     Date of Birth
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
+                  {/* <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
@@ -299,15 +387,22 @@ const Individual = () => {
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
                     PHIC Member Name
-                  </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider sticky right-0 bg-teal-700 z-10">
+                  </th> */}
+                  {!selectedPatients.length && <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider sticky right-0 bg-teal-700 z-10">
                     Actions
-                  </th>
+                  </th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredData.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-100">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 max-w-xs truncate">
+                    <input
+                      type="checkbox"
+                      checked={selectedPatients.includes(item)}
+                      onChange={() => handleCheckboxChange(item)}
+                    />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 max-w-xs truncate">
                       {item.familyName}
                     </td>
@@ -323,13 +418,13 @@ const Individual = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 max-w-xs truncate">
                       {item.address}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       {item.mobileno}
-                    </td>
+                    </td> */}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       {formatDate(item.dateOfBirth)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       {item.status}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
@@ -346,8 +441,8 @@ const Individual = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 max-w-xs truncate">
                       {item.phicMemberName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 sticky right-0 bg-white z-10 flex space-x-2">
+                    </td> */}
+                    {!selectedPatients.length && <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 sticky right-0 bg-white z-10 flex space-x-2">
                       <PDFDownloadLink
                         document={<TryPDF userData={item} />}
                         fileName={`${item.familyName}_${item.firstName}_record.pdf`}
@@ -356,16 +451,16 @@ const Individual = () => {
                         <IoMdDownload className="w-5 h-5 text-white" />
                       </PDFDownloadLink>
                       <button
-                        onClick={() => handleView(item)}
-                        className="bg-blue-600 rounded-md text-white p-2 hover:bg-blue-800  flex items-center space-x-1"
-                      >
-                        <FaEye className="w-5 h-5 text-white" />
-                        {/* PDFViewer */}
-                      </button>
-                      <button
-                        onClick={() => handleEdit(item.id)}
-                        className="bg-yellow-800 rounded-md text-white p-2 hover:bg-yellow-900 mr-4 flex items-center space-x-1"
-                      >
+                          onClick={() => handleView(item)}
+                          className="bg-blue-600 rounded-md text-white p-2 hover:bg-blue-800  flex items-center space-x-1"
+                        >
+                          <FaEye className="w-5 h-5 text-white" />
+                          {/* PDFViewer */}
+                        </button>
+                        <button
+                          onClick={() => handleEdit(item.id)}
+                          className="bg-yellow-800 rounded-md text-white p-2 hover:bg-yellow-900 mr-4 flex items-center space-x-1"
+                        >
                         <MdEdit className="w-5 h-5" />
                         {/* <span>Edit</span> */}
                       </button>
@@ -375,7 +470,7 @@ const Individual = () => {
                       >
                         <MdDelete className="w-5 h-5" />
                       </button>
-                    </td>
+                    </td>}
                   </tr>
                 ))}
               </tbody>
@@ -459,23 +554,6 @@ const Individual = () => {
           </div>
         )}
 
-        {/* {modalEdit && (
-          <ModalEditMedicine
-            showModal={modalEdit}
-            closeModal={closeModalEdit}
-            // fetchData={fetchData}
-            editId={editId}
-          />
-        )}
-        {modalView && (
-          <ModalViewMedicine
-            showModal={modalView}
-            closeModal={closeModalView}
-            // fetchData={fetchData}
-            viewId={viewId}
-          />
-        )} */}
-
         {showModal && (
           <div className="fixed z-10 inset-0 overflow-y-auto">
             <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -514,7 +592,7 @@ const Individual = () => {
                       </h3>
                       <div className="mt-2">
                         <p className="text-sm text-gray-500">
-                          Are you sure you want to delete this record?
+                          Are you sure you want to delete the selected record{selectedPatients.length > 1 ? 's' : ''}?
                         </p>
                       </div>
                     </div>
@@ -541,45 +619,9 @@ const Individual = () => {
           </div>
         )}
         <ScrollToTop />
-      </>
-      {/* <div className="mt-10 h-[1240px]">
-        <PDFViewer className="w-full h-[100%]">
-          <PDFFile />
-        </PDFViewer>
-      </div>*/}
-      {/* <div>
-        <h1>Generate PDF</h1>
-        <PDFDownloadLink
-          document={<TryPDF userData={userData} />}
-          fileName="ITR.pdf"
-        >
-          {({ loading }) => (loading ? "Loading document..." : "Download PDF")}
-        </PDFDownloadLink>
-      </div>
-      <div className="mt-10 h-[1240px]">
-        <PDFViewer className="w-full h-[100%]">
-          <TryPDF userData={userData} />
-        </PDFViewer>
-      </div>  */}
-      {/* <div>
-        {userData.length > 0 ? (
-          userData.map((record) => (
-            <PDFDownloadLink
-              key={record.id}
-              document={<TryPDF userData={record} />}
-              fileName={`${record.familyName}_${record.firstName}_record.pdf`}
-            >
-              {({ loading }) =>
-                loading
-                  ? "Loading document..."
-                  : `Download ${record.familyName} ${record.firstName}'s PDF`
-              }
-            </PDFDownloadLink>
-          ))
-        ) : (
-          <p>No records found</p>
-        )}
-      </div> */}
+      </> : <>
+        <RequestedITR user={user} />
+      </>}
     </DashboardLayout>
   );
 };

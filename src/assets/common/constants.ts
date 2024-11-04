@@ -113,3 +113,26 @@ export const RHUs = [
     {"barangays": ["Tabuyuc", "Balucuc", "Cansinala", "Calantipe"]},
     {"barangays": ["San Vicente", "Sampaloc", "Paligui"]}
 ];
+
+export const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+}
+
+export const toPascalCase = (str: string) => {
+    return str
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/[-_]/g, ' ')
+        .trim()
+        .split(' ')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+export const getData = (card: any, user: any) => {
+    return card.requests.find((request: any) => request.rhuOrBarangay === user?.rhuOrBarangay)?.status;
+}
