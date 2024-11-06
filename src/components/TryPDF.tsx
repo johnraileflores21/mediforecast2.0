@@ -10,6 +10,10 @@ import {
 } from "@react-pdf/renderer";
 import { PatientRecord } from "./type";
 import { useUser } from "./User";
+import { RHUs } from "../assets/common/constants";
+import Logo1 from '../assets/images/1.jpg';
+import Logo2 from '../assets/images/2.jpg';
+import Logo3 from '../assets/images/3.jpg';
 
 interface Pdfprops {
   userData: PatientRecord;
@@ -68,7 +72,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     fontWeight: 500,
   },
-  headerTextUnder2: { fontSize: 12, letterSpacing: -0.5, fontWeight: 500 },
+  headerTextUnder2: { fontSize: 12, letterSpacing: -0.5, fontWeight: 500, marginLeft: '50px' },
   secondContainer: { flexDirection: "row" },
   headerBody: {
     marginRight: 50,
@@ -244,6 +248,26 @@ const formatTime = (timeString: string): string => {
   return `${hours}:${minutes} ${period}`;
 };
 
+const getLogo = (userData: any) => {
+  const userBarangay = userData?.rhuOrBarangay || "";
+  console.log('userBarangay :>> ', userBarangay);
+  const isRHU = userBarangay.length == 1;
+
+  let _data = [{ logo: Logo1, roman: "I" }, { logo: Logo2, roman: "II" }, { logo: Logo3, roman: "III" }];
+
+  const rhuIndex = isRHU 
+    ? userBarangay
+    : RHUs.findIndex(rhu => rhu.barangays.includes(userBarangay)) + 1;
+
+  _data.forEach((x: any) => {
+    x.address = !isRHU
+      ? `${userBarangay}, Apalit, Pampanga`
+      : `${userBarangay == "1" ? 'San Juan' : userBarangay == "2" ? 'Tabuyuc' : 'San Vicente'}, Apalit, Pampanga`
+  })
+
+  return _data[rhuIndex - 1];
+}
+
 const TryPDF: React.FC<Pdfprops> = ({ userData }) => {
   return (
     <Document>
@@ -251,16 +275,16 @@ const TryPDF: React.FC<Pdfprops> = ({ userData }) => {
         <View style={styles.borderContainer}>
           {/* firstrow */}
           <View style={styles.header}>
-            <Image style={styles.logo} src="images/3.jpg" />
+            <Image style={styles.logo} src={getLogo(userData).logo} />
             <View style={styles.section}>
               <Text style={styles.headerText}>
-                APALIT RURAL HEALTH UNIT III
+                APALIT RURAL HEALTH UNIT {getLogo(userData).roman}
               </Text>
               <Text style={styles.headerTextUnder1}>
                 MUNICIPALITY OF APALIT
               </Text>
               <Text style={styles.headerTextUnder2}>
-                VILLENA SUBDIVISION SAN VICENTE APALIT, PAMPANGA
+                {getLogo(userData).address.toUpperCase()}
               </Text>
             </View>
           </View>
@@ -450,7 +474,7 @@ const TryPDF: React.FC<Pdfprops> = ({ userData }) => {
                 fontWeight: 500,
               }}
             >
-              Fever, Cough
+              {userData.complaints}
             </Text>
           </View>
           {/* sixthrow */}
@@ -458,12 +482,7 @@ const TryPDF: React.FC<Pdfprops> = ({ userData }) => {
           <View style={{ height: 80, borderBottom: "2px solid black" }}>
             <Text style={{ marginVertical: 30 }}>BRIEF HISTORY:</Text>
             <Text style={styles.briefHistoryText}>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam in
-              venenatis enim. Suspendisse potenti. Integer ac bibendum elit.
-              Cras et leo ut lorem ullamcorper fermentum sed vel lacus. Duis nec
-              odio nisl. Suspendisse in neque ac orci venenatis pharetra. Sed eu
-              dui quis velit pharetra vehicula non at est. Curabitur in justo
-              sit amet magna dignissim tristique nec quis odio.
+              {userData.history}
             </Text>
           </View>
           {/* seventhrow */}
@@ -497,7 +516,7 @@ const TryPDF: React.FC<Pdfprops> = ({ userData }) => {
                 paddingVertical: 2,
               }}
             >
-              VS:BP:
+              VS:BP: {userData.physicalExamBP}
             </Text>
 
             <Text
@@ -507,7 +526,7 @@ const TryPDF: React.FC<Pdfprops> = ({ userData }) => {
                 paddingVertical: 2,
               }}
             >
-              HR:
+              HR: {userData.physicalExamHR}
             </Text>
             <Text
               style={{
@@ -516,7 +535,7 @@ const TryPDF: React.FC<Pdfprops> = ({ userData }) => {
                 paddingVertical: 2,
               }}
             >
-              PR:
+              PR: {userData.physicalExamPR}
             </Text>
             <Text
               style={{
@@ -525,7 +544,7 @@ const TryPDF: React.FC<Pdfprops> = ({ userData }) => {
                 paddingVertical: 2,
               }}
             >
-              T:
+              T: {userData.physicalExamT}
             </Text>
             <View style={{ flexDirection: "row" }}>
               <Text
@@ -534,25 +553,35 @@ const TryPDF: React.FC<Pdfprops> = ({ userData }) => {
                   paddingVertical: 2,
                 }}
               >
-                WT
+                WT: {userData.physicalExamWT}
               </Text>
-              <Text style={{ paddingVertical: 2 }}>H</Text>
+              <Text
+                style={{
+                  width: 100,
+                  borderRight: "2px solid black",
+                  paddingVertical: 2,
+                }}
+              >
+                H: {userData.physicalExamH}
+              </Text>
             </View>
           </View>
           {/* ninthrow */}
           {/* tenthrow */}
           <View style={{ borderBottom: "2px solid black", height: 80 }}>
-            <Text>DIAGNOSIS</Text>
+            <Text>DIAGNOSIS:</Text>
+            <Text>{userData.diagnosis}</Text>
           </View>
           {/* tenthrow */}
           {/* eleventhrow */}
           <View>
             <Text>DOCTOR'S ORDER:</Text>
+            <Text>{userData.order}</Text>
             <View
               style={{
                 flexDirection: "row",
                 justifyContent: "flex-end",
-                top: 130,
+                top: 90,
               }}
             >
               <Text
@@ -566,7 +595,7 @@ const TryPDF: React.FC<Pdfprops> = ({ userData }) => {
               style={{
                 flexDirection: "row",
                 justifyContent: "flex-end",
-                top: 143,
+                top: 100,
               }}
             >
               <Text>PRINTED NAME & SIGNATURE (RESIDENT)</Text>

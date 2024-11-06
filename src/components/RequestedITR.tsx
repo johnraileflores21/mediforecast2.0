@@ -413,6 +413,9 @@ export const RequestedITR = ({ user }: { user: any }) => {
                                     <button onClick={() => handleView(card)} className="bg-blue-300 text-black px-4 py-2 rounded hover:bg-blue-400">
                                         <FaEye className="w-5 h-5 text-white" />
                                     </button>
+                                    <button onClick={() => handleView(card)} className="bg-red-300 text-black px-4 py-2 rounded hover:bg-red-400">
+                                        <MdDelete className="w-5 h-5 text-white" />
+                                    </button>
                                 </div>
                             </div>
                         ))}

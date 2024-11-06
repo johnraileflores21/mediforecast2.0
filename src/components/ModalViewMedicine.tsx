@@ -4,7 +4,7 @@ import ReceiptPDF from "./ReceiptPDF";
 
 import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
 import { useUser } from "./User";
-import {RHUs} from "../assets/common/constants";
+import {getAddress, RHUs} from "../assets/common/constants";
 
 interface Medicine {
   medicineBrandName: string;
@@ -60,10 +60,15 @@ const ModalViewMedicine: React.FC<ModalViewMedicineProps> = ({
 
     console.log('rhuIndex :>>', rhuIndex);
     console.log('rhuRomanNumeral :>>', rhuRomanNumeral);
+
+    console.log('getAddress() :>> ', getAddress(userBarangay));
+
     return {
       h1: rhuIndex == 0 ?   `Rural Health Unit ${rhuRomanNumeral}`: `${user?.rhuOrBarangay} Health Center`,
       h2: rhuIndex == 0 ? '' :  `Rural Health Unit ${rhuRomanNumeral}`,
-      h3: 'City of San Fernando, Pampanga',
+      h3: getAddress(userBarangay).address,
+      unit: userBarangay.length == 1 ? userBarangay : rhuIndex.toString(),
+      barangay: getAddress(userBarangay).barangay
     };
   };
 

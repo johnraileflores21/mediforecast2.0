@@ -17,6 +17,15 @@ export interface PatientRecord {
     date: string;
     time: string;
     requests?: Request[];
+    complaints?: string,
+    history?: string,
+    physicalExamBP?: string,
+    physicalExamHR?: string,
+    physicalExamT?: string,
+    physicalExamWT?: string,
+    physicalExamH?: string,
+    diagnosis?: string,
+    order?: string
 }
 
 interface Request {

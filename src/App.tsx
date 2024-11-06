@@ -46,6 +46,7 @@ import { ConfirmationProvider } from './components/ConfirmationContext';
 import InventoryListener from "./listeners/InventoryListener";
 
 import PrivateRouteAdmin from "./components/SuperAdmin/PrivateRouteAdmin";
+import NotFoundPage from "./NotFoundPage";
 const App = () => {
   return (
     <ConfirmationProvider>
@@ -120,6 +121,8 @@ const App = () => {
           <Route path="/settings" element={<Settings />} />
         </Route>
         {/* <Route path="/inventory" element={<Inventory />} /> */}
+
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </UserProvider>
     </ConfirmationProvider>

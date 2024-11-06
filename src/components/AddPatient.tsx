@@ -38,6 +38,15 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
     rhuOrBarangay: " ",
     created_at: "",
     updated_at: "",
+    complaints: "",
+    history: "",
+    physicalExamBP: "",
+    physicalExamHR: "",
+    physicalExamT: "",
+    physicalExamWT: "",
+    physicalExamH: "",
+    diagnosis: "",
+    order: ""
   });
 
   const userBarangay = user?.rhuOrBarangay || "";
@@ -528,6 +537,162 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
                           value={formData.phicMemberName}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                         />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="address"
+                          className="block text-sm font-medium text-gray-700 mt-4"
+                        >
+                          Chief Complaints
+                        </label>
+                        <textarea
+                          name=""
+                          id="address"
+                          onChange={handleChange}
+                          rows={2}
+                          value={formData.complaints}
+                          className="w-full p-2 border border-gray-300 rounded-md mt-1"
+                        ></textarea>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="address"
+                          className="block text-sm font-medium text-gray-700 mt-4"
+                        >
+                          Brief History
+                        </label>
+                        <textarea
+                          name=""
+                          id="address"
+                          onChange={handleChange}
+                          rows={2}
+                          value={formData.history}
+                          className="w-full p-2 border border-gray-300 rounded-md mt-1"
+                        ></textarea>
+                      </div>
+                      <div className="grid grid-cols-6 gap-4 mt-4">
+                        <div className="w-full">
+                          <label
+                            htmlFor="familyName"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            VS:BP
+                          </label>
+                          <input
+                            type="text"
+                            id="familyName"
+                            onChange={handleChange}
+                            value={formData.physicalExamBP}
+                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <div className="w-full">
+                          <label
+                            htmlFor="firstName"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            HR
+                          </label>
+                          <input
+                            type="text"
+                            onChange={handleChange}
+                            value={formData.physicalExamHR}
+                            id="firstName"
+                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor="middleName"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            PR
+                          </label>
+                          <input
+                            type="text"
+                            id="middleName"
+                            onChange={handleChange}
+                            value={formData.physicalExamHR}
+                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor="middleName"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            T
+                          </label>
+                          <input
+                            type="text"
+                            id="middleName"
+                            onChange={handleChange}
+                            value={formData.physicalExamT}
+                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor="middleName"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            WT
+                          </label>
+                          <input
+                            type="text"
+                            id="middleName"
+                            onChange={handleChange}
+                            value={formData.physicalExamWT}
+                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor="middleName"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            H
+                          </label>
+                          <input
+                            type="text"
+                            id="middleName"
+                            onChange={handleChange}
+                            value={formData.physicalExamH}
+                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="address"
+                          className="block text-sm font-medium text-gray-700 mt-4"
+                        >
+                          Diagnosis
+                        </label>
+                        <textarea
+                          name=""
+                          id="address"
+                          onChange={handleChange}
+                          rows={2}
+                          value={formData.diagnosis}
+                          className="w-full p-2 border border-gray-300 rounded-md mt-1"
+                        ></textarea>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="address"
+                          className="block text-sm font-medium text-gray-700 mt-4"
+                        >
+                          Doctor's Order
+                        </label>
+                        <textarea
+                          name=""
+                          id="address"
+                          onChange={handleChange}
+                          rows={2}
+                          value={formData.order}
+                          className="w-full p-2 border border-gray-300 rounded-md mt-1"
+                        ></textarea>
                       </div>
                     </div>
                     <div className="flex justify-end mt-4 gap-2">

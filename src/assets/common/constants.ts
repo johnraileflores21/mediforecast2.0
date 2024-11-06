@@ -136,3 +136,23 @@ export const toPascalCase = (str: string) => {
 export const getData = (card: any, user: any) => {
     return card.requests.find((request: any) => request.rhuOrBarangay === user?.rhuOrBarangay)?.status;
 }
+
+export const getAddress = (unitOrBarangay: string) => {
+    let obj = {};
+    if(["1", "2", "3"].includes(unitOrBarangay)) {
+        obj = unitOrBarangay == "1"
+            ? { address: 'San Juan, Apalit, Pampanga' }
+            : unitOrBarangay == "2"
+            ? { address: 'Tabuyuc, Apalit, Pampanga' }
+            : unitOrBarangay == "3"
+            ? { address: 'San Vicente, Apalit, Pampanga' }
+            : {}
+    } else {
+        const i = (RHUs.findIndex((rhu: any) => rhu?.barangays.includes(unitOrBarangay)));
+        const brgy = RHUs[i].barangays.find((barangay: string) => unitOrBarangay == barangay);
+        obj.address = `${brgy}, Apalit, Pampanga`;
+        obj.barangay = brgy;
+    }
+
+    return obj;
+}
