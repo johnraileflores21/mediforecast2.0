@@ -1,9 +1,7 @@
 import React from "react";
 import {
-  HashRouter,
   Routes,
   Route,
-  Link,
   Navigate,
 } from "react-router-dom";
 import Login from "./components/Login";
@@ -52,7 +50,7 @@ const App = () => {
     <ConfirmationProvider>
     <UserProvider>
       <InventoryListener />
-      <HashRouter>
+      <Routes>
         {/* Super Admin */}
         <Route path="/administrator" element={<AdminLogin />} />
         <Route element={<PrivateRouteAdmin />}>
@@ -123,7 +121,7 @@ const App = () => {
         {/* <Route path="/inventory" element={<Inventory />} /> */}
 
         <Route path="*" element={<NotFoundPage />} />
-      </HashRouter>
+      </Routes>
     </UserProvider>
     </ConfirmationProvider>
   );
