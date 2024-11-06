@@ -324,14 +324,14 @@ const Login = () => {
               {showPassword ? (
                 <FaEye
                   onClick={handleShowPassword}
-                  className={`w-6 h-6 absolute left-[42%] top-[56%] md:left-[42%] md:top-[53%] text-teal-800 cursor-pointer ${
+                  className={`w-6 h-6 absolute left-[42%] top-[56%] md:left-[42%] md:top-[53%] mt-[-15px] text-teal-800 cursor-pointer ${
                     errorEmail ? "xl:top-[57%]" : "xl:top-[56%]"
                   }`}
                 />
               ) : (
                 <FaEyeSlash
                   onClick={handleShowPassword}
-                  className={`w-6 h-6 absolute left-[42%] top-[56%] md:left-[42%] md:top-[53%] text-teal-800 cursor-pointer ${
+                  className={`w-6 h-6 absolute left-[42%] top-[56%] md:left-[42%] md:top-[53%] mt-[-15px] text-teal-800 cursor-pointer ${
                     errorEmail ? "xl:top-[57%]" : "xl:top-[56%]"
                   }`}
                 />
@@ -395,6 +395,16 @@ const Login = () => {
               >
                 {" "}
                 Sign up
+              </Link>
+            </div>
+            <div className="text-center text-gray-600">
+              Login as
+              <Link
+                to="/administrator"
+                className="font-bold text-teal-700 hover:text-teal-900"
+              >
+                {" "}
+                Administrator
               </Link>
             </div>
           </form>

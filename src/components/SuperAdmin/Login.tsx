@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
   sendEmailVerification,
@@ -128,6 +128,16 @@ const Login = () => {
                 "Login"
               )}
             </button>
+          <div className="text-center text-gray-600">
+              Login as
+              <Link
+                to="/"
+                className="font-bold text-teal-700 hover:text-teal-900"
+              >
+                {" "}
+                Facilitator
+              </Link>
+            </div>
           </form>
           <div className="relative">
             <img
