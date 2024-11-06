@@ -70,19 +70,24 @@ const Request = () => {
     const loadData = async () => {
         try {
             setLoading(true);
+            
+            const c = user?.role.includes('Barangay');
+            const f = c ? 'userId' : 'unit';
+            const v = c ? user?.uid : user?.rhuOrBarangay;
 
-            const q = query(
-                collection(db, "Requests"),
-                where(user?.role.includes('Barangay') ? "userId" : "rhuId", "==", user?.uid)
-            );
+            const q = query(collection(db, "Requests"), where(f, '==', v));
 
             onSnapshot(q, async (snapshot: any) => {
                 const itemsData = await Promise.all(
                     snapshot.docs.map(async (docSnapshot: any) => {
                         const requestData = docSnapshot.data();
 
+                        console.log('requestData :>> ', requestData);
+
                         const itemRef = doc(db, "Inventory", requestData.itemId);
                         const itemSnap = await getDoc(itemRef);
+
+                        console.log('itemSnap :>> ', itemSnap);
 
                         let itemData = null;
                         if(itemSnap.exists())

@@ -110,11 +110,13 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
 
   const handleChange = (index: number, e: any) => {
     const findItem = items.find((x: any) => x.id === e.target.value);
+    console.log('findItem.userId :>> ', findItem.userId);
     const newForms = [...forms];
     newForms[index] = {
       ...newForms[index],
       itemId: findItem.id,
       rhuId: findItem.userId,
+      unit: findItem.created_by_unit,
     };
     setForms(newForms);
     const newSelectedItems = [...selectedItems];
