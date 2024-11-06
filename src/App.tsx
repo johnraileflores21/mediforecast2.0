@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  HashRouter as Router,
+  HashRouter,
   Routes,
   Route,
   Link,
@@ -52,7 +52,7 @@ const App = () => {
     <ConfirmationProvider>
     <UserProvider>
       <InventoryListener />
-      <Routes>
+      <HashRouter>
         {/* Super Admin */}
         <Route path="/administrator" element={<AdminLogin />} />
         <Route element={<PrivateRouteAdmin />}>
@@ -123,7 +123,7 @@ const App = () => {
         {/* <Route path="/inventory" element={<Inventory />} /> */}
 
         <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+      </HashRouter>
     </UserProvider>
     </ConfirmationProvider>
   );
