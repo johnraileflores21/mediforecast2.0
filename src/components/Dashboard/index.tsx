@@ -197,18 +197,21 @@ const Dashboard: React.FC = () => {
           count={inventoryCount}
           icon={MdInventory}
           backgroundColor="#6C63FF"
+          path="/inventory"
         />
         <CountCard
           title="REQUEST"
           count={requestsCount}
           icon={FaQuestionCircle}
           backgroundColor="#00C49A"
+          path="/request"
         />
         <CountCard
           title="ITR RECORDS"
           count={itrRecordsCount}
           icon={FaFileShield}
           backgroundColor="#FF6384"
+          path="/individual-treatment-record"
         />
       </div>
       <div className="mt-8">
