@@ -186,8 +186,8 @@ const UserInfo: React.FC<UserInfoProps> = ({
                 <div className="mb-4">
                   <h1 className="font-bold">Selfie with ID</h1>
                   <div>
-                    {user?.idSelfie ? <img
-                      src={user?.idSelfie}
+                    {user?.idSelfie || user?.selfieID ? <img
+                      src={user?.idSelfie || user?.selfieID}
                       className="w-[100%] h-[250px] object-contain border-3 border-gray-100 rounded-lg shadow-md hover:shadow-lg"
                       style={{boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'}}
                     /> : <i>No ID available.</i>}
