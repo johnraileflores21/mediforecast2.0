@@ -5,6 +5,7 @@ import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import { useUser } from "./User";
 import notificationService from "../utils/notificationService";
+import { useNavigate } from "react-router-dom";
 
 interface Notification {
   id: string;
@@ -20,6 +21,7 @@ const NotificationModal = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const { user } = useUser();
+  const navigate = useNavigate();
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
@@ -51,8 +53,15 @@ const NotificationModal = () => {
     }
   }, [user?.rhuOrBarangay]);
 
-  const handleNotificationClick = async (notificationId: string) => {
+  const handleNotificationClick = async (notificationId: string, type: string) => {
     await notificationService.markAsRead(notificationId);
+
+    navigate(type == 'request'
+      ? '/request'
+      : type == 'community-post'
+        ? '/community'
+        : '/inventory'
+    )
   };
 
 
@@ -93,8 +102,8 @@ const NotificationModal = () => {
           {notifications.map((notification) => (
               <div
                 key={notification.id}
-                onClick={() => handleNotificationClick(notification.id)}
-                className={`flex p-2 m-2  rounded-lg hover:bg-gray-100 transition-colors duration-200 ${
+                onClick={() => handleNotificationClick(notification.id, notification.action)}
+                className={`flex p-2 m-2 cursor-pointer  rounded-lg hover:bg-gray-100 transition-colors duration-200 ${
                   notification.status === 'unread' ? 'bg-gray-200' : ''
                 }`}
               >

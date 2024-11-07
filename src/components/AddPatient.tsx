@@ -3,6 +3,8 @@ import { collection, addDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useUser } from "./User";
 import { RHUs } from "../assets/common/constants";
+import { useConfirmation } from "../hooks/useConfirmation";
+import Swal from "sweetalert2";
 
 interface AddPatientProps {
   showModal: boolean;
@@ -48,6 +50,8 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
     diagnosis: "",
     order: ""
   });
+
+  const confirm = useConfirmation();
 
   const userBarangay = user?.rhuOrBarangay || "";
   const isRHU = userBarangay.length == 1;
@@ -104,6 +108,14 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
   };
 
   const handleSubmit = async () => {
+
+    const isConfirmed = await confirm({
+      title: 'Confirm Submission',
+      message: 'Are you sure you want to add this ITR?',
+    });
+
+    if(!isConfirmed) return;
+
     const cleanedFormData = Object.fromEntries(
       Object.entries(formData).filter(
         ([_, value]) => value !== "" && value !== null
@@ -121,14 +133,24 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
         collection(db, "IndividualTreatmentRecord"),
         cleanedFormData
       );
-      console.log("Document successfully written!");
+      Swal.fire({
+        position: "center",
+        icon: "success",
+        title: `ITR created successfully`,
+        showConfirmButton: false,
+        timer: 1000,
+      });
       closeModal();
       // window.location.reload();
     } catch (error) {
       console.error("Error adding document: ", error);
-      alert(
-        "Failed to add patient record. Please check the console for details."
-      );
+      Swal.fire({
+        position: "center",
+        icon: "error",
+        title: `Unable to create ITR`,
+        showConfirmButton: false,
+        timer: 1000,
+      });
     }
   };
 

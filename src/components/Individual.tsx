@@ -121,7 +121,9 @@ const Individual = () => {
     setModalAdd(true);
   };
   const closeModalAdd = () => {
+    fetchData();
     setModalAdd(false);
+    setDeleteId(null);
   };
   const handleEdit = async (id: string) => {
     setModalEdit(true);
@@ -166,22 +168,25 @@ const Individual = () => {
     }
   };
 
-  const closeModal = () => {
-    setShowModal(false);
-    fetchData();
-    setDeleteId(null);
-  };
-
-  const filteredData = userData.filter(
-    (record) =>
-      record.familyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      record.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      record.middleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      record.sex.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      record.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      record.mobileno.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      record.dateOfBirth.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredData = userData
+    .filter(
+      (record) =>
+        record.familyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.middleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.sex.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.mobileno.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.dateOfBirth.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      if(selectedOption === "A-Z") {
+        return a.familyName.localeCompare(b.familyName);
+      } else if(selectedOption === "Z-A") {
+        return b.familyName.localeCompare(a.familyName);
+      }
+      return 0;
+    });
 
 
   useEffect(() => {

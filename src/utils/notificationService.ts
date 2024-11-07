@@ -2,20 +2,20 @@
 import { collection, addDoc, getDocs, query, where, updateDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from "../firebase";
 
-export type NotificationAction = 'approve' | 'request' | 'distribute' | 'receive' | 'outOfStock' | 'alert';
+export type NotificationAction = 'approve' | 'request' | 'distribute' | 'receive' | 'outOfStock' | 'alert' | 'request-itr' | 'community-post';
 
 export interface Notification {
   id?: string;
   action: NotificationAction;
   barangayItemId?: string | null;
-  itemId: string;
-  itemName: string;
-  itemType: string;
-  quantity: number;
-  description: string;
-  performedBy: string;
-  sentBy: string;
-  sentTo: string; // Barangay or full name
+  itemId?: string;
+  itemName?: string;
+  itemType?: string;
+  quantity?: number;
+  description?: string;
+  performedBy?: string;
+  sentBy?: string;
+  sentTo?: string; // Barangay or full name
   createdAt: Timestamp;
   readAt?: Timestamp;
   status: 'unread' | 'read';

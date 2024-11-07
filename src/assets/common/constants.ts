@@ -114,8 +114,11 @@ export const RHUs = [
     {"barangays": ["San Vicente", "Sampaloc", "Paligui"]}
 ];
 
-export const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+export const formatDate = (dateString: any) => {
+    let date;
+    if(typeof dateString == 'object') {
+        date = new Date(dateString.seconds * 1000 + dateString.nanoseconds / 1000000);
+    } else date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       month: "long",
       day: "numeric",
@@ -156,3 +159,21 @@ export const getAddress = (unitOrBarangay: string) => {
 
     return obj;
 }
+
+export const capitalizeAndFormatLabel = (label: string) => {
+    // Handle specific renaming for certain fields like created_at and updated_at
+    const specialLabels: { [key: string]: string } = {
+      created_at: 'Created Date',
+      updated_at: 'Updated Date',
+    };
+
+    // If the label is one of the special fields, return the mapped value
+    if (specialLabels[label]) {
+      return specialLabels[label];
+    }
+
+    return label
+      .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase to normal case
+      .replace(/_/g, ' ') // snake_case to normal case
+      .replace(/\b\w/g, (char) => char.toUpperCase()); // capitalize
+};

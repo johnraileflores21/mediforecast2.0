@@ -13,6 +13,7 @@ import {RHUs} from "../assets/common/constants";
 import { createHistoryLog }  from '../utils/historyService';
 import notificationService from '../utils/notificationService';
 import { useConfirmation } from '../hooks/useConfirmation';
+import { MdDownload } from "react-icons/md";
 
 
 
@@ -26,6 +27,8 @@ const Request = () => {
     const [loading, setLoading] = useState<boolean>(false);
     const [modalAdd, setModalAdd] = useState(false);
     const [modalPDF, setModalPDF] = useState(false);
+    const [singleModalPDF, setSingleModalPDF] = useState(false);
+    const [singlePDFData, setSinglePDFData] = useState({});
     const { user } = useUser();
 
     const handleAdd = () => {
@@ -370,6 +373,12 @@ const Request = () => {
         setModalPDF(true);
       };
 
+    const viewSinglePrint = (data: any) => {
+        setSingleModalPDF(true);
+        console.log('singleModalPDF :>> ', singleModalPDF);
+        setSinglePDFData(data);
+    };
+
 
 
     const handleDropdown = () => setDropdownOpen(!dropdownOpen);
@@ -563,6 +572,15 @@ const Request = () => {
                                     {!user?.role.includes('Barangay') ? <td className="px-6 py-4">
                                         <div className="flex items-center">
                                             <button
+                                                className={`bg-green-500 rounded-md text-white p-2 hover:bg-green-700 mr-2 flex items-center ${(loading) && 'opacity-[0.5]'}`}
+                                                onClick={() => viewSinglePrint(itemData)}
+                                            >
+                                                <MdDownload
+                                                    className="w-5 h-5"
+                                                />
+                                                <span className="mr-5">Print</span>
+                                            </button>
+                                            <button
                                                 className={`bg-blue-500 rounded-md text-white p-2 hover:bg-blue-700 mr-2 flex items-center ${(loading || itemData.status !== 'pending') && 'opacity-[0.5]'}`}
                                                 onClick={() => handleApprove(itemData.id)}
                                                 disabled={loading || itemData.status !== 'pending'}
@@ -592,6 +610,15 @@ const Request = () => {
                                        {itemData.status != 'pending' &&  <td className="px-6 py-4">
                                             <div className="flex items-center">
                                                 <button
+                                                    className={`bg-green-500 rounded-md text-white p-2 hover:bg-green-700 mr-2 flex items-center ${(loading) && 'opacity-[0.5]'}`}
+                                                    onClick={() => viewSinglePrint(itemData)}
+                                                >
+                                                    <MdDownload
+                                                        className="w-5 h-5"
+                                                    />
+                                                    <span className="mr-5">Print</span>
+                                                </button>
+                                                <button
                                                     className={`bg-green-500 rounded-md text-white p-2 hover:bg-green-700 mr-2 flex items-center ${(loading || itemData.status == 'approved') && 'opacity-[0.5]'}`}
                                                     onClick={() => handleConfirmReceipt(itemData.id)}
                                                     disabled={loading || itemData.status !== 'for_confirmation'}
@@ -620,6 +647,16 @@ const Request = () => {
                         showModal={modalPDF}
                         closeModal={() => setModalPDF(false)}
                         data={filteredAndSortedItems}
+                        user={user}
+                        header={pdfHeader}
+
+                    />
+                )}
+                {singleModalPDF && (
+                    <PDFPreviewModal
+                        showModal={singleModalPDF}
+                        closeModal={() => setSingleModalPDF(false)}
+                        data={singlePDFData}
                         user={user}
                         header={pdfHeader}
 

@@ -14,6 +14,8 @@ import TryPDF from "./TryPDF";
 import ScrollToTop from "./ScrollToTop";
 import Swal from "sweetalert2";
 import notificationService from "../utils/notificationService";
+import Try from "./Try";
+import { useConfirmation } from "../hooks/useConfirmation";
 
 interface Request {
     rhuOrBarangay: string;
@@ -61,6 +63,8 @@ export const RequestedITR = ({ user }: { user: any }) => {
 
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
+
+    const confirm = useConfirmation();
 
     const fetchData = async () => {
         try {
@@ -307,19 +311,15 @@ export const RequestedITR = ({ user }: { user: any }) => {
                 requests: [{ rhuOrBarangay: user?.rhuOrBarangay, status: "pending" }]
             });
 
-            // await notificationService.createNotification({
-            //     action: 'request',
-            //     barangayItemId: null,
-        
-            //     itemId: payloads.map((x) => x.itemId).join(','),
-            //     itemName: payloads.map((x) => x.itemId).join(','),
-            //     itemType: 'medicine',
-            //     quantity: payloads.map((x) => x.requestedQuantity).reduce((a, b) => a + b, 0),
-            //     description: `Requested ${payloads.length} item(s)`,
-            //     performedBy: user?.uid || '',
-            //     sentBy: user?.rhuOrBarangay || '',
-            //     sentTo: sentTo.toString(),
-            // });
+            const sentTo = RHUs.findIndex((x: any) => x["barangays"].includes(user?.barangay)) + 1;
+
+            await notificationService.createNotification({
+                action: 'request-itr',
+                description: `Requested ITR`,
+                performedBy: user?.uid || '',
+                sentBy: user?.rhuOrBarangay || '',
+                sentTo: sentTo.toString(),
+            });
 
             Swal.fire({
                 position: "center",
@@ -336,6 +336,47 @@ export const RequestedITR = ({ user }: { user: any }) => {
         } finally {
             setShowModal(false);
             fetchData();
+        }
+    }
+
+    const handleDelete = async (item: any) => {
+        try {
+
+            const isConfirmed = await confirm({
+                title: 'Confirm Submission',
+                message: 'Are you sure you want to remove this ITR?',
+            });
+
+            if(!isConfirmed) return;
+            
+            const itemDocRef = doc(db, 'IndividualTreatmentRecord', item.id);
+
+            const i = (item || []).requests.findIndex((req: any) => {
+                return req.rhuOrBarangay == user?.rhuOrBarangay
+            });
+
+            if(i !== -1) item.requests.splice(i, 1);
+
+            await updateDoc(itemDocRef, item);
+
+            Swal.fire({
+                position: "center",
+                icon: "success",
+                title: `Record successfully deleted.`,
+                showConfirmButton: false,
+                timer: 1500,
+            });
+
+            fetchData();
+
+        } catch (error) {
+            Swal.fire({
+                position: "center",
+                icon: "error",
+                title: `Unable to delete record`,
+                showConfirmButton: false,
+                timer: 1500,
+            });
         }
     }
 
@@ -413,7 +454,7 @@ export const RequestedITR = ({ user }: { user: any }) => {
                                     <button onClick={() => handleView(card)} className="bg-blue-300 text-black px-4 py-2 rounded hover:bg-blue-400">
                                         <FaEye className="w-5 h-5 text-white" />
                                     </button>
-                                    <button onClick={() => handleView(card)} className="bg-red-300 text-black px-4 py-2 rounded hover:bg-red-400">
+                                    <button onClick={() => handleDelete(card)} className="bg-red-300 text-black px-4 py-2 rounded hover:bg-red-400">
                                         <MdDelete className="w-5 h-5 text-white" />
                                     </button>
                                 </div>

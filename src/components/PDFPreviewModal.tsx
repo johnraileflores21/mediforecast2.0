@@ -2,6 +2,7 @@
 import React from 'react';
 import { PDFViewer, PDFDownloadLink } from '@react-pdf/renderer';
 import RequestsPDF from './RequestsPDF';
+import RequestSinglePDF from './RequestSinglePDF';
 
 const PDFPreviewModal = ({ showModal, closeModal, data, user, header }: any) => {
   if (!showModal) return null;
@@ -17,7 +18,10 @@ const PDFPreviewModal = ({ showModal, closeModal, data, user, header }: any) => 
             </button>
             <div className="mt-4">
               <PDFViewer style={{ width: '100%', height: '500px' }}>
-                <RequestsPDF data={data} user={user} header={header}/>
+                {Array.isArray(data) ?
+                  <RequestsPDF data={data} user={user} header={header}/> :
+                  <RequestSinglePDF data={data} user={user} header={header} />
+                }
               </PDFViewer>
               {/* <div className="mt-4 text-center">
                 <PDFDownloadLink
