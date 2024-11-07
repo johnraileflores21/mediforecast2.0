@@ -9,7 +9,7 @@ import { db } from "../firebase";
 import Swal from "sweetalert2";
 import RequestAdd from "../components/Request/RequestAdd";
 import PDFPreviewModal from "./PDFPreviewModal";
-import {RHUs} from "../assets/common/constants";
+import {RHUs, ucfirst} from "../assets/common/constants";
 import { createHistoryLog }  from '../utils/historyService';
 import notificationService from '../utils/notificationService';
 import { useConfirmation } from '../hooks/useConfirmation';
@@ -48,27 +48,36 @@ const Request = () => {
     };
     const filteredAndSortedItems = items
         .filter(
-            (itemData) =>
-                selectedOption === "All" ||
-                (selectedOption === "Medicines" && itemData?.item?.type === "Medicine") ||
-                (selectedOption === "Vaccines" && itemData?.item?.type === "Vaccine") ||
-                (selectedOption === "Vitamins" && itemData?.item?.type === "Vitamin")
+        (itemData) =>
+            selectedOption === "All" ||
+            (selectedOption === "Medicines" && itemData?.item?.type === "Medicine") ||
+            (selectedOption === "Vaccines" && itemData?.item?.type === "Vaccine") ||
+            (selectedOption === "Vitamins" && itemData?.item?.type === "Vitamin")
         )
         .filter(
-            (itemData) =>
-                itemData?.item?.medicineBrandName
-                    ?.toLowerCase()
-                    .includes(searchQuery.toLowerCase()) ||
-                itemData?.item?.medicineGenericName
-                    ?.toLowerCase()
-                    .includes(searchQuery.toLowerCase()) ||
-                itemData?.item?.vaccineName
-                    ?.toLowerCase()
-                    .includes(searchQuery.toLowerCase()) ||
-                itemData?.item?.vitaminBrandName
-                    ?.toLowerCase()
-                    .includes(searchQuery.toLowerCase())
-        );
+        (itemData) =>
+            itemData?.item?.medicineBrandName
+            ?.toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+            itemData?.item?.medicineGenericName
+            ?.toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+            itemData?.item?.vaccineName
+            ?.toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+            itemData?.item?.vitaminBrandName
+            ?.toLowerCase()
+            .includes(searchQuery.toLowerCase())
+        )
+        .sort((a, b) => {
+            const _a = a.created_at?.toDate();
+            const _b = b.created_at?.toDate();
+            
+            if(_a && _b) return _a - _b;
+            return 0;
+        });
+    
+  
 
     const loadData = async () => {
         try {
@@ -491,6 +500,12 @@ const Request = () => {
                     <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                         <thead className="text-xs text-gray-700 uppercase bg-gray-300 dark:bg-gray-700 dark:text-gray-400">
                             <tr>
+                                <th
+                                    scope="col"
+                                    className="px-6 py-3 border text-xs font-bold text-black"
+                                >
+                                    ID
+                                </th>
                                 {!user?.role.includes('Barangay') && <th
                                     scope="col"
                                     className="px-6 py-3 border text-xs font-bold text-black"
@@ -535,6 +550,9 @@ const Request = () => {
                                     key={index}
                                     className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
                                 >
+                                    <td className="px-6 py-4 text-gray-900">
+                                        {itemData.id.slice(0, 15)}
+                                    </td>
                                     {!user?.role.includes('Barangay') && <td className="px-6 py-4 text-gray-900">
                                         {itemData.barangay}
                                     </td>}
@@ -550,7 +568,7 @@ const Request = () => {
                                         {itemData.requestedQuantity}
                                     </td>
                                     <td className="px-6 py-4 text-gray-900">
-                                        {itemData.reason || 'N/A'}
+                                        {ucfirst(itemData.reason) || 'N/A'}
                                     </td>
                                     <td className="px-6 py-2">
                                         <span

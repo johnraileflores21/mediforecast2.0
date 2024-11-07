@@ -2,7 +2,7 @@
 import { collection, addDoc, getDocs, query, where, updateDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from "../firebase";
 
-export type NotificationAction = 'approve' | 'request' | 'distribute' | 'receive' | 'outOfStock' | 'alert' | 'request-itr' | 'community-post';
+export type NotificationAction = 'approve' | 'request' | 'distribute' | 'receive' | 'outOfStock' | 'alert' | 'request-itr' | 'approve-itr' | 'reject-itr' | 'community-post';
 
 export interface Notification {
   id?: string;

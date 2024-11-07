@@ -154,7 +154,6 @@ const Dashboard: React.FC = () => {
           }))
           setInventoryList(inventoryList);
 
-          // Fetch Requests count
           const requestQuery =  query(
             collection(db, "Requests"),
             where(isBarangay ? "userId" : "rhuId", "==", user?.uid)
@@ -162,11 +161,12 @@ const Dashboard: React.FC = () => {
           const requestsSnapshot = await getDocs(requestQuery);
           setRequestsCount(requestsSnapshot.size);
 
-
-          // Fetch Individual Treatment Records count
-          const itrRecordsSnapshot = await getDocs(
-            collection(db, "IndividualTreatmentRecord")
+          const itrRecordsQuery = query(
+            collection(db, "IndividualTreatmentRecord"),
+            where("rhuOrBarangay", "==", user?.rhuOrBarangay)
           );
+          
+          const itrRecordsSnapshot = await getDocs(itrRecordsQuery);
           setItrRecordsCount(itrRecordsSnapshot.size);
         } catch (error) {
           console.error("Error fetching counts:", error);

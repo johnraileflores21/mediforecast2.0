@@ -161,19 +161,29 @@ export const getAddress = (unitOrBarangay: string) => {
 }
 
 export const capitalizeAndFormatLabel = (label: string) => {
-    // Handle specific renaming for certain fields like created_at and updated_at
     const specialLabels: { [key: string]: string } = {
       created_at: 'Created Date',
       updated_at: 'Updated Date',
     };
 
-    // If the label is one of the special fields, return the mapped value
     if (specialLabels[label]) {
       return specialLabels[label];
     }
 
     return label
-      .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase to normal case
-      .replace(/_/g, ' ') // snake_case to normal case
-      .replace(/\b\w/g, (char) => char.toUpperCase()); // capitalize
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/_/g, ' ') 
+      .replace(/\b\w/g, (char) => char.toUpperCase()); 
+};
+
+export const ucwords = (word: string) => word.split(' ')
+    .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+
+export const ucfirst = (word: string) => {
+    const w = word.split('');
+    const f = isNaN(w[0])
+        ? w[0].toUpperCase()
+        : w[0];
+    return f + w.slice(1, w.length).join("");
 };

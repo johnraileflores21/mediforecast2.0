@@ -1,17 +1,19 @@
 import React, { useState, useEffect, ChangeEvent } from "react";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useUser } from "./User";
-import { RHUs } from "../assets/common/constants";
+import { RHUs, ucwords } from "../assets/common/constants";
 import { useConfirmation } from "../hooks/useConfirmation";
 import Swal from "sweetalert2";
 
 interface AddPatientProps {
   showModal: boolean;
   closeModal: () => void;
+  editForm?: any
+  isEdit?: boolean
 }
 
-const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
+const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm, isEdit }) => {
   const [sexdropdown, setSexDropdown] = useState<boolean>(false);
   const [sex, setSex] = useState<string>("Choose Sex");
   const [statusdropdown, setStatusDropdown] = useState<boolean>(false);
@@ -68,6 +70,13 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
     };
   });
 
+  useEffect(() => {
+    console.log('editForm :>> ', editForm);
+    if(editForm && isEdit) {
+      setFormData(editForm);
+    }
+  }, [editForm]);
+
   const handleSexDropdown = () => {
     setSexDropdown(!sexdropdown);
   };
@@ -98,12 +107,13 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
     setBroughtByDropdown(false);
   };
 
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    let isName = ['familyName', 'firstName', 'middleName'];
+
     setFormData({
       ...formData,
-      [e.target.id]: e.target.value,
+      [e.target.id]: (isName.includes(e.target.id) 
+        ? ucwords(e.target.value) : e.target.value),
     });
   };
 
@@ -111,7 +121,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
 
     const isConfirmed = await confirm({
       title: 'Confirm Submission',
-      message: 'Are you sure you want to add this ITR?',
+      message: `Are you sure you want to ${isEdit ? 'update' : 'add'} this ITR?`,
     });
 
     if(!isConfirmed) return;
@@ -125,23 +135,33 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
     cleanedFormData.date = currentDate.toLocaleDateString();
     cleanedFormData.time = currentDate.toLocaleTimeString();
     const dateToday = currentDate.toISOString();
-    cleanedFormData.created_at = dateToday;
+
     cleanedFormData.updated_at = dateToday;
-    cleanedFormData.rhuOrBarangay = rhuIndex.toString();
+    cleanedFormData.rhuOrBarangay = userBarangay;
     try {
-      await addDoc(
-        collection(db, "IndividualTreatmentRecord"),
-        cleanedFormData
-      );
+      if(!isEdit) {
+        cleanedFormData.created_at = dateToday;
+
+        await addDoc(
+          collection(db, "IndividualTreatmentRecord"),
+          cleanedFormData
+        );
+
+      } else {
+
+        const id = editForm.id;
+        
+        const docRef = doc(db, "IndividualTreatmentRecord", id);
+        await updateDoc(docRef, cleanedFormData);
+      }
       Swal.fire({
         position: "center",
         icon: "success",
-        title: `ITR created successfully`,
+        title: `ITR ${isEdit ? 'updated' : 'created'} successfully`,
         showConfirmButton: false,
         timer: 1000,
       });
       closeModal();
-      // window.location.reload();
     } catch (error) {
       console.error("Error adding document: ", error);
       Swal.fire({
@@ -167,7 +187,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
                 <div className="sm:flex sm:items-start">
                   <div className="mt-3 text-center sm:mt-0 sm:text-center">
                     <h3 className="text-xl p-2 leading-6 font-medium text-gray-900">
-                      Add Patient Record
+                      {isEdit ? 'Update' : 'Add'} Patient Record
                     </h3>
                     <div>
                       <div className="grid grid-cols-3 gap-4 mt-4">
@@ -562,14 +582,14 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
                       </div>
                       <div>
                         <label
-                          htmlFor="address"
+                          htmlFor="complaints"
                           className="block text-sm font-medium text-gray-700 mt-4"
                         >
                           Chief Complaints
                         </label>
                         <textarea
                           name=""
-                          id="address"
+                          id="complaints"
                           onChange={handleChange}
                           rows={2}
                           value={formData.complaints}
@@ -578,14 +598,14 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
                       </div>
                       <div>
                         <label
-                          htmlFor="address"
+                          htmlFor="history"
                           className="block text-sm font-medium text-gray-700 mt-4"
                         >
                           Brief History
                         </label>
                         <textarea
                           name=""
-                          id="address"
+                          id="history"
                           onChange={handleChange}
                           rows={2}
                           value={formData.history}
@@ -595,14 +615,14 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
                       <div className="grid grid-cols-6 gap-4 mt-4">
                         <div className="w-full">
                           <label
-                            htmlFor="familyName"
+                            htmlFor="physicalExamBP"
                             className="block text-sm font-medium text-gray-700"
                           >
                             VS:BP
                           </label>
                           <input
                             type="text"
-                            id="familyName"
+                            id="physicalExamBP"
                             onChange={handleChange}
                             value={formData.physicalExamBP}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
@@ -610,7 +630,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
                         </div>
                         <div className="w-full">
                           <label
-                            htmlFor="firstName"
+                            htmlFor="physicalExamHR"
                             className="block text-sm font-medium text-gray-700"
                           >
                             HR
@@ -619,35 +639,35 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
                             type="text"
                             onChange={handleChange}
                             value={formData.physicalExamHR}
-                            id="firstName"
+                            id="physicalExamHR"
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           />
                         </div>
                         <div>
                           <label
-                            htmlFor="middleName"
+                            htmlFor="physicalExamPR"
                             className="block text-sm font-medium text-gray-700"
                           >
                             PR
                           </label>
                           <input
                             type="text"
-                            id="middleName"
+                            id="physicalExamPR"
                             onChange={handleChange}
-                            value={formData.physicalExamHR}
+                            value={formData.physicalExamPR}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           />
                         </div>
                         <div>
                           <label
-                            htmlFor="middleName"
+                            htmlFor="physicalExamT"
                             className="block text-sm font-medium text-gray-700"
                           >
                             T
                           </label>
                           <input
                             type="text"
-                            id="middleName"
+                            id="physicalExamT"
                             onChange={handleChange}
                             value={formData.physicalExamT}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
@@ -655,14 +675,14 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
                         </div>
                         <div>
                           <label
-                            htmlFor="middleName"
+                            htmlFor="physicalExamT"
                             className="block text-sm font-medium text-gray-700"
                           >
                             WT
                           </label>
                           <input
                             type="text"
-                            id="middleName"
+                            id="physicalExamWT"
                             onChange={handleChange}
                             value={formData.physicalExamWT}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
@@ -670,14 +690,14 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
                         </div>
                         <div>
                           <label
-                            htmlFor="middleName"
+                            htmlFor="physicalExamH"
                             className="block text-sm font-medium text-gray-700"
                           >
                             H
                           </label>
                           <input
                             type="text"
-                            id="middleName"
+                            id="physicalExamH"
                             onChange={handleChange}
                             value={formData.physicalExamH}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
@@ -686,14 +706,14 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
                       </div>
                       <div>
                         <label
-                          htmlFor="address"
+                          htmlFor="diagnosis"
                           className="block text-sm font-medium text-gray-700 mt-4"
                         >
                           Diagnosis
                         </label>
                         <textarea
                           name=""
-                          id="address"
+                          id="diagnosis"
                           onChange={handleChange}
                           rows={2}
                           value={formData.diagnosis}
@@ -702,14 +722,14 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal }) => {
                       </div>
                       <div>
                         <label
-                          htmlFor="address"
+                          htmlFor="order"
                           className="block text-sm font-medium text-gray-700 mt-4"
                         >
                           Doctor's Order
                         </label>
                         <textarea
                           name=""
-                          id="address"
+                          id="order"
                           onChange={handleChange}
                           rows={2}
                           value={formData.order}

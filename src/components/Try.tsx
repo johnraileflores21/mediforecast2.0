@@ -417,7 +417,12 @@ const Try: React.FC = () => {
           .includes(searchQuery.toLowerCase()) ||
         item.vaccineName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.vitaminBrandName?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    ).sort((a, b) => {
+      const aName = a.medicineBrandName || a.vaccineName || a.vitaminBrandName || '';
+      const bName = b.medicineBrandName || b.vaccineName || b.vitaminBrandName || '';
+      
+      return aName.toLowerCase().localeCompare(bName.toLowerCase());
+    });
   return (
     <DashboardLayout>
       <ToastContainer />

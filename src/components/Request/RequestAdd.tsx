@@ -94,7 +94,14 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
         }
       }
 
-      setItems(filteredItems);
+      const sortedItems = filteredItems.sort((a, b) => {
+        const aName = a.medicineBrandName || a.vaccineName || a.vitaminBrandName || '';
+        const bName = b.medicineBrandName || b.vaccineName || b.vitaminBrandName || '';
+        
+        return aName.toLowerCase().localeCompare(bName.toLowerCase());
+      });;
+
+      setItems(sortedItems);
     } catch (error) {
       console.error("Error fetching data: ", error);
     } finally {

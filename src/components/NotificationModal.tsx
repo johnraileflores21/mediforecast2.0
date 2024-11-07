@@ -60,7 +60,9 @@ const NotificationModal = () => {
       ? '/request'
       : type == 'community-post'
         ? '/community'
-        : '/inventory'
+        : type.includes('itr')
+          ? '/individual-treatment-record'
+          : '/inventory'
     )
   };
 

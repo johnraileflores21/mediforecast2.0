@@ -6,10 +6,12 @@ import { TbLetterX } from "react-icons/tb";
 import { db, storage } from "../firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 } from "uuid";
-import { addDoc, collection } from "firebase/firestore";
+import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useUser } from "./User";
+import notificationService from "../utils/notificationService";
+import { RHUs } from "../assets/common/constants";
 
 interface PostProps {
   isVisible: boolean;
@@ -62,6 +64,33 @@ const Post: React.FC<PostProps> = ({ isVisible, closeModal }) => {
     };
   }, [preview]);
   const onSubmit = async () => {
+
+    const userQuery = query(
+      collection(db, "Users"),
+      where("acc_status", "==", 'approved')
+    );
+
+    const userSnap = await getDocs(userQuery);
+    console.log("userSnap :>> ", userSnap);
+    const userData = userSnap.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    
+    const users = userData.map(x => x.rhuOrBarangay);
+    const rmv = [...new Set(users)]
+      .filter((rm: string) => rm != user?.rhuOrBarangay);
+
+    for(let i = 0; i < rmv.length; i++) {
+      await notificationService.createNotification({
+        action: 'community-post',
+        description: `New Post`,
+        performedBy: user?.uid || '',
+        sentBy: user?.rhuOrBarangay || '',
+        sentTo: rmv[i],
+      });
+    }
+
     setLoading(true);
     const now = new Date();
     const dateToday = now.toISOString();
@@ -86,6 +115,7 @@ const Post: React.FC<PostProps> = ({ isVisible, closeModal }) => {
         collection(db, "CommunityPost"),
         formDataWithImage
       );
+
       console.log("Document written with ID: ", docRef.id);
       setFormData({
         postMessage: "",

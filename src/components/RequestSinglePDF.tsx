@@ -146,7 +146,7 @@ const RequestSinglePDF = ({ data, user, header }: any) => {
     return Object.keys(d).map((key) => (
       <View style={styles.fieldContainer} key={key}>
         <Text style={styles.fieldLabel}>
-          {capitalizeAndFormatLabel(key)}:
+          {capitalizeAndFormatLabel(key == 'created_at' ? 'requested_date' : key)}:
         </Text>
         <Text style={styles.fieldValue}>
           {key.includes('created_at') || key.includes('updated_at')
@@ -182,7 +182,7 @@ const RequestSinglePDF = ({ data, user, header }: any) => {
           <Image src={Logo2} style={styles.logo} />
         </View>
 
-        <Text style={styles.header}>req-{data.id}</Text>
+        <Text style={styles.header}>{data.id.slice(0, 15)}</Text>
         <View style={styles.divider} />
         <Text style={styles.header}>Stock Request</Text>
         <View style={styles.section}>

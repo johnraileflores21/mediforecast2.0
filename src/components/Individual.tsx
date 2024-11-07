@@ -10,6 +10,7 @@ import {
   deleteDoc,
   where,
   query,
+  updateDoc,
 } from "firebase/firestore";
 import AddPatient from "./AddPatient";
 import { FaEye, FaCaretDown } from "react-icons/fa";
@@ -19,6 +20,7 @@ import {
   MdArrowBackIos,
   MdArrowForwardIos,
   MdLocalPrintshop,
+  MdCheck,
 } from "react-icons/md";
 import { IoMdAddCircle, IoMdDownload } from "react-icons/io";
 import { IoSearchOutline } from "react-icons/io5";
@@ -28,8 +30,10 @@ import TryPDF from "./TryPDF";
 import { PatientRecord } from "./type";
 import DownloadSelectedPatients from "./DownloadSelectedPatients";
 import { useUser } from "./User";
-import { RHUs } from "../assets/common/constants";
+import { RHUs, ucwords } from "../assets/common/constants";
 import { RequestedITR } from "./RequestedITR";
+import Swal from "sweetalert2";
+import notificationService from "../utils/notificationService";
 
 // interface filteredDataProps {
 //   familyName: string;
@@ -52,10 +56,13 @@ const Individual = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [modalAdd, setModalAdd] = useState(false);
+  const [showRequestorModal, setShowRequestorModal] = useState(false);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [modalEdit, setModalEdit] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [showPDF, setShowPDF] = useState(false);
+  const [formEdit, setFormEdit] = useState(undefined);
+  const [isEdit, setIsEdit] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<any>(
     null
   );
@@ -124,16 +131,16 @@ const Individual = () => {
     fetchData();
     setModalAdd(false);
     setDeleteId(null);
+    setIsEdit(false);
   };
-  const handleEdit = async (id: string) => {
-    setModalEdit(true);
-    setEditId(id);
-    console.log(id);
-  };
-  const closeModalEdit = () => {
-    setModalEdit(false);
+  const handleEdit = async (data: any) => {
+    setFormEdit(data);
+    setModalAdd(true);
+    setIsEdit(true);
+    console.log(data);
   };
   const handleView = (user: PatientRecord | undefined) => {
+    console.log('user :>> ', user);
     setShowPDF(true);
     setSelectedPatient(user || null);
   };
@@ -186,6 +193,13 @@ const Individual = () => {
         return b.familyName.localeCompare(a.familyName);
       }
       return 0;
+    });
+
+
+  const filteredApprovals = filteredData
+    .filter((record: any) => {
+      const requests = record.requests && record.requests.length;
+      return requests && record.requests.some((x: any) => x.status === 'pending');
     });
 
 
@@ -259,6 +273,71 @@ const Individual = () => {
   };
 
 
+  // pending approvals
+  const handleViewApproval = (user: PatientRecord | undefined) => {
+    setShowRequestorModal(true);
+    setSelectedPatient(user || null);
+  };
+
+  const handleUpdate = async (item: any, isApprove: boolean) => {
+    try {
+
+      const recordRef = doc(db, 'IndividualTreatmentRecord', selectedPatient.id);
+
+      if(isApprove) {
+        selectedPatient.requests.forEach((req: any) => {
+          if(req.rhuOrBarangay === item.rhuOrBarangay) {
+            req.status = 'approved';
+          }
+        });
+      } else {
+        selectedPatient.requests = selectedPatient.requests.filter((req: any) => (
+          req.rhuOrBarangay !== item.rhuOrBarangay
+        ));
+      }
+
+      await updateDoc(recordRef, {
+          requests: selectedPatient.requests
+      });
+
+      const a = isApprove ? 'approved' : 'rejected';
+      Swal.fire({
+        position: "center",
+        icon: "success",
+        title: `${item.rhuOrBarangay}'s request has been ${a}.`,
+        showConfirmButton: false,
+        timer: 1000,
+      });
+
+      setSelectedPatient(selectedPatient);
+      fetchData();
+
+      await notificationService.createNotification({
+        action: 'approve-itr',
+        description: `ITR ${a}`,
+        performedBy: user?.uid || '',
+        sentBy: user?.rhuOrBarangay || '',
+        sentTo: item.rhuOrBarangay,
+    });
+
+      const hasPending = selectedPatient.requests.some((x: any) => x.status == 'pending');
+      if(!hasPending) {
+        setShowRequestorModal(false);
+        setSelectedPatient(null);
+      }
+
+    } catch (error) {
+      return Swal.fire({
+        position: "center",
+        icon: "error",
+        title: `Unable to update request`,
+        showConfirmButton: false,
+        timer: 1000,
+      });
+    }
+  }
+
+
   return (
     <DashboardLayout>
       <div className="flex justify-between">
@@ -276,6 +355,12 @@ const Individual = () => {
             onClick={() => setSelectedTab(1)}
           >
             Requested Records
+          </button>
+          <button
+            className={`px-4 py-2 ${selectedTab === 2 ? "bg-gray-300" : "bg-gray-200"}`}
+            onClick={() => setSelectedTab(2)}
+          >
+            Pending Approvals
           </button>
         </div>
 
@@ -409,13 +494,13 @@ const Individual = () => {
                     />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 max-w-xs truncate">
-                      {item.familyName}
+                      {ucwords(item.familyName)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 max-w-xs truncate">
-                      {item.firstName}
+                      {ucwords(item.firstName)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {item.middleName}
+                      {ucwords(item.middleName)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       {item.sex}
@@ -463,7 +548,7 @@ const Individual = () => {
                           {/* PDFViewer */}
                         </button>
                         <button
-                          onClick={() => handleEdit(item.id)}
+                          onClick={() => handleEdit(item)}
                           className="bg-yellow-800 rounded-md text-white p-2 hover:bg-yellow-900 mr-4 flex items-center space-x-1"
                         >
                         <MdEdit className="w-5 h-5" />
@@ -536,6 +621,8 @@ const Individual = () => {
           <AddPatient
             showModal={modalAdd}
             closeModal={closeModalAdd}
+            editForm={formEdit}
+            isEdit={isEdit}
             // fetchData={fetchData}
           />
         )}
@@ -624,8 +711,178 @@ const Individual = () => {
           </div>
         )}
         <ScrollToTop />
-      </> : <>
+      </> : selectedTab === 1 ? <>
         <RequestedITR user={user} />
+      </> : <>
+
+        <div className="border m-10 rounded-md shadow-lg">
+          <div className="overflow-x-auto shadow-lg rounded-lg">
+            <table className="min-w-full bg-white divide-y divide-gray-300">
+              <thead className="bg-teal-700 text-white">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
+                    Family Name
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
+                    First Name
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
+                    Middle Name
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
+                    Sex
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
+                    Address
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
+                    Date of Birth
+                  </th>
+                  <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider sticky right-0 bg-teal-700 z-10">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredApprovals.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-100">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 max-w-xs truncate">
+                      {ucwords(item.familyName)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 max-w-xs truncate">
+                      {ucwords(item.firstName)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {ucwords(item.middleName)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {item.sex}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 max-w-xs truncate">
+                      {item.address}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {formatDate(item.dateOfBirth)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 sticky right-0 bg-white z-10 flex space-x-2">
+                      <button
+                          onClick={() => handleViewApproval(item)}
+                          className="bg-blue-600 rounded-md text-white p-2 hover:bg-blue-800  flex items-center space-x-1"
+                        >
+                          <FaEye className="w-5 h-5 text-white" />
+                        </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+
+          {/* approval list */}
+          {showRequestorModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-4 rounded-lg shadow-lg max-w-2xl overflow-auto">
+                <div className="flex justify-end mb-4">
+                  <span onClick={() => setShowRequestorModal(false)} className="cursor-pointer">x</span>
+                </div>
+                <h1 className="font-bold text-center text-lg">Pending Approvals</h1>
+                <br/>
+                <div className="w-full h-full">
+                  <div className="overflow-x-auto shadow-md sm:rounded-lg">
+                    <table className="min-w-full table-auto">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            User
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Action
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedPatient.requests.map((request: any, index: number) => (
+                          <tr key={index} className="border-t">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {request.rhuOrBarangay}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              <div className="flex items-center space-x-2">
+                                <button
+                                    onClick={() => handleUpdate(request, true)}
+                                    className="bg-green-500 rounded-md text-white p-2 hover:bg-green-600 flex items-center space-x-1"
+                                  >
+                                    <MdCheck className="w-5 h-5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleUpdate(request, false)}
+                                    className="bg-red-500 rounded-md text-white p-2 hover:bg-red-700 flex items-center space-x-1"
+                                  >
+                                    <MdDelete className="w-5 h-5" />
+                                  </button>
+                                
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          </div>
+          <div className="flex justify-center mt-4">
+            <nav className="block">
+              <ul className="flex pl-0 rounded list-none flex-wrap">
+                {/* Previous button */}
+                <li>
+                  <button
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className={`${
+                      currentPage === 1
+                        ? "bg-gray-300 text-gray-600"
+                        : "bg-white text-blue-600 hover:bg-gray-200"
+                    } font-semibold py-2.5 px-4 border border-gray-300 rounded-l focus:outline-none`}
+                  >
+                    <MdArrowBackIos className="w-5 h-5" />
+                  </button>
+                </li>
+                {/* Page buttons */}
+                {visiblePages.map((page, index) => (
+                  <li key={index}>
+                    <button
+                      onClick={() => paginate(page)}
+                      className={`${
+                        currentPage === page
+                          ? "bg-blue-600 text-white hover:bg-blue-700"
+                          : "bg-white text-blue-600 hover:bg-gray-200"
+                      } font-semibold py-2 px-4 border border-gray-300 focus:outline-none`}
+                    >
+                      {page}
+                    </button>
+                  </li>
+                ))}
+                {/* Next button */}
+                <li>
+                  <button
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className={`${
+                      currentPage === totalPages
+                        ? "bg-gray-300 text-gray-600"
+                        : "bg-white text-blue-600 hover:bg-gray-200"
+                    } font-semibold py-2.5 px-4 border border-gray-300 rounded-r focus:outline-none`}
+                  >
+                    <MdArrowForwardIos className="w-5 h-5 " />
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
       </>}
     </DashboardLayout>
   );

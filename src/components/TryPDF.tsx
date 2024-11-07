@@ -10,7 +10,7 @@ import {
 } from "@react-pdf/renderer";
 import { PatientRecord } from "./type";
 import { useUser } from "./User";
-import { RHUs } from "../assets/common/constants";
+import { RHUs, ucwords } from "../assets/common/constants";
 import Logo1 from '../assets/images/1.jpg';
 import Logo2 from '../assets/images/2.jpg';
 import Logo3 from '../assets/images/3.jpg';
@@ -295,15 +295,15 @@ const TryPDF: React.FC<Pdfprops> = ({ userData }) => {
             <View style={styles.nameBody}>
               <View>
                 <Text style={styles.headerBody}>FAMILY NAME:</Text>
-                <Text style={styles.name}>{userData.familyName}</Text>
+                <Text style={styles.name}>{ucwords(userData.familyName)}</Text>
               </View>
               <View>
                 <Text style={styles.headerBody}>FIRST NAME:</Text>
-                <Text style={styles.firstname}>{userData.firstName}</Text>
+                <Text style={styles.firstname}>{ucwords(userData.firstName)}</Text>
               </View>
               <View>
                 <Text style={styles.headerBody}>MIDDLE NAME:</Text>
-                <Text style={styles.name}>{userData.middleName}</Text>
+                <Text style={styles.name}>{ucwords(userData.middleName)}</Text>
               </View>
             </View>
             <View style={styles.status}>

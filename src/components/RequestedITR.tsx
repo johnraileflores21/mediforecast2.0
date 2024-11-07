@@ -6,7 +6,7 @@ import { PatientRecord } from "./type";
 import DownloadSelectedPatients from "./DownloadSelectedPatients";
 import { MdArrowBackIos, MdArrowForwardIos, MdDelete, MdEdit } from "react-icons/md";
 import { useUser } from "./User";
-import { formatDate, getData, RHUs, toPascalCase } from "../assets/common/constants";
+import { formatDate, getData, RHUs, toPascalCase, ucwords } from "../assets/common/constants";
 import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import { db } from "../firebase";
 import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
@@ -25,7 +25,7 @@ interface Request {
 interface IndividualTreatmentRecord {
     id: string;
     requests?: Request[];
-    address?: string;
+    // address?: string;
     age?: string;
     broughtBy?: string;
     created_at?: string;
@@ -123,7 +123,7 @@ export const RequestedITR = ({ user }: { user: any }) => {
           record.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
           record.middleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
           record.sex.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          record.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        //   record.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
           record.nationality.toLowerCase().includes(searchQuery.toLowerCase()) ||
           record.dateOfBirth.toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -205,7 +205,7 @@ export const RequestedITR = ({ user }: { user: any }) => {
     }
 
     const validateFormData = (data: any) => {
-        const requiredFields = ["familyName", "firstName", "middleName", "sex", "nationality", "dateOfBirth", "address"];
+        const requiredFields = ["familyName", "firstName", "middleName", "sex", "nationality", "dateOfBirth"];
     
         for(const field of requiredFields) {
             if(!data[field] || data[field].toString().trim() === "")
@@ -429,20 +429,20 @@ export const RequestedITR = ({ user }: { user: any }) => {
                 <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
                         {filteredData.map((card, index) => (
-                            <div key={index} className="position-relative min-w-[350px] bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition-shadow duration-300" onClick={() => handleCheckboxChange(card)}>
-                                <div className="position-absolute right-[10px]">
+                            <div key={index} className="position-relative max-w-[350px] bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition-shadow duration-300" onClick={() => handleCheckboxChange(card)}>
+                                <div className="position-absolute right-[10px] top-[10px]">
                                     <input
                                         type="checkbox"
                                         checked={selectedPatients.includes(card)}
                                         onChange={() => handleCheckboxChange(card)}
                                     />
                                 </div>
-                                <h3 className="text-lg font-semibold mb-2">{`${card.firstName} ${card.middleName} ${card.familyName}`}</h3>
-                                
+
+                                <h3 className="text-lg font-semibold mb-2">{`${ucwords(card.firstName)} ${ucwords(card.middleName)} ${ucwords(card.familyName)}`}</h3>
                                 <p>Gender: {card.sex}</p>
                                 <p>Nationality: {card.nationality}</p>
                                 <p>Date of Birth: {card.dateOfBirth}</p>
-                                <p>Address: {card.address}</p>
+                                
                                 <div className="flex justify-end mt-4 gap-2">
                                     <PDFDownloadLink
                                         document={<TryPDF userData={card} />}
@@ -601,7 +601,7 @@ export const RequestedITR = ({ user }: { user: any }) => {
                                                         />
                                                     </div>
                                                 </div>
-                                                <div>
+                                                {/* <div>
                                                     <label
                                                         htmlFor="address"
                                                         className="block text-sm font-medium text-gray-700 mt-4"
@@ -616,8 +616,8 @@ export const RequestedITR = ({ user }: { user: any }) => {
                                                         value={formData.address}
                                                         className="w-full p-2 border border-gray-300 rounded-md mt-1"
                                                     ></textarea>
-                                                </div>
-                                                <div className="flex justify-end mt-4 gap-2">
+                                                </div> */}
+                                                <div className="flex justify-end mt-[100px] gap-2">
                                                     <button
                                                         type="button"
                                                         onClick={closeModal}

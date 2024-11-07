@@ -32,6 +32,7 @@ type FormData = {
   imageUrl: string;
   idFront: string;
   idBack: string;
+  idSelfie: string;
   rhuOrBarangay?: string;
   role: string;
   acc_status: string;
@@ -56,6 +57,7 @@ const Register: React.FC = () => {
     imageUrl: "",
     idFront: "",
     idBack: "",
+    idSelfie: "",
     rhuOrBarangay: "",
     role: "",
     acc_status: "",
@@ -65,13 +67,16 @@ const Register: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [idFront, setIdFront] = useState<File | null>(null);
   const [idBack, setIdBack] = useState<File | null>(null);
+  const [idSelfie, setIdSelfie] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [idFrontPreview, setIdFrontPreview] = useState<string | null>(null);
   const [idBackPreview, setIdBackPreview] = useState<string | null>(null);
+  const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
   const [showAlertSuccess, setShowAlertSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const idFrontInputRef = useRef<HTMLInputElement>(null);
   const idBackInputRef = useRef<HTMLInputElement>(null);
+  const selfieInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [errorPassword, setErrorPassword] = useState<string | null>(null);
   const [errorConfirmPassword, setErrorConfirmPassword] = useState<
@@ -148,6 +153,9 @@ const Register: React.FC = () => {
       } else if (id === "id2") {
         setIdBack(selectedFile);
         setIdBackPreview(URL.createObjectURL(selectedFile));
+      } else if (id === "id3") {
+        setIdSelfie(selectedFile);
+        setSelfiePreview(URL.createObjectURL(selectedFile));
       }
     } else {
       setFormData((prevFormData) => {
@@ -216,6 +224,7 @@ const Register: React.FC = () => {
       const imageUrl = file ? await uploadImage(file, "Image") : "";
       const idFrontUrl = idFront ? await uploadImage(idFront, "ID/Front") : "";
       const idBackUrl = idBack ? await uploadImage(idBack, "ID/Back") : "";
+      const selfieIDUrl = idSelfie ? await uploadImage(idSelfie, "ID/Selfie") : "";
 
       // Determine RHU based on barangay
       const rhuOrBarangay = determineRhu(formData.barangay, formData.role);
@@ -237,6 +246,7 @@ const Register: React.FC = () => {
         imageUrl,
         idFront: idFrontUrl,
         idBack: idBackUrl,
+        selfieID: selfieIDUrl,
         rhuOrBarangay,
         acc_status: "for_verification", 
         created_at: dateToday,
@@ -328,6 +338,7 @@ const Register: React.FC = () => {
     if (!file) newErrors.imageUrl = "Image is required";
     if (!idFrontInputRef) newErrors.idFront = "Front ID is required";
     if (!idBackInputRef) newErrors.idBack = "Back ID is required";
+    if (!selfieInputRef) newErrors.selfieID = "Selfie with your ID is required";
     if (!formData.role) newErrors.role = "Role is required";
 
     setError(newErrors);
@@ -352,6 +363,7 @@ const Register: React.FC = () => {
       imageUrl: "",
       idFront: "",
       idBack: "",
+      idSelfie: "",
       rhuOrBarangay: "",
       role: "",
       acc_status: "",
@@ -361,6 +373,7 @@ const Register: React.FC = () => {
     setFile(null);
     setIdFront(null);
     setIdBack(null);
+    setSelfiePreview(null);
     setPreview(null);
     setIdFrontPreview(null);
     setIdBackPreview(null);
@@ -665,6 +678,36 @@ const Register: React.FC = () => {
                       </div>
                     </div>
                     {error?.idBack && <CommonError message={error?.idBack || ''} />}
+                  </div>
+                  <br />
+                  <div>
+                    <label className="text-center" htmlFor="id">
+                      <span className="label-text flex items-center justify-center text-xs">
+                        Photo of your self holding your ID
+                      </span>
+                    </label>
+                    <div className="form-control flex items-center mt-2">
+                      {selfiePreview && (
+                        <div>
+                          <img
+                            src={selfiePreview}
+                            alt="ID"
+                            className="w-14 h-14 rounded-xl border border-gray-400 mb-3"
+                          />
+                        </div>
+                      )}
+                      <div className="flex flex-col">
+                        <input
+                          type="file"
+                          id="id3"
+                          ref={selfieInputRef}
+                          accept="image/*"
+                          className="input input-bordered w-full p-2 border  border-gray-300 rounded-md"
+                          onChange={handleChange}
+                        />
+                      </div>
+                    </div>
+                    {error?.selfieID && <CommonError message={error?.selfieID || ''} />}
                   </div>
                   <div className="form-control">
                     <label className="label" htmlFor="role">

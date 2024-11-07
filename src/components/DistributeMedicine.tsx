@@ -5,7 +5,7 @@ import { MdCancel } from "react-icons/md";
 import { useUser } from "./User";
 import { IoMdClose } from "react-icons/io";
 import Swal from "sweetalert2";
-import { getTypes, RHUs } from "../assets/common/constants";
+import { getTypes, RHUs, ucwords } from "../assets/common/constants";
 import { Accordion, AccordionSummary, AccordionDetails, Typography } from '@mui/material';
 import { MdExpandMore } from 'react-icons/md';
 
@@ -78,7 +78,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
       if (i === index) {
         return {
           ...form,
-          [field]: e.target.value
+          [field]: field == 'fullName' ? ucwords(e.target.value) : e.target.value
         };
       }
       return form;
