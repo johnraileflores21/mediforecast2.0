@@ -11,10 +11,14 @@ import { doc, getDoc } from "firebase/firestore";
 
 interface User {
   firstname: string;
+  middlename: string;
   lastname: string;
   email: string;
   rhuOrBarangay: string;
+  dateOfBirth: string;
   imageUrl: string;
+  gender: string;
+  phone: string;
   barangay: string;
   uid: string;
   role: string;
@@ -49,9 +53,13 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
               const userPayload = {
                 firstname: userData.firstname,
                 lastname: userData.lastname,
+                middlename: userData.middlename,
                 email: userData.email,
                 rhuOrBarangay: userData.rhuOrBarangay,
                 imageUrl: userData.imageUrl,
+                dateOfBirth: userData.dateOfBirth,
+                phone: userData.phone,
+                gender: userData.gender,
                 barangay: userData.barangay,
                 uid: authUser.uid,
                 role: userData.role

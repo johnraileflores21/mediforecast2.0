@@ -21,7 +21,10 @@ const AdminDashboard: React.FC = () => {
         id: doc.id,
         ...doc.data(),
       }));
-      setUsers(fetch);
+
+      const filteredUsers = fetch.filter((user: any) => user.status != 'for_verification');
+
+      setUsers(filteredUsers);
     });
     return () => unsub();
   }, []);

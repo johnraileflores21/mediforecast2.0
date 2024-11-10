@@ -45,6 +45,8 @@ import InventoryListener from "./listeners/InventoryListener";
 
 import PrivateRouteAdmin from "./components/SuperAdmin/PrivateRouteAdmin";
 import NotFoundPage from "./NotFoundPage";
+import DefaultPassword from "./components/DefaultPassword";
+import Profile from "./components/Profile";
 const App = () => {
   return (
     <ConfirmationProvider>
@@ -97,7 +99,14 @@ const App = () => {
           <Route path="/administrator/barangay/sucad" element={<Sucad />} />
           <Route path="/administrator/barangay/sulipan" element={<Sulipan />} />
           <Route path="/administrator/barangay/tabuyuc" element={<Tabuyuc />} />
+
+          <Route path="/administrator/settings/account" element={<Settings />} />
         </Route>
+
+
+        {/* <Route path="/administrator/default-password" element={<DefaultPassword />} /> */}
+
+
         {/* Barangay and RHU */}
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/register" element={<Register />} />
@@ -116,6 +125,7 @@ const App = () => {
           <Route path="/admin" element={<AdminRHU1 />} />
           <Route path="/rural-health-unit-2" element={<RHU2 />} />
           <Route path="/rural-health-unit-3" element={<RHU3 />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
         {/* <Route path="/inventory" element={<Inventory />} /> */}

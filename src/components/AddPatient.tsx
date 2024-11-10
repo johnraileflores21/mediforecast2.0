@@ -2,7 +2,7 @@ import React, { useState, useEffect, ChangeEvent } from "react";
 import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useUser } from "./User";
-import { RHUs, ucwords } from "../assets/common/constants";
+import { itrFields, RHUs, ucfirst, ucwords } from "../assets/common/constants";
 import { useConfirmation } from "../hooks/useConfirmation";
 import Swal from "sweetalert2";
 
@@ -22,36 +22,8 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
   const [brought, setBrought] = useState<string>("Brought by");
   const [date, setDate] = useState(new Date());
   const { user } = useUser();
-  const [formData, setFormData] = useState({
-    familyName: "",
-    firstName: "",
-    middleName: "",
-    status: "",
-    nationality: "",
-    age: "",
-    sex: "",
-    address: "",
-    mobileno: "",
-    dateOfBirth: "",
-    broughtBy: "",
-    philMember: "",
-    philNumber: "",
-    phicMemberName: "",
-    date: "",
-    time: "",
-    rhuOrBarangay: " ",
-    created_at: "",
-    updated_at: "",
-    complaints: "",
-    history: "",
-    physicalExamBP: "",
-    physicalExamHR: "",
-    physicalExamT: "",
-    physicalExamWT: "",
-    physicalExamH: "",
-    diagnosis: "",
-    order: ""
-  });
+  const [formData, setFormData] = useState(itrFields);
+  const [error, setError] = useState<any>([]);
 
   const confirm = useConfirmation();
 
@@ -108,12 +80,15 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    let isName = ['familyName', 'firstName', 'middleName'];
+    const isName = ['familyName', 'firstName', 'middleName'];
+    const ucFields = ['nationality', 'phicMemberName', 'complaints', 'history', 'diagnosis', 'order'];
 
     setFormData({
       ...formData,
-      [e.target.id]: (isName.includes(e.target.id) 
-        ? ucwords(e.target.value) : e.target.value),
+      [e.target.id]: (isName.includes(e.target.id)) ? ucwords(e.target.value)
+        : (ucFields.includes(e.target.id)) ? ucfirst(e.target.value)
+        : (e.target.id) == 'address' ? ucwords(e.target.value, true)
+        : e.target.value,
     });
   };
 
@@ -138,6 +113,21 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
 
     cleanedFormData.updated_at = dateToday;
     cleanedFormData.rhuOrBarangay = userBarangay;
+
+    const requiredFields = ['familyName', 'firstName', 'middleName', 'sex', 'status', 'nationality', 'age', 'mobileno', 'dateOfBirth', 'address'];
+
+    const missingFields = requiredFields.filter((field) => !cleanedFormData[field]);
+    if(missingFields.length) {
+      setError(missingFields.length ? missingFields : []);
+      return Swal.fire({
+        position: "center",
+        icon: "error",
+        title: `Fill out required fields`,
+        showConfirmButton: false,
+        timer: 1000,
+      });
+    }
+
     try {
       if(!isEdit) {
         cleanedFormData.created_at = dateToday;
@@ -205,6 +195,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             value={formData.familyName}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           />
+                          {error.includes('familyName') && <p className="text-red-500 text-sm ">Family Name is required</p>}
                         </div>
                         <div className="w-full">
                           <label
@@ -220,6 +211,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             id="firstName"
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           />
+                          {error.includes('firstName') && <p className="text-red-500 text-sm ">First Name is required</p>}
                         </div>
                         <div>
                           <label
@@ -235,6 +227,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             value={formData.middleName}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           />
+                          {error.includes('middleName') && <p className="text-red-500 text-sm ">Middle Name is required</p>}
                         </div>
                         <div>
                           <div className="dropdown w-48 relative">
@@ -279,6 +272,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                                 </li>
                               </ul>
                             )}
+                            {error.includes('sex') && <p className="text-red-500 text-sm ">Sex is required</p>}
                           </div>
                         </div>
                         <div>
@@ -348,6 +342,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                                 </li>
                               </ul>
                             )}
+                            {error.includes('status') && <p className="text-red-500 text-sm ">Status is required</p>}
                           </div>
                         </div>
                         <div>
@@ -364,6 +359,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             value={formData.nationality}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           />
+                          {error.includes('nationality') && <p className="text-red-500 text-sm ">Nationality is required</p>}
                         </div>
                         <div>
                           <label
@@ -379,6 +375,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             value={formData.age}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           />
+                          {error.includes('age') && <p className="text-red-500 text-sm ">Age is required</p>}
                         </div>
                         <div>
                           <label
@@ -394,6 +391,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             id="mobileno"
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           />
+                          {error.includes('mobileno') && <p className="text-red-500 text-sm ">Mobile No is required</p>}
                         </div>
                         <div>
                           <label
@@ -409,6 +407,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             id="dateOfBirth"
                             className="mt-1 block w-full p-2 text-center border border-gray-300 rounded-md"
                           />
+                          {error.includes('dateOfBirth') && <p className="text-red-500 text-sm ">Date of Birth is required</p>}
                         </div>
                       </div>
                       <div>
@@ -426,6 +425,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                           value={formData.address}
                           className="w-full p-2 border border-gray-300 rounded-md mt-1"
                         ></textarea>
+                        {error.includes('address') && <p className="text-red-500 text-sm ">Address is required</p>}
                       </div>
                       <div className="grid grid-cols-3 gap-4 mt-4">
                       <div>
@@ -497,6 +497,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             </ul>
                           )}
                         </div>
+                        {/* {error.includes('broughtBy') && <p className="text-red-500 text-sm ">Brought By is required</p>} */}
                       </div>
 
                         <div>
@@ -548,6 +549,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                               </label>
                             </div>
                           </div>
+                          {/* {error.includes('philMember') && <p className="text-red-500 text-sm ">This field is required</p>} */}
                         </div>
                         <div>
                           <label
@@ -563,6 +565,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             value={formData.philNumber}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           />
+                          {/* {error.includes('philNumber') && <p className="text-red-500 text-sm ">Philhealth Number is required</p>} */}
                         </div>
                       </div>
                       <div>
@@ -579,6 +582,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                           value={formData.phicMemberName}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                         />
+                        {/* {error.includes('phicMemberName') && <p className="text-red-500 text-sm ">PHIC Member Name is required</p>} */}
                       </div>
                       <div>
                         <label
@@ -595,6 +599,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                           value={formData.complaints}
                           className="w-full p-2 border border-gray-300 rounded-md mt-1"
                         ></textarea>
+                        {/* {error.includes('complaints') && <p className="text-red-500 text-sm ">Chief Complaints is required</p>} */}
                       </div>
                       <div>
                         <label
@@ -611,6 +616,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                           value={formData.history}
                           className="w-full p-2 border border-gray-300 rounded-md mt-1"
                         ></textarea>
+                        {/* {error.includes('history') && <p className="text-red-500 text-sm ">Brief History is required</p>} */}
                       </div>
                       <div className="grid grid-cols-6 gap-4 mt-4">
                         <div className="w-full">
@@ -704,6 +710,9 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                           />
                         </div>
                       </div>
+                      {/* {error.map((e: string) => e.includes('physicalExam') ? 'physicalExam' : e)
+                        .includes('physicalExam') &&
+                          <p className="text-red-500 text-sm ">Physical Exam Fields are required</p>} */}
                       <div>
                         <label
                           htmlFor="diagnosis"
@@ -719,6 +728,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                           value={formData.diagnosis}
                           className="w-full p-2 border border-gray-300 rounded-md mt-1"
                         ></textarea>
+                        {/* {error.includes('diagnosis') && <p className="text-red-500 text-sm ">Diagnosis is required</p>} */}
                       </div>
                       <div>
                         <label
@@ -735,6 +745,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                           value={formData.order}
                           className="w-full p-2 border border-gray-300 rounded-md mt-1"
                         ></textarea>
+                        {/* {error.includes('order') && <p className="text-red-500 text-sm ">Doctor's Order is required</p>} */}
                       </div>
                     </div>
                     <div className="flex justify-end mt-4 gap-2">

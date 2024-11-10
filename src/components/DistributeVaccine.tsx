@@ -7,7 +7,7 @@ import Swal from "sweetalert2";
 import { RHUs } from "../assets/common/constants";
 
 import { Accordion, AccordionSummary, AccordionDetails, Typography } from '@mui/material';
-import { MdExpandMore } from 'react-icons/md';
+import { MdDelete, MdExpandMore } from 'react-icons/md';
 import { createHistoryLog }  from '../utils/historyService';
 import { createDistribution } from '../utils/distributionService';
 import { useConfirmation } from '../hooks/useConfirmation';
@@ -49,6 +49,14 @@ const DistributeVaccine: React.FC<DistributeVaccineProps> = ({
         setVaccine(data);
         setForms([{ ...data }]);
         setOriginalQuantity(data.vaccineStock);
+        if(data?.vitaminStock <= 30) {
+          const tab = activeTabs.map((tab: number) => {
+            tab = 1;
+            return tab;
+          })
+          console.log('tab :>> ', tab);
+          setActiveTabs(tab);
+        }
       }
 
     }
@@ -375,8 +383,15 @@ const DistributeVaccine: React.FC<DistributeVaccineProps> = ({
 
   const addForm = () => {
     setForms([...forms, vaccine]);
-    setActiveTabs([...activeTabs, 0]);
+    setActiveTabs([...activeTabs, data?.vaccineStock <= 30 ? 1 : 0]);
   }
+
+
+  const deleteForm = (i: number, e: any) => {
+    e.stopPropagation();
+    const updatedForms = forms.filter((_: any, index: number) => index !== i);
+    setForms(updatedForms);
+  };
 
 
   return (
@@ -429,15 +444,33 @@ const DistributeVaccine: React.FC<DistributeVaccineProps> = ({
                           expandIcon={<MdExpandMore />}
                           aria-controls={`panel${index}-content`}
                           id={`panel${index}-header`}
-                          sx={{ bgcolor: '#f0f0f0', '&.Mui-expanded': { bgcolor: '#f0f0f0' } }}
+                          sx={{
+                            bgcolor: '#f0f0f0',
+                            '&.Mui-expanded': { bgcolor: '#f0f0f0' },
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                          }}
                         >
                           <Typography>Distribution #{index + 1}</Typography>
+                          {forms.length > 1 && <MdDelete
+                            onClick={(e) => deleteForm(index, e)}
+                            style={{
+                              cursor: 'pointer',
+                              marginLeft: '10px',
+                              color: 'red',
+                              order: 1,
+                              position: 'absolute',
+                              right: '40px',
+                              marginTop: '3px',
+                            }}
+                          />}
                         </AccordionSummary>
                         <AccordionDetails>
 
                         {/* Tabs for Barangay and Resident */}
                         {!isBarangay && <div className="my-6">
-                            <button type="button" onClick={() => handleTabChange(index, 0)} className={`px-4 py-2 ${activeTabs[index] === 0 ? "bg-gray-300" : "bg-gray-200"}`}>Barangay</button>
+                            <button disabled={data?.vaccineStock <= 30} type="button" onClick={() => handleTabChange(index, 0)} className={`px-4 py-2 ${activeTabs[index] === 0 ? "bg-gray-300" : "bg-gray-200"}`}>Barangay</button>
                             <button type="button" onClick={() => handleTabChange(index, 1)} className={`px-4 py-2 ${activeTabs[index] === 1 ? "bg-gray-300" : "bg-gray-200"}`}>Resident</button>
                           </div>}
 

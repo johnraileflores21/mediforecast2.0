@@ -590,6 +590,9 @@ const Try: React.FC = () => {
                         )}
                       </span>
                     </h5>
+                    {((parseInt(item.medicineStock) || parseInt(item.vitaminStock) || parseInt(item.vaccineStock)) <= 30) && <span className="text-red-500">
+                      Out of Stock
+                    </span>}
                   </button>
 
                   <div className="border-t-1 border-neutral-500 px-6 py-4 dark:border-neutral-900">

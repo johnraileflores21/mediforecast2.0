@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { MdOutlineDashboard } from "react-icons/md";
-import { RiSettings4Line } from "react-icons/ri";
+import { RiSettings4Line, RiUser5Line, RiUserLine } from "react-icons/ri";
 import { MdInventory } from "react-icons/md";
 import { FaQuestionCircle } from "react-icons/fa";
 import { SiGooglemessages } from "react-icons/si";
@@ -31,6 +31,7 @@ const Sidebar = () => {
       link: "/individual-treatment-record",
       icon: FaFileShield,
     },
+    { name: "Profile", link: "/profile", icon: RiUserLine, margin: true },
     { name: "Setting", link: "/settings", icon: RiSettings4Line, margin: true },
     { name: "Logout", link: "#", icon: IoLogOut }, // Prevent navigation on click
   ];

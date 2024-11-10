@@ -13,13 +13,14 @@ import {
 } from "firebase/firestore";
 import { IoMdClose } from "react-icons/io";
 import { useUser } from "../User";
-import { requestFormData } from "../../assets/common/constants";
+import { getTypes, requestFormData } from "../../assets/common/constants";
 import { FaRegCheckCircle } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import ConfirmationModal from "./ConfirmationModal";
 import { createHistoryLog }  from '../../utils/historyService';
 import notificationService from '../../utils/notificationService';
 import { RHUs } from "../../assets/common/constants";
+import Swal from "sweetalert2";
 
 
 interface ModalAddRequestProps {
@@ -199,43 +200,76 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
 
   const handleConfirmSubmit = async () => {
     try {
-      const payloads = forms
-        .map((form) => ({
+      const payloads: any[] = [];
+      const insufficientStockItems: string[] = [];
+      const sufficientItems: string[] = [];
+  
+      for(const form of forms) {
+        const requestedItem = items.find((item: any) => form?.itemId === item.id);
+
+        console.log('requestedItem :>> ', requestedItem);
+        const name = requestedItem[`${getTypes(requestedItem)}BrandName`];
+
+        const availableStock = requestedItem
+          ? requestedItem.medicineStock || requestedItem.vaccineStock || requestedItem.vitaminStock
+          : 0;
+  
+        const deductionQty = availableStock - form.requestedQuantity;
+  
+        if(deductionQty < 30) {
+
+          console.log('name :>> ', name);
+
+          insufficientStockItems.push(name);
+          toast.error(`${name} cannot be requested due to low stock.`, {
+            position: "top-right",
+          });
+          continue;
+        }
+  
+        payloads.push({
           ...form,
           requestedQuantity: parseInt(form.requestedQuantity),
           userId: user?.uid,
           created_at: new Date(),
           barangay: user?.rhuOrBarangay || user?.barangay,
-          status: "pending",
-        }))
-        .filter((form) => form.itemId && form.requestedQuantity && form.reason);
-
+          status: 'pending',
+        });
+        sufficientItems.push(name)
+      }
+  
+      if(payloads.length === 0) {
+        return toast.error("None of the selected items are available in sufficient quantity to request.", {
+          position: "top-right",
+        });
+      }
+  
       setLoading(true);
-      // get index where barangay is included
-
+  
+      console.log('valid payloads', payloads);
+  
       const promises = payloads.map((payload) =>
         addDoc(collection(db, "Requests"), payload)
       );
       await Promise.all(promises);
-
+  
       const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
       const sentTo = RHUs.findIndex((x: any) => x["barangays"].includes(user?.barangay)) + 1;
-
-
-      setForms([requestFormData]); // Reset to initial form
+  
+      setForms([requestFormData]);
       setShowModalSucces(true);
+  
       await createHistoryLog({
         actionType: 'request',
         fullName: formatFullName,
         barangay: user?.barangay,
         performedBy: user?.uid || '',
         remarks: `Requested ${payloads.length} item(s)`,
-      })
-
+      });
+  
       await notificationService.createNotification({
         action: 'request',
         barangayItemId: null,
-
         itemId: payloads.map((x) => x.itemId).join(','),
         itemName: payloads.map((x) => x.itemId).join(','),
         itemType: 'medicine',
@@ -245,20 +279,30 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
         sentBy: user?.rhuOrBarangay || '',
         sentTo: sentTo.toString(),
       });
-
-
+  
       setTimeout(() => {
         setShowModalSucces(false);
         closeModal(true);
       }, 1000);
-
-      toast.success("Request submitted successfully!", {
-        position: "top-right",
+  
+      Swal.fire({
+        title: 'Success',
+        html: `Requested successfully<br />${sufficientItems
+          .map((name: string) => name)
+          .join(', ')
+          .replace(/, ([^,]*)$/, ' and $1')}`,
+        icon: 'success',
+        showConfirmButton: false,
+        timer: 1000,
       });
     } catch (error: any) {
       console.error("Error submitting request:", error);
-      toast.error("Unable to add request", {
-        position: "top-right",
+      Swal.fire({
+        title: 'Success',
+        text: `Unable to create request. Please try again`,
+        icon: 'error',
+        showConfirmButton: false,
+        timer: 1000,
       });
     } finally {
       setLoading(false);
@@ -266,53 +310,18 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
     }
   };
 
-  // const handleSubmit = async () => {
-  //   try {
-  //     const payloads = forms.map(form => ({
-  //       ...form,
-  //       requestedQuantity: parseInt(form.requestedQuantity),
-  //       userId: user?.uid,
-  //       created_at: new Date(),
-  //       barangay: user?.rhuOrBarangay || user?.barangay,
-  //       status: 'pending'
-  //     })).filter(form => form.itemId && form.requestedQuantity && form.reason);
-
-  //     if (payloads.length === 0) {
-  //       return toast.error("Fill out required fields", {
-  //         position: "top-right",
-  //       });
-  //     }
-
-  //     setLoading(true);
-
-  //     const promises = payloads.map(payload => addDoc(collection(db, "Requests"), payload));
-  //     await Promise.all(promises);
-
-  //     setForms([requestFormData]); // Reset to initial form
-  //     setShowModalSucces(true);
-
-  //     setTimeout(() => {
-  //       setShowModalSucces(false);
-  //       closeModal(true);
-  //     }, 1000);
-
-  //   } catch (error: any) {
-  //     toast.error("Unable to add request", {
-  //       position: "top-right",
-  //     });
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const handleCancel = () => {
     setIsConfirmationModalOpen(false);
   };
 
   const addAnotherItem = () => {
     setForms([...forms, requestFormData]);
-    setSelectedItems([...selectedItems, null]); // Initialize selected item for new form
+    setSelectedItems([...selectedItems, null]);
   };
+
+  const isOutOfStock = (item: any) => {
+    return (item.medicineStock || item.vitaminStock || item.vaccineStock) <= 30;
+  }
 
   return (
     <>
@@ -394,7 +403,7 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
                               {itemsLoading ? "Loading.." : "Please Select"}
                             </option>
                             {items.map((item: any) => (
-                              <option key={item.id} value={item.id}>
+                              <option key={item.id} value={item.id} disabled={isOutOfStock(item)}>
                                 {item.medicineBrandName ||
                                   item.vitaminBrandName ||
                                   item.vaccineName}

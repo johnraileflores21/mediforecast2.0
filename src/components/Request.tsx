@@ -9,12 +9,11 @@ import { db } from "../firebase";
 import Swal from "sweetalert2";
 import RequestAdd from "../components/Request/RequestAdd";
 import PDFPreviewModal from "./PDFPreviewModal";
-import {RHUs, ucfirst} from "../assets/common/constants";
+import {formatDate, getAddress, RHUs, ucfirst} from "../assets/common/constants";
 import { createHistoryLog }  from '../utils/historyService';
 import notificationService from '../utils/notificationService';
 import { useConfirmation } from '../hooks/useConfirmation';
 import { MdDownload } from "react-icons/md";
-
 
 
 const Request = () => {
@@ -70,9 +69,16 @@ const Request = () => {
             .includes(searchQuery.toLowerCase())
         )
         .sort((a, b) => {
+            const order = { pending: 0, for_confirmation: 1, approved: 2 };
+        
+            const x = order[a?.status] ?? 3;
+            const y = order[b?.status] ?? 3;
+        
+            if (x !== y) return x - y;
+        
             const _a = a.created_at?.toDate();
             const _b = b.created_at?.toDate();
-            
+        
             if(_a && _b) return _a - _b;
             return 0;
         });
@@ -315,7 +321,18 @@ const Request = () => {
                 if(stockTypes.includes(type)) stockType = type;
             });
 
-            await updateDoc(itemDocRef, { [stockType]: currentStock - requestedQuantity });
+            const pendingQuantity = currentStock - requestedQuantity;
+
+            if(pendingQuantity < 30)
+                return Swal.fire({
+                    position: "center",
+                    icon: "error",
+                    title: "Unable to approve, stock is low",
+                    showConfirmButton: false,
+                    timer: 1000,
+                });
+
+            await updateDoc(itemDocRef, { [stockType]: pendingQuantity });
 
             const barangayInventoryData = {
                 ...itemData,
@@ -393,6 +410,7 @@ const Request = () => {
     const handleDropdown = () => setDropdownOpen(!dropdownOpen);
 
     const filteredPdfHeader = () => {
+
         const userBarangay = user?.rhuOrBarangay || "";
         const rhuIndex = RHUs.findIndex(rhu => rhu.barangays.includes(userBarangay)) + 1;
 
@@ -400,13 +418,18 @@ const Request = () => {
         const rhuRomanNumeral = romanNumerals[(rhuIndex == 0 ? parseInt(userBarangay): rhuIndex) - 1];
 
         console.log('rhuIndex :>>', rhuIndex);
+        console.log('rhuRomanNumeral :>>', rhuRomanNumeral);
+
+        console.log('getAddress() :>> ', getAddress(userBarangay));
 
         return {
             h1: rhuIndex == 0 ?   `Rural Health Unit ${rhuRomanNumeral}`: `${user?.rhuOrBarangay} Health Center`,
             h2: rhuIndex == 0 ? '' :  `Rural Health Unit ${rhuRomanNumeral}`,
-            h3: "City of San Fernando, Pampanga",
+            h3: getAddress(userBarangay).address,
             title: "Stock Request",
-        }
+            unit: userBarangay.length == 1 ? userBarangay : rhuIndex.toString(),
+            barangay: getAddress(userBarangay).barangay
+        };
     }
     const pdfHeader = filteredPdfHeader();
     return (
@@ -534,6 +557,12 @@ const Request = () => {
                                     scope="col"
                                     className="px-6 py-3 border text-xs font-bold text-black"
                                 >
+                                    Date
+                                </th>
+                                <th
+                                    scope="col"
+                                    className="px-6 py-3 border text-xs font-bold text-black"
+                                >
                                     Status
                                 </th>
                                 <th
@@ -568,7 +597,10 @@ const Request = () => {
                                         {itemData.requestedQuantity}
                                     </td>
                                     <td className="px-6 py-4 text-gray-900">
-                                        {ucfirst(itemData.reason) || 'N/A'}
+                                        {itemData?.reason ? ucfirst(itemData.reason) : 'N/A'}
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-900">
+                                        {(formatDate(itemData.created_at)) || 'N/A'}
                                     </td>
                                     <td className="px-6 py-2">
                                         <span

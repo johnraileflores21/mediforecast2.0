@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import DashboardLayout from "./DashboardLayout";
 import {
   getAuth,
@@ -9,6 +9,9 @@ import {
 
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useUser } from "./User";
+import AdminDashboardLayout from "./SuperAdmin/DashboardLayout";
+
 
 const Settings: React.FC = () => {
   const auth = getAuth();
@@ -25,6 +28,12 @@ const Settings: React.FC = () => {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const userUtil = useUser();
+  
+  let DynamicLayout: any = userUtil.user 
+    ? DashboardLayout
+    : AdminDashboardLayout;
 
   const passwordValidation = (password: string): string | null => {
     const upperCaseRegex = /[A-Z]/;
@@ -176,7 +185,7 @@ const Settings: React.FC = () => {
   );
 
   return (
-    <DashboardLayout>
+    <DynamicLayout>
       <h1 className="text-3xl font-bold mb-4">Settings</h1>
       <div className="flex flex-col items-center mt-16">
         {/* Old Password */}
@@ -319,7 +328,7 @@ const Settings: React.FC = () => {
 
       {/* Initialize React Toastify */}
       <ToastContainer />
-    </DashboardLayout>
+    </DynamicLayout>
   );
 };
 

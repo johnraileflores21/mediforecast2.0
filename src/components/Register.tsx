@@ -570,8 +570,8 @@ const Register: React.FC = () => {
                         <option value="Colgante">Colgante</option>
                         <option value="Paligui">Paligui</option>
                         <option value="Sampaloc">Sampaloc</option>
-                        <option value="San juan">San Juan</option>
-                        <option value="San vicente">San Vicente</option>
+                        <option value="San Juan">San Juan</option>
+                        <option value="San Vicente">San Vicente</option>
                         <option value="Sucad">Sucad</option>
                         <option value="Sulipan">Sulipan</option>
                         <option value="Tabuyuc">Tabuyuc</option>

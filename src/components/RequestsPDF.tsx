@@ -7,8 +7,22 @@ import {
   Image
 } from '@react-pdf/renderer';
 
-import Logo1 from '../assets/images/2.jpg';
-import Logo2 from '../assets/images/balucuc.jpg';
+import Logo1 from '../assets/images/1.jpg';
+import Logo2 from '../assets/images/2.jpg';
+import Logo3 from '../assets/images/3.jpg';
+import Balucuc from '../assets/images/balucuc.jpg';
+import Calantipe from '../assets/images/calantipe.jpg';
+import Cansinala from '../assets/images/cansinala.jpg';
+import Capalangan from '../assets/images/capalangan.jpg';
+import Colgante from '../assets/images/colgante.png';
+import Paligui from '../assets/images/paligui.jpg';
+import Sampaloc from '../assets/images/sampaloc.jpg';
+import San_Juan from '../assets/images/sanjuan.jpg';
+import San_Vicente from '../assets/images/sanvicente.jpg';
+import Sucad from '../assets/images/sucad.png';
+import Sulipan from '../assets/images/sulipan.jpg';
+import Tabuyuc from '../assets/images/tabuyuc.jpg';
+
 // Define styles for the PDF
 const styles = StyleSheet.create({
   page: {
@@ -107,6 +121,44 @@ const getColumnWidths = (hasBarangay: boolean) => {
   }
 };
 
+const getLogo = (obj: any) => {
+  console.log('logo :>> ', obj);
+  let logos = {};
+
+  const brgyLogos = {
+    Balucuc,
+    Calantipe,
+    Cansinala,
+    Capalangan,
+    Colgante,
+    Paligui,
+    Sampaloc,
+    'San Juan': San_Juan,
+    'San Vicente': San_Vicente,
+    Sucad,
+    Sulipan,
+    Tabuyuc
+  };
+
+  logos.left = obj.unit == "1"
+    ? Logo1
+    : obj.unit == "2"
+    ? Logo2
+    : Logo3;
+
+  logos.right = obj.barangay
+  ? brgyLogos[obj.barangay]
+  : (obj.unit == "1"
+    ? San_Juan
+    : obj.unit == "2"
+    ? Tabuyuc
+    : San_Vicente)
+
+  console.log('logos :>> ', logos);
+
+  return logos;
+}
+
 
 const RequestsPDF = ({ data, user, header }: any) => {
   const hasBarangay = !user?.role.includes('Barangay');
@@ -118,7 +170,7 @@ const RequestsPDF = ({ data, user, header }: any) => {
         {/* Header Section */}
         <View style={styles.headerContainer}>
           {/* Left Logo */}
-          <Image src={Logo1} style={styles.logo} />
+          <Image src={getLogo(header).left} style={styles.logo} />
 
           {/* Centered Header Content */}
           <View style={styles.headerContent}>
@@ -128,7 +180,7 @@ const RequestsPDF = ({ data, user, header }: any) => {
              {/* Title */}
           </View>
           {/* Right Logo */}
-          <Image src={Logo2} style={styles.logo} />
+          <Image src={getLogo(header).right} style={styles.logo} />
         </View>
 
 

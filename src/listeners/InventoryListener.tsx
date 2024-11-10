@@ -47,7 +47,7 @@ const InventoryListener = () => {
               });
 
               console.log("Barangay Item is out of stock.");
-            } else if (totalPieces < 50) {
+            } else if (totalPieces <= 25) {
               notificationService.createNotification({
                 action: "alert",
                 itemId: id,
@@ -85,7 +85,7 @@ const InventoryListener = () => {
                 sentTo: "",
               });
               console.log("Item is out of stock.");
-            } else if (stock < 10) {
+            } else if (stock <= 25) {
               notificationService.createNotification({
                 action: "alert",
                 itemId: id,
@@ -97,7 +97,7 @@ const InventoryListener = () => {
                 sentBy: "",
                 sentTo: user.rhuOrBarangay || "",
               });
-              console.log("Stock is below 10.");
+              console.log("Stock is 25 or less.");
             }
           }
         }

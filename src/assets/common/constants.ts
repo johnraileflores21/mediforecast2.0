@@ -91,6 +91,38 @@ export const requestFormData = {
     requestedQuantity: ""
 };
 
+export const itrFields = {
+    familyName: "",
+    firstName: "",
+    middleName: "",
+    status: "",
+    nationality: "",
+    age: "",
+    sex: "",
+    address: "",
+    mobileno: "",
+    dateOfBirth: "",
+    broughtBy: "",
+    philMember: "",
+    philNumber: "",
+    phicMemberName: "",
+    date: "",
+    complaints: "",
+    history: "",
+    physicalExamBP: "",
+    physicalExamHR: "",
+    physicalExamT: "",
+    physicalExamWT: "",
+    physicalExamPR: "",
+    physicalExamH: "",
+    diagnosis: "",
+    order: "",
+    time: "",
+    rhuOrBarangay: "",
+    created_at: "",
+    updated_at: "",
+};
+
 export const inventoryFilters = ["All", "Medicines", "Vitamins", "Vaccine"];
 export const inventoryTabs = ["Medicine", "Vitamin", "Vaccine"];
 
@@ -109,9 +141,9 @@ export function getTypes(data: any) {
 };
 
 export const RHUs = [
-    {"barangays": ["Sulipan", "San Juan", "Capalangan", "Sucad", "Colgante"]},
+    {"barangays": ["Sulipan", "San Juan", "Capalangan", "Sucad"]},
     {"barangays": ["Tabuyuc", "Balucuc", "Cansinala", "Calantipe"]},
-    {"barangays": ["San Vicente", "Sampaloc", "Paligui"]}
+    {"barangays": ["San Vicente", "Sampaloc", "Paligui", "Colgante"]}
 ];
 
 export const formatDate = (dateString: any) => {
@@ -180,10 +212,20 @@ export const ucwords = (word: string) => word.split(' ')
     .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
 
+
 export const ucfirst = (word: string) => {
     const w = word.split('');
     const f = isNaN(w[0])
         ? w[0].toUpperCase()
         : w[0];
     return f + w.slice(1, w.length).join("");
+};
+
+export const generateRandomColor = () => {
+    const r = Math.floor(Math.random() * 256);
+    const g = Math.floor(Math.random() * 256);
+    const b = Math.floor(Math.random() * 256);
+    const a = 0.6;
+  
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
 };

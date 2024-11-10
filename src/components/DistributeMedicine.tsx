@@ -1,7 +1,7 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { db } from "../firebase";
 import { collection, onSnapshot, doc, updateDoc, getDoc, setDoc, getDocs, query, where, addDoc } from "firebase/firestore";
-import { MdCancel } from "react-icons/md";
+import { MdCancel, MdDelete } from "react-icons/md";
 import { useUser } from "./User";
 import { IoMdClose } from "react-icons/io";
 import Swal from "sweetalert2";
@@ -45,11 +45,21 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
       setMedicine({...data});
       setForms([{ ...data}]);
       setOriginalQuantity(data.medicineStock);
+      if(data?.medicineStock <= 30) {
+        const tab = activeTabs.map((tab: number) => {
+          tab = 1;
+          return tab;
+        })
+        console.log('tab :>> ', tab);
+        setActiveTabs(tab);
+      }
     };
   }, [data]);
   if (!medicine) {
     return null;
   }
+
+
   const formatDate = (dateString: any) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -414,6 +424,12 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
     }
   };
 
+  const deleteForm = (i: number, e: any) => {
+    e.stopPropagation();
+    const updatedForms = forms.filter((_: any, index: number) => index !== i);
+    setForms(updatedForms);
+  };
+
 
   return (
     <div
@@ -466,15 +482,33 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                           expandIcon={<MdExpandMore />}
                           aria-controls={`panel${index}-content`}
                           id={`panel${index}-header`}
-                          sx={{ bgcolor: '#f0f0f0', '&.Mui-expanded': { bgcolor: '#f0f0f0' } }}
+                          sx={{
+                            bgcolor: '#f0f0f0',
+                            '&.Mui-expanded': { bgcolor: '#f0f0f0' },
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                          }}
                         >
                           <Typography>Distribution #{index + 1}</Typography>
+                          {forms.length > 1 && <MdDelete
+                            onClick={(e) => deleteForm(index, e)}
+                            style={{
+                              cursor: 'pointer',
+                              marginLeft: '10px',
+                              color: 'red',
+                              order: 1,
+                              position: 'absolute',
+                              right: '40px',
+                              marginTop: '3px',
+                            }}
+                          />}
                         </AccordionSummary>
                         <AccordionDetails>
 
                           {/* Tabs for Barangay and Resident */}
                           {!isBarangay && <div className="my-6">
-                            <button type="button" onClick={() => handleTabChange(index, 0)} className={`px-4 py-2 ${activeTabs[index] === 0 ? "bg-gray-300" : "bg-gray-200"}`}>Barangay</button>
+                            <button disabled={data?.medicineStock <= 30} type="button" onClick={() => handleTabChange(index, 0)} className={`px-4 py-2 ${activeTabs[index] === 0 ? "bg-gray-300" : "bg-gray-200"}`}>Barangay</button>
                             <button type="button" onClick={() => handleTabChange(index, 1)} className={`px-4 py-2 ${activeTabs[index] === 1 ? "bg-gray-300" : "bg-gray-200"}`}>Resident</button>
                           </div>}
 
