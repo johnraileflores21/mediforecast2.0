@@ -11,6 +11,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "./User";
 import { auth } from "../firebase";
 import profile from "../assets/images/profile3.png";
+import lock from "../assets/images/lock.png";
 
 type DropdownItem = {
   name: string;
@@ -51,6 +52,11 @@ const Sidebar = () => {
           name: "Profile",
           link: "/profile",
           icon: profile,
+        },
+        {
+          name: "Change Password",
+          link: "/settings",
+          icon: lock,
         },
       ] as DropdownItem[],
     },
@@ -185,7 +191,7 @@ const Sidebar = () => {
                         <img
                           src={dropdownItem.icon}
                           alt={dropdownItem.name}
-                          className="w-6 h-6 rounded-full"
+                          className="w-5 h-5 rounded-full"
                         />
                       )}
                       <span>{dropdownItem.name}</span>
