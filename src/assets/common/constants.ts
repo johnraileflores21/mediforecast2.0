@@ -1,3 +1,7 @@
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { storage } from "../../firebase";
+import { v4 } from "uuid";
+
 export const baseUrl = "https://api-dgreatplan.site/api";
 
 export const medical_packaging = [
@@ -228,4 +232,14 @@ export const generateRandomColor = () => {
     const a = 0.6;
   
     return `rgba(${r}, ${g}, ${b}, ${a})`;
+};
+
+export const generateOTP = () => {
+    return Math.floor(Math.random() * (999999 - 100000 + 1)) + 100000;
+}
+
+export const uploadImage = async (file: File, path: string): Promise<string> => {
+    const imageRef = ref(storage, `${path}/-${file.name + v4()}`);
+    const snapshot = await uploadBytes(imageRef, file);
+    return await getDownloadURL(snapshot.ref);
 };

@@ -323,7 +323,7 @@ const Request = () => {
 
             const pendingQuantity = currentStock - requestedQuantity;
 
-            if(pendingQuantity < 30)
+            if(pendingQuantity < 100)
                 return Swal.fire({
                     position: "center",
                     icon: "error",

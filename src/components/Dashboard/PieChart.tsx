@@ -119,7 +119,7 @@ const PieChart: React.FC<PieChartProps> = ({
       },
       title: {
         display: true,
-        text: "Top Out of Stock Items",
+        text: "Top Low Stock Items",
       },
       tooltip: {
         callbacks: {
@@ -142,7 +142,7 @@ return hasData ? (
   <Pie data={chartData} options={pieOptions} />
 ) : (
   <div className="flex flex-col items-center justify-between rounded-lg h-[250px]">
-    <div className="text-[12px] text-gray-700 font-bold">Top Out of Stock Items</div>
+    <div className="text-[12px] text-gray-700 font-bold">Top Low Stock Items</div>
     <div className="flex flex-col items-center">
       <FaExclamationCircle className="text-4xl text-red-500 mb-4 mt-4" />
       <p className="text-lg text-gray-700">No items to display.</p>

@@ -216,7 +216,7 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
   
         const deductionQty = availableStock - form.requestedQuantity;
   
-        if(deductionQty < 30) {
+        if(deductionQty < 100) {
 
           console.log('name :>> ', name);
 
@@ -320,7 +320,7 @@ const ModalAddRequest: React.FC<ModalAddRequestProps> = ({
   };
 
   const isOutOfStock = (item: any) => {
-    return (item.medicineStock || item.vitaminStock || item.vaccineStock) <= 30;
+    return (item.medicineStock || item.vitaminStock || item.vaccineStock) < 100;
   }
 
   return (

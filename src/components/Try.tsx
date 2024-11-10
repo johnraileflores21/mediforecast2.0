@@ -72,7 +72,7 @@ const Try: React.FC = () => {
       const inventoryItems = inventorySnap.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-      }));
+      })).filter((x) => x[`${getTypes(x)}Stock`] > 0);
       setItems(inventoryItems);
       console.log("inventoryItems :>> ", inventoryItems);
     } catch (error) {
@@ -590,8 +590,8 @@ const Try: React.FC = () => {
                         )}
                       </span>
                     </h5>
-                    {((parseInt(item.medicineStock) || parseInt(item.vitaminStock) || parseInt(item.vaccineStock)) <= 30) && <span className="text-red-500">
-                      Out of Stock
+                    {((parseInt(item.medicineStock) || parseInt(item.vitaminStock) || parseInt(item.vaccineStock)) <= 100) && <span className="text-red-500">
+                      Low Stock
                     </span>}
                   </button>
 

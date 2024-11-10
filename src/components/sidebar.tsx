@@ -10,6 +10,13 @@ import { GiHamburgerMenu } from "react-icons/gi";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "./User";
 import { auth } from "../firebase";
+import profile from "../assets/images/profile3.png";
+
+type DropdownItem = {
+  name: string;
+  link: string;
+  icon?: string;
+};
 
 const Sidebar = () => {
   const [open, setOpen] = useState(true);
@@ -17,6 +24,8 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectMenu, setSelectMenu] = useState<string>("");
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   const closeModal = () => setShowDeleteModal(false);
 
@@ -31,9 +40,21 @@ const Sidebar = () => {
       link: "/individual-treatment-record",
       icon: FaFileShield,
     },
-    { name: "Profile", link: "/profile", icon: RiUserLine, margin: true },
-    { name: "Setting", link: "/settings", icon: RiSettings4Line, margin: true },
-    { name: "Logout", link: "#", icon: IoLogOut }, // Prevent navigation on click
+    {
+      name: "Setting",
+      link: "#",
+      icon: RiSettings4Line,
+      margin: true, 
+      hasDropdown: true,
+      dropdownItems: [
+        {
+          name: "Profile",
+          link: "/profile",
+          icon: profile,
+        },
+      ] as DropdownItem[],
+    },
+    { name: "Logout", link: "Logout", icon: IoLogOut }, // Prevent navigation on click
   ];
 
   const handleLogout = async () => {
@@ -45,8 +66,23 @@ const Sidebar = () => {
     }
   };
 
+  const handleMenuClick = (
+    menuName: string,
+    link: string,
+    hasDropdown: boolean
+  ) => {
+    setSelectMenu(menuName);
+    if (hasDropdown) {
+      setActiveDropdown((prev) => (prev === menuName ? null : menuName));
+    } else {
+      setActiveDropdown(null);
+      handleClick(link);
+    }
+  };
+
   const handleClick = (link: string) => {
-    if (link === "#") {
+    if(link === "#") return;
+    if(link === "Logout") {
       setShowDeleteModal(true);
     } else {
       navigate(link);
@@ -100,8 +136,9 @@ const Sidebar = () => {
           </div>
           <div className="mt-4 flex flex-col gap-4 relative">
             {menus.map((menu, i) => (
+              <div key={i}>
+
               <div
-                key={i}
                 className={`${
                   menu.margin && "mt-5"
                 } group flex items-center text-sm gap-3.5 font-medium p-2 rounded-md cursor-pointer ${
@@ -109,7 +146,9 @@ const Sidebar = () => {
                     ? "bg-blue-gray-900 text-white"
                     : "hover:bg-blue-gray-900 text-gray-100"
                 }`}
-                onClick={() => handleClick(menu.link)}
+                onClick={() =>
+                  handleMenuClick(menu.name, menu.link, !!menu.hasDropdown)
+                }
               >
                 <div>{React.createElement(menu.icon, { size: "20" })}</div>
                 <h2
@@ -129,6 +168,31 @@ const Sidebar = () => {
                 >
                   {menu.name}
                 </h2>
+              </div>
+              {menu.hasDropdown && activeDropdown === menu.name && open && (
+                <div className="pl-8">
+                  {menu.dropdownItems?.map((dropdownItem, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-center text-sm gap-3.5 font-medium p-2 rounded-md cursor-pointer mt-2 ${
+                        isActive(dropdownItem.link)
+                          ? "bg-blue-gray-800 text-white"
+                          : "hover:bg-blue-gray-800 text-gray-100"
+                      }`}
+                      onClick={() => handleClick(dropdownItem.link)}
+                    >
+                      {dropdownItem.icon && (
+                        <img
+                          src={dropdownItem.icon}
+                          alt={dropdownItem.name}
+                          className="w-6 h-6 rounded-full"
+                        />
+                      )}
+                      <span>{dropdownItem.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               </div>
             ))}
           </div>

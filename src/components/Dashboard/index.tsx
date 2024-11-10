@@ -31,13 +31,17 @@ import BarChart from "./BarChart";
 
 interface UserDetails {
   firstname: string;
+  middlename: string;
   lastname: string;
   email: string;
   rhuOrBarangay: string;
+  dateOfBirth: string;
   imageUrl: string;
+  gender: string;
+  phone: string;
   barangay: string;
   uid: string;
-  role: string
+  role: string;
 }
 ChartJS.register(
   CategoryScale,
@@ -75,13 +79,17 @@ const Dashboard: React.FC = () => {
               const data = docSnap.data() as UserDetails;
               setUser({
                 firstname: data.firstname,
+                middlename: data.middlename,
                 lastname: data.lastname,
                 email: data.email,
                 rhuOrBarangay: data.rhuOrBarangay,
                 imageUrl: data.imageUrl,
                 barangay: data.barangay,
+                dateOfBirth: data.dateOfBirth,
+                phone: data.phone,
                 uid: user.uid,
                 role: data.role,
+                gender: data.gender
               });
             } else {
               setError("No user details found.");

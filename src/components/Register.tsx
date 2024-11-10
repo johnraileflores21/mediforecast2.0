@@ -13,7 +13,7 @@ import bcrypt from "bcryptjs";
 import CommonError from "../assets/common/error";
 import OtpVerification from "./OtpVerification/Modal";
 import axios from "axios";
-import { baseUrl } from "../assets/common/constants";
+import { baseUrl, generateOTP, uploadImage } from "../assets/common/constants";
 
 // Optional: Define form data types for better type safety
 type FormData = {
@@ -88,12 +88,6 @@ const Register: React.FC = () => {
   const [modalVerification, setModalVerification] = useState(false);
   
   const Navigate = useNavigate();
-
-  const uploadImage = async (file: File, path: string): Promise<string> => {
-    const imageRef = ref(storage, `${path}/-${file.name + v4()}`);
-    const snapshot = await uploadBytes(imageRef, file);
-    return await getDownloadURL(snapshot.ref);
-  };
 
   const determineRhu = (barangay: string, role: string): string => {
     if (role === "RHU Staff") {
@@ -262,7 +256,7 @@ const Register: React.FC = () => {
       // Sign out the user after registration because it automatic login if not signout
       await signOut(auth);
 
-      const newOtp = Math.floor(Math.random() * (999999 - 100000 + 1)) + 100000;
+      const newOtp = generateOTP();
 
       const newOtpDocRef = doc(collection(db, "OtpVerifications"));
       await setDoc(newOtpDocRef, {

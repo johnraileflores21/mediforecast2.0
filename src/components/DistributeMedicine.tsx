@@ -45,7 +45,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
       setMedicine({...data});
       setForms([{ ...data}]);
       setOriginalQuantity(data.medicineStock);
-      if(data?.medicineStock <= 30) {
+      if(data?.medicineStock <= 100) {
         const tab = activeTabs.map((tab: number) => {
           tab = 1;
           return tab;
@@ -508,7 +508,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
 
                           {/* Tabs for Barangay and Resident */}
                           {!isBarangay && <div className="my-6">
-                            <button disabled={data?.medicineStock <= 30} type="button" onClick={() => handleTabChange(index, 0)} className={`px-4 py-2 ${activeTabs[index] === 0 ? "bg-gray-300" : "bg-gray-200"}`}>Barangay</button>
+                            <button disabled={data?.medicineStock <= 100} type="button" onClick={() => handleTabChange(index, 0)} className={`px-4 py-2 ${activeTabs[index] === 0 ? "bg-gray-300" : "bg-gray-200"}`}>Barangay</button>
                             <button type="button" onClick={() => handleTabChange(index, 1)} className={`px-4 py-2 ${activeTabs[index] === 1 ? "bg-gray-300" : "bg-gray-200"}`}>Resident</button>
                           </div>}
 

@@ -44,7 +44,7 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
       setVitamin(data);
       setForms([{ ...data }]);
       setOriginalQuantity(data.vitaminStock);
-      if(data?.vitaminStock <= 30) {
+      if(data?.vitaminStock <= 100) {
         const tab = activeTabs.map((tab: number) => {
           tab = 1;
           return tab;
@@ -382,7 +382,7 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
 
   const addForm = () => {
     setForms([...forms, vitamin]);
-    setActiveTabs([...activeTabs, data?.vitaminStock <= 30 ? 1 : 0]);
+    setActiveTabs([...activeTabs, data?.vitaminStock <= 100 ? 1 : 0]);
   }
 
   const deleteForm = (i: number, e: any) => {
@@ -469,7 +469,7 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
 
                         {/* Tabs for Barangay and Resident */}
                         {!isBarangay && <div className="my-6">
-                            <button disabled={data?.vitaminStock <= 30} type="button" onClick={() => handleTabChange(index, 0)} className={`px-4 py-2 ${activeTabs[index] === 0 ? "bg-gray-300" : "bg-gray-200"}`}>Barangay</button>
+                            <button disabled={data?.vitaminStock <= 100} type="button" onClick={() => handleTabChange(index, 0)} className={`px-4 py-2 ${activeTabs[index] === 0 ? "bg-gray-300" : "bg-gray-200"}`}>Barangay</button>
                             <button type="button" onClick={() => handleTabChange(index, 1)} className={`px-4 py-2 ${activeTabs[index] === 1 ? "bg-gray-300" : "bg-gray-200"}`}>Resident</button>
                           </div>}
 

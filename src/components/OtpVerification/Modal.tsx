@@ -1,40 +1,44 @@
-import { collection, doc, getDoc,getDocs,query,serverTimestamp,setDoc,updateDoc, where, writeBatch } from "firebase/firestore";
-import { useEffect, useState } from "react"
+import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
+import { useEffect, useState } from "react";
 import { db } from "../../firebase";
 import { FaInfoCircle, FaUpload } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import axios from "axios";
 import { baseUrl } from "../../assets/common/constants";
 import { useNavigate } from "react-router-dom";
+import { updateEmail } from "firebase/auth";
+import { auth } from "../../firebase";
 
 interface OtpVerificationProps {
     userId: string;
     showModal: boolean;
-    closeModal: () => void;
+    closeModal: (bool?: boolean) => void;
+    isEmailChange?: boolean;
 }
 
-export default function OtpVerification({ userId, showModal, closeModal }: OtpVerificationProps) {
+export default function OtpVerification({ userId, showModal, closeModal, isEmailChange }: OtpVerificationProps) {
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>();
     const [userData, setUserData] = useState<any>({});
-    const [otp, setOtp] = useState();
+    const [otp, setOtp] = useState<string | undefined>();
 
-    const Navigate = useNavigate();
+    const navigate = useNavigate();
 
     useEffect(() => {
         getUser();
     }, [userId]);
 
-
     async function getUser() {
         try {
-            if (!userId) return;
+            if(!userId) return;
             setLoading(true);
 
             const userDoc = await getDoc(doc(db, "Users", userId));
-            if(userDoc.exists())
+            if(userDoc.exists()) {
                 setUserData({ id: userDoc.id, ...userDoc.data() });
-            else setError("User not found");
+            } else {
+                setError("User not found");
+            }
         } catch (error: any) {
             toast.error(error);
         } finally {
@@ -51,38 +55,57 @@ export default function OtpVerification({ userId, showModal, closeModal }: OtpVe
             const otpQuerySnapshot = await getDocs(
                 query(collection(db, "OtpVerifications"), where("userId", "==", userId))
             );
-    
+
             let otpVerified = false;
 
             for(const otpDocSnap of otpQuerySnapshot.docs) {
                 const otpData = otpDocSnap.data();
-                console.log('otpData :>> ', otpData);
-                console.log('otp :>> ', otp);
                 const savedOtp = otpData.otp;
                 const isValid = otpData.isValid;
-    
+
                 if(otp == savedOtp && isValid) {
-                    const userDocRef = doc(db, "Users", userId);
-                    await updateDoc(userDocRef, { acc_status: "pending" });
-                    await updateDoc(otpDocSnap.ref, { isValid: false });
+                    if(isEmailChange) await handleEmailChange(otpDocSnap);
+                    else await activateUserAccount(otpDocSnap);
                     otpVerified = true;
                     break;
                 }
             }
 
-            console.log('otpVerified :>> ', otpVerified);
-    
             if(!otpVerified) {
                 toast.error("Invalid OTP. Please try again.");
             }
-
         } catch (error: any) {
             toast.error(error);
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function handleEmailChange(otpDocSnap: any) {
+        try {
+            await updateDoc(otpDocSnap.ref, { isValid: false });
+            toast.success("Success! Please enter your new password");
+            closeModal(true);
+        } catch (error: any) {
+            toast.error("Failed to change email. Please try again.");
+            console.error(error);
+        }
+    }
+
+    async function activateUserAccount(otpDocSnap: any) {
+        try {
+            const userDocRef = doc(db, "Users", userId);
+            await updateDoc(userDocRef, { acc_status: "pending" });
+
+            // Invalidate the OTP to prevent reuse
+            await updateDoc(otpDocSnap.ref, { isValid: false });
+
             toast.success("Your account has been verified and will be reviewed by admin.");
             closeModal();
-            Navigate('/');
+            navigate('/');
+        } catch (error: any) {
+            toast.error("Error during account activation. Please try again.");
+            console.error(error);
         }
     }
 
@@ -92,14 +115,14 @@ export default function OtpVerification({ userId, showModal, closeModal }: OtpVe
             const otpQuerySnapshot = await getDocs(
                 query(collection(db, "OtpVerifications"), where("userId", "==", userId))
             );
-    
+
             const batch = writeBatch(db);
-    
+
             otpQuerySnapshot.forEach(doc => {
                 const otpDocRef = doc.ref;
                 batch.update(otpDocRef, { isValid: false });
             });
-    
+
             await batch.commit();
 
             const newOtpDocRef = doc(collection(db, "OtpVerifications"));
@@ -116,22 +139,20 @@ export default function OtpVerification({ userId, showModal, closeModal }: OtpVe
                 firstName: userData?.firstname,
                 code: newOtp
             }, { headers: {'token': 's3cretKey'} });
-    
+
             toast.success(`Code has been sent to ${userData.email}`);
         } catch (error) {
             console.error("Error resending OTP: ", error);
             toast.error("Failed to resend OTP. Please try again.");
         }
     }
-    
- 
 
     return (
         showModal === true && (
             <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
                 <ToastContainer />
                 <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
-                    <h2 className="text-xl font-semibold mb-4">OTP Verification</h2>
+                    <h2 className="text-xl font-semibold mb-4">{isEmailChange ? 'Email Change OTP Verification' : 'Account OTP Verification'}</h2>
                     <div className="bg-blue-100 border-t-4 border-blue-500 rounded-b text-blue-900 px-4 py-1 shadow-md" role="alert">
                         <div className="flex items-center gap-2">
                             <div className="py-1">
@@ -145,7 +166,6 @@ export default function OtpVerification({ userId, showModal, closeModal }: OtpVe
                             </div>
                         </div>
                     </div>
-
 
                     <form className="mt-6" onSubmit={handleVerify}>
                         <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
@@ -174,7 +194,7 @@ export default function OtpVerification({ userId, showModal, closeModal }: OtpVe
                             Verify
                         </button>
                         <button
-                            onClick={closeModal}
+                            onClick={() => closeModal()}
                             className="mt-4 w-full border bg-transparent font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
                         >
                             Cancel
@@ -182,7 +202,6 @@ export default function OtpVerification({ userId, showModal, closeModal }: OtpVe
                     </form>
                 </div>
             </div>
-
         )
-    )
+    );
 }
