@@ -8,6 +8,11 @@ interface HistoryLogParams {
   barangay?: string;
   performedBy: string;
   remarks?: string;
+
+  // extra for distribution 
+  quantity?: string;
+  address?: string;
+  rhuOrBarangay?: string;
 }
 
 /**
@@ -22,13 +27,16 @@ export async function createHistoryLog({
   fullName,
   barangay,
   performedBy,
-  remarks ,
+  remarks,
+  quantity,
+  address,
+  rhuOrBarangay
 }: HistoryLogParams): Promise<void> {
   if (!actionType || !performedBy) {
     throw new Error("actionType and performedBy a fields.");
   }
 
-  const historyPayload = {
+  let historyPayload = {
     actionType,
     itemId: itemId || null,
     itemName: itemName || null,
@@ -37,7 +45,19 @@ export async function createHistoryLog({
     performedBy,
     remarks: remarks || null,
     timestamp: new Date().toISOString(),
+    quantity,
+    address,
+    rhuOrBarangay
   };
+
+  if(quantity) historyPayload.quantity = quantity;
+  else delete historyPayload.quantity
+
+  if(address) historyPayload.address = address;
+  else delete historyPayload.address
+
+  if(rhuOrBarangay) historyPayload.rhuOrBarangay = rhuOrBarangay;
+  else delete historyPayload.rhuOrBarangay
 
   try {
     await addDoc(collection(db, "History"), historyPayload);

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
   sendEmailVerification,
+  signOut,
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { db, auth } from "../../firebase";
@@ -42,11 +43,13 @@ const Login = () => {
           navigate("/administrator/users");
         } else {
           toast.error("This is not your position.", { position: "top-center" });
+          await signOut(auth);
         }
       } else {
         toast.error("No such document exists in the database.", {
           position: "top-center",
         });
+        await signOut(auth);
       }
     } catch (error: any) {
       console.error("Firestore error:", error);

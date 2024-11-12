@@ -276,7 +276,9 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
               itemName: payload.medicineBrandName,
               fullName: payload.fullName,
               barangay: payload.barangay,
+              address: payload.address,
               performedBy: payload.userId,
+              rhuOrBarangay: user?.rhuOrBarangay,
               remarks: `Distributed ${payload.medicineStock} units to ${payload.fullName}`,
             });
 

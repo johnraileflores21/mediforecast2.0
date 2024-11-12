@@ -38,6 +38,8 @@ const EditPost: React.FC<EditPostProps> = ({
       return;
     }
 
+    console.log('editId :>> ', editId);
+
     const docRef = doc(db, "CommunityPost", editId); // Make sure editId is a string here
     try {
       const docSnap = await getDoc(docRef);
@@ -107,11 +109,11 @@ const EditPost: React.FC<EditPostProps> = ({
       if (selectedFile) {
         console.log("Selected file:", selectedFile);
         console.log("File type:", selectedFile.type);
-
+  
         const objectUrl = URL.createObjectURL(selectedFile);
         setFile(selectedFile);
         setPreview(objectUrl);
-
+  
         return () => URL.revokeObjectURL(objectUrl);
       }
     } else {
@@ -121,6 +123,7 @@ const EditPost: React.FC<EditPostProps> = ({
       });
     }
   };
+  
 
   const openUploadImg = () => {
     setOpenUpload(true);
@@ -213,17 +216,14 @@ const EditPost: React.FC<EditPostProps> = ({
                       <div className="w-full border p-2 flex justify-center items-center h-3/6 rounded-lg">
                         <div className="relative flex justify-center items-center bg-gray-100 hover:bg-gray-300 w-full h-48 rounded-lg bg-cover bg-center">
                           {preview ? (
-                            preview.startsWith("data:") ||
-                            preview.startsWith("blob:") ? (
+                            preview.startsWith("data:") || preview.startsWith("blob:") ? (
                               // If the preview URL is a data URL or blob URL (e.g., from a file input)
                               file?.type.startsWith("video/") ? (
                                 <video
                                   src={preview}
                                   controls
                                   className="rounded-lg max-h-full w-full"
-                                  onError={() =>
-                                    console.error("Error loading video")
-                                  }
+                                  onError={() => console.error("Error loading video")}
                                 >
                                   Your browser does not support the video tag.
                                 </video>
@@ -232,22 +232,17 @@ const EditPost: React.FC<EditPostProps> = ({
                                   src={preview}
                                   alt="Selected preview"
                                   className="rounded-lg max-h-full max-w-full"
-                                  onError={() =>
-                                    console.error("Error loading image")
-                                  }
+                                  onError={() => console.error("Error loading image")}
                                 />
                               ) : (
                                 <div>Unsupported file type</div>
                               )
-                            ) : // If the preview URL is a direct URL (e.g., from Firebase Storage)
-                            preview.endsWith(".mp4") ? (
+                            ) : preview.includes("firebasestorage.googleapis.com") ? (  // Check if the preview URL is a Firebase Storage URL
                               <video
                                 src={preview}
                                 controls
                                 className="rounded-lg max-h-full w-full"
-                                onError={() =>
-                                  console.error("Error loading video")
-                                }
+                                onError={() => console.error("Error loading video")}
                               >
                                 Your browser does not support the video tag.
                               </video>
@@ -256,9 +251,7 @@ const EditPost: React.FC<EditPostProps> = ({
                                 src={preview}
                                 alt="Selected preview"
                                 className="rounded-lg max-h-full max-w-full"
-                                onError={() =>
-                                  console.error("Error loading image")
-                                }
+                                onError={() => console.error("Error loading image")}
                               />
                             )
                           ) : (
@@ -280,7 +273,6 @@ const EditPost: React.FC<EditPostProps> = ({
                               <span className="mt-16">Add Photo/Video</span>
                             </>
                           )}
-
                           {preview && (
                             <button
                               onClick={closeUploadImg}

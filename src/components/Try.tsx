@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { db, storage } from "../firebase";
 import { collection, onSnapshot, deleteDoc, doc, query, where, getDocs, getDoc, updateDoc } from "firebase/firestore";
 import DashboardLayout from "./DashboardLayout";
-import { IoMdAddCircle } from "react-icons/io";
+import { IoMdAddCircle, IoMdTime } from "react-icons/io";
 import ModalAdd from "./ModalAdd";
 import ModalViewMedicine from "./ModalViewMedicine";
 import ModalEditMedicine from "./ModalEditMedicine";
@@ -23,10 +23,12 @@ import ScrollToTop from "./ScrollToTop";
 import DistributeVaccine from "./DistributeVaccine";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
-import { getTypes, RHUs } from "../assets/common/constants";
+import { getAddress, getTypes, RHUs } from "../assets/common/constants";
 import { createHistoryLog }  from '../utils/historyService';
 import notificationService from '../utils/notificationService';
 import { useConfirmation } from '../hooks/useConfirmation';
+import { PDFViewer } from "@react-pdf/renderer";
+import HistoryPDF from "./HistoryPDF";
 
 const Try: React.FC = () => {
   const confirm = useConfirmation();
@@ -52,6 +54,11 @@ const Try: React.FC = () => {
   const [selectedOption, setSelectedOption] = useState<string>("All");
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
   const [selectedTab, setSelectedTab] = useState<number>(0);
+  const [historyData, setHistoryData] = useState<any>([]);
+  const [historyLoading, setHistoryLoading] = useState<boolean>(false);
+
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+
   const { user } = useUser();
   const MySwal = withReactContent(Swal);
 
@@ -101,10 +108,34 @@ const Try: React.FC = () => {
     }
   }
 
+  const fetchHistoryData = async () => {
+    try {
+      setHistoryLoading(true);
+      const hQuery = query(
+        collection(db, "History"),
+        where("rhuOrBarangay", "==", user?.rhuOrBarangay)
+      );
+
+      const hSnap = await getDocs(hQuery);
+      const hItems = hSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      console.log('hItems :>> ', hItems);
+
+      setHistoryData(hItems);
+    } catch (error) {
+      console.log('error :>> ', error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
   useEffect(() => {
     console.log('user :>> ', user);
     fetchData();
     fetchPending();
+    fetchHistoryData();
   }, [user?.rhuOrBarangay]);
 
   const handleAdd = () => setModalAdd(true);
@@ -327,6 +358,8 @@ const Try: React.FC = () => {
             barangay: user?.barangay || '',
             performedBy: user?.uid || '',
             remarks: `Received ${data.pendingQuantity} ${itemName}`,
+            quantity: data.pendingQuantity,
+            rhuOrBarangay: user?.rhuOrBarangay,
           })
 
           await updateDoc(inventoryRef, {
@@ -414,7 +447,7 @@ const Try: React.FC = () => {
           .includes(searchQuery.toLowerCase()) ||
         item.medicineGenericName
           ?.toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
+          .includes(searchQuery.toLowerCase()) || 
         item.vaccineName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.vitaminBrandName?.toLowerCase().includes(searchQuery.toLowerCase())
     ).sort((a, b) => {
@@ -423,6 +456,35 @@ const Try: React.FC = () => {
       
       return aName.toLowerCase().localeCompare(bName.toLowerCase());
     });
+
+    const handleShowHistory = () => {
+      setShowHistoryModal(true);
+    }
+
+    const filteredPdfHeader = () => {
+
+      const userBarangay = user?.rhuOrBarangay || "";
+      const rhuIndex = RHUs.findIndex(rhu => rhu.barangays.includes(userBarangay)) + 1;
+
+      const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+      const rhuRomanNumeral = romanNumerals[(rhuIndex == 0 ? parseInt(userBarangay): rhuIndex) - 1];
+
+      console.log('rhuIndex :>>', rhuIndex);
+      console.log('rhuRomanNumeral :>>', rhuRomanNumeral);
+
+      console.log('getAddress() :>> ', getAddress(userBarangay));
+
+      return {
+          h1: rhuIndex == 0 ?   `Rural Health Unit ${rhuRomanNumeral}`: `${user?.rhuOrBarangay} Health Center`,
+          h2: rhuIndex == 0 ? '' :  `Rural Health Unit ${rhuRomanNumeral}`,
+          h3: getAddress(userBarangay).address,
+          title: "Distribution History",
+          unit: userBarangay.length == 1 ? userBarangay : rhuIndex.toString(),
+          barangay: getAddress(userBarangay).barangay
+      };
+    }
+    const pdfHeader = filteredPdfHeader();
+
   return (
     <DashboardLayout>
       <ToastContainer />
@@ -443,15 +505,27 @@ const Try: React.FC = () => {
         </div>
         {selectedTab === 0 ?   <>
           <div className="flex justify-between mb-4">
-            <div className="relative shadow-md">
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={handleSearchInputChange}
-                className="border border-gray-300 rounded-md p-2 pl-8"
-              />
-              <IoSearchOutline className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <div className="flex gap-2">
+              <div className="relative shadow-md">
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={handleSearchInputChange}
+                  className="border border-gray-300 rounded-md p-2 pl-8"
+                />
+                <IoSearchOutline className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+              </div>
+              <div>
+                <button
+                  onClick={handleShowHistory}
+                  disabled={historyLoading}
+                  className="bg-blue-500 text-white p-2 hover:bg-blue-700 rounded-md font-bold flex items-center space-x-1"
+                >
+                  <IoMdTime className="w-5 h-5" />
+                  <span>History</span>
+                </button>
+              </div>
             </div>
 
             {!isBarangay && <button
@@ -733,6 +807,27 @@ const Try: React.FC = () => {
           </tbody>
       </table>
         </>}
+
+      {showHistoryModal === true && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-[900px]">
+
+            <PDFViewer style={{ width: '100%', height: '500px' }}>
+              <HistoryPDF data={historyData} user={user} header={pdfHeader} />
+            </PDFViewer>
+
+            <div className="flex justify-end mt-4 gap-2">
+              <button
+                type="button"
+                onClick={() => setShowHistoryModal(false)}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+        )}
 
       {modalAdd && <ModalAdd showModal={modalAdd} closeModal={closeModalAdd} />}
 
