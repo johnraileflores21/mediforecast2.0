@@ -8,6 +8,7 @@ import {
   ref as storageRef,
   uploadBytes,
   getDownloadURL,
+  getMetadata
 } from "firebase/storage";
 import { useUser } from "./User";
 
@@ -25,6 +26,7 @@ const EditPost: React.FC<EditPostProps> = ({
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [openUpload, setOpenUpload] = useState(false);
+  const [fileType, setFileType] = useState<any>(null);
   const [formData, setFormData] = useState({
     postMessage: "",
     rhu: "",
@@ -43,15 +45,23 @@ const EditPost: React.FC<EditPostProps> = ({
     const docRef = doc(db, "CommunityPost", editId); // Make sure editId is a string here
     try {
       const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
+      if(docSnap.exists()) {
         const data = docSnap.data();
         setFormData({
           postMessage: data.postMessage || "",
           rhu: data.rhu || "",
         });
-        if (data.postImg) {
+        if(data.postImg) {
+          console.log('data :>> ', data);
           setOpenUpload(true);
           setPreview(data.postImg);
+
+          if(data.postImg.includes("firebasestorage.googleapis.com")) {
+            const ref = storageRef(storage, data.postImg);
+            const md = await getMetadata(ref);
+            setFileType(md.contentType);
+          }
+
         }
       } else {
         console.log("No such document!");
@@ -101,7 +111,7 @@ const EditPost: React.FC<EditPostProps> = ({
     }
   };
 
-  const handleChange = (
+  const handleChange = async (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     if (e.target instanceof HTMLInputElement && e.target.files) {
@@ -112,7 +122,12 @@ const EditPost: React.FC<EditPostProps> = ({
   
         const objectUrl = URL.createObjectURL(selectedFile);
         setFile(selectedFile);
+        console.log('objectUrl :>> ', objectUrl);
         setPreview(objectUrl);
+
+        // const ref = storageRef(storage, objectUrl);
+        // const md = await getMetadata(ref);
+        // setFileType(md.contentType);
   
         return () => URL.revokeObjectURL(objectUrl);
       }
@@ -216,30 +231,9 @@ const EditPost: React.FC<EditPostProps> = ({
                       <div className="w-full border p-2 flex justify-center items-center h-3/6 rounded-lg">
                         <div className="relative flex justify-center items-center bg-gray-100 hover:bg-gray-300 w-full h-48 rounded-lg bg-cover bg-center">
                           {preview ? (
-                            preview.startsWith("data:") || preview.startsWith("blob:") ? (
-                              // If the preview URL is a data URL or blob URL (e.g., from a file input)
-                              file?.type.startsWith("video/") ? (
-                                <video
-                                  src={preview}
-                                  controls
-                                  className="rounded-lg max-h-full w-full"
-                                  onError={() => console.error("Error loading video")}
-                                >
-                                  Your browser does not support the video tag.
-                                </video>
-                              ) : file?.type.startsWith("image/") ? (
-                                <img
-                                  src={preview}
-                                  alt="Selected preview"
-                                  className="rounded-lg max-h-full max-w-full"
-                                  onError={() => console.error("Error loading image")}
-                                />
-                              ) : (
-                                <div>Unsupported file type</div>
-                              )
-                            ) : preview.includes("firebasestorage.googleapis.com") ? (  // Check if the preview URL is a Firebase Storage URL
+                            file?.type.includes('video') || (fileType || '').includes('video') ? (
                               <video
-                                src={preview}
+                                src={preview} 
                                 controls
                                 className="rounded-lg max-h-full w-full"
                                 onError={() => console.error("Error loading video")}

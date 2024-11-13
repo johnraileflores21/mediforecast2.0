@@ -27,12 +27,12 @@ const NotificationModal = () => {
     setIsOpen(!isOpen);
   };
 
-  useEffect(() => {
-    if (user?.rhuOrBarangay) {
+  const getNotifications = async () => {
+    try {
       const notificationsRef = collection(db, "Notifications");
       const q = query(
         notificationsRef,
-        where("sentTo", "==", user.rhuOrBarangay)
+        where("sentTo", "==", user?.rhuOrBarangay)
       );
 
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -50,11 +50,24 @@ const NotificationModal = () => {
       });
 
       return () => unsubscribe();
+    } catch (error) {
+      console.log('error :>> ', error);
+    }
+  }
+
+  const fNotif = notifications.filter((notif) => {
+    return notif.status == 'unread';
+  })
+
+  useEffect(() => {
+    if (user?.rhuOrBarangay) {
+      getNotifications();
     }
   }, [user?.rhuOrBarangay]);
 
   const handleNotificationClick = async (notificationId: string, type: string) => {
     await notificationService.markAsRead(notificationId);
+    await getNotifications();
 
     navigate(type == 'request'
       ? '/request'
@@ -92,9 +105,9 @@ const NotificationModal = () => {
         className="relative z-10 block rounded-md focus:outline-none"
       >
         <IoMdNotifications className="h-7 w-7 text-white" />
-        {notifications.length > 0 && (
+        {fNotif.length > 0 && (
           <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
-            {notifications.length}
+            {fNotif.length}
           </span>
         )}
       </button>
