@@ -82,7 +82,11 @@ const Try: React.FC = () => {
 
       const inventoryQuery = query(
         collection(db, isBarangay ? "BarangayInventory" : "Inventory"),
-        where(isBarangay ? "barangay" : "created_by_unit", "==", isBarangay ? user?.barangay : unit.toString())
+        where(
+          isBarangay ? "barangay" : "created_by_unit",
+          "==",
+          isBarangay ? user?.barangay : unit.toString()
+        )
       );
 
       const inventorySnap = await getDocs(inventoryQuery);
@@ -110,7 +114,9 @@ const Try: React.FC = () => {
           "created_by_unit",
           "==",
           isBarangay ? unit.toString() : user?.rhuOrBarangay
-        )
+        ),
+        //added for extra filter
+        ...(isBarangay ? [where("barangay", "==", user?.barangay)] : [])
       );
 
       const inventorySnap = await getDocs(inventoryQuery);
@@ -668,51 +674,41 @@ const Try: React.FC = () => {
                               {/* {item.id} */}
                               <div>
                                 <span>
-                                  {
-                                    item.medicineClassification
-                                      ? item.medicineClassification.includes(
-                                          "ml"
-                                        )
-                                        ? `${item.medicinePiecesPerItem} per ${item.medicinePackaging}`
-                                        : `${item.medicinePiecesPerItem}
-                                          ${(
-                                            item.medicineDosageForm || ""
-                                          ).toLowerCase()}${
-                                            parseInt(
-                                              item.medicinePiecesPerItem
-                                            ) > 1
-                                              ? "s"
-                                              : ""
-                                          }
-                                          per ${item.medicinePackaging}`
-                                      : item.vitaminClassification
-                                      ? item.vitaminClassification.includes(
-                                          "ml"
-                                        )
-                                        ? `${item.vitaminPiecesPerItem} per ${item.vitaminPackaging}`
-                                        : `${item.vitaminPiecesPerItem}
-                                            ${(
-                                              item.vitaminDosageForm || ""
-                                            ).toLowerCase()}${
-                                            parseInt(
-                                              item.vitaminClassification
-                                            ) > 1 && "/s"
-                                          }
-                                            per ${item.vitaminPackaging}`
-                                      : ""
-                                    // (item.vaccineClassification.includes('ml')
-                                    //   ? `${item.vaccineClassification} per ${item.vaccinePackaging}`
-                                    //   : `${item.vaccineClassification}
-                                    //     ${(item.vaccineDosageForm || "").toLowerCase()}${parseInt(item.vaccineClassification) > 1 && "s"}
-                                    //     per ${item.vaccinePackaging}`)
-                                  }
-                                  {/* {item.medicineClassification && item.vaccineClassification.includes('ml') &&
-                                  `${item.medicineClassification}
-                                  ${(item.medicineDosageForm || "").toLowerCase()}${parseInt(item.medicineClassification) > 1 && "s"}
-                                  per ${item.medicinePackaging}`
-                                } */}
+                                  {item.medicinePiecesPerItem
+                                    ? item.medicinePiecesPerItem.includes("ml")
+                                      ? `${item.medicinePiecesPerItem} per ${item.medicinePackaging}`
+                                      : `${item.medicinePiecesPerItem} ${
+                                          item.medicineDosageForm?.toLowerCase() ||
+                                          ""
+                                        }${
+                                          parseInt(item.medicinePiecesPerItem) >
+                                          1
+                                            ? "s"
+                                            : ""
+                                        } per ${item.medicinePackaging}`
+                                    : item.vitaminPiecesPerItem
+                                    ? item.vitaminPiecesPerItem.includes("ml")
+                                      ? `${item.vitaminPiecesPerItem} per ${item.vitaminPackaging}`
+                                      : `${item.vitaminPiecesPerItem} ${
+                                          item.vitaminDosageForm?.toLowerCase() ||
+                                          ""
+                                        }${
+                                          parseInt(item.vitaminPiecesPerItem) >
+                                          1
+                                            ? "s"
+                                            : ""
+                                        } per ${item.vitaminPackaging}`
+                                    : item.vaccinePiecesPerItem
+                                    ? `${item.vaccinePiecesPerItem} ${
+                                        item.vaccinePackaging
+                                      } (${
+                                        item.vaccineDosageForm?.toLowerCase() ||
+                                        ""
+                                      })`
+                                    : ""}
                                 </span>
                               </div>
+
                               {/* Add similar conditions for vaccineStock and vitaminStock if needed */}
                               {item.vaccineStock && (
                                 <>
