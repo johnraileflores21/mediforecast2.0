@@ -9,11 +9,16 @@ import Swal from "sweetalert2";
 interface AddPatientProps {
   showModal: boolean;
   closeModal: () => void;
-  editForm?: any
-  isEdit?: boolean
+  editForm?: any;
+  isEdit?: boolean;
 }
 
-const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm, isEdit }) => {
+const AddPatient: React.FC<AddPatientProps> = ({
+  showModal,
+  closeModal,
+  editForm,
+  isEdit,
+}) => {
   const [sexdropdown, setSexDropdown] = useState<boolean>(false);
   const [sex, setSex] = useState<string>("Choose Sex");
   const [statusdropdown, setStatusDropdown] = useState<boolean>(false);
@@ -30,12 +35,11 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
   const userBarangay = user?.rhuOrBarangay || "";
   const isRHU = userBarangay.length == 1;
 
-  const rhuIndex = isRHU 
+  const rhuIndex = isRHU
     ? userBarangay
-    : RHUs.findIndex(rhu => rhu.barangays.includes(userBarangay)) + 1;
+    : RHUs.findIndex((rhu) => rhu.barangays.includes(userBarangay)) + 1;
 
   useEffect(() => {
-    
     const timer = setInterval(() => setDate(new Date()), 1000);
     return function cleanup() {
       clearInterval(timer);
@@ -43,8 +47,8 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
   });
 
   useEffect(() => {
-    console.log('editForm :>> ', editForm);
-    if(editForm && isEdit) {
+    console.log("editForm :>> ", editForm);
+    if (editForm && isEdit) {
       setFormData(editForm);
     }
   }, [editForm]);
@@ -79,27 +83,70 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
     setBroughtByDropdown(false);
   };
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const isName = ['familyName', 'firstName', 'middleName'];
-    const ucFields = ['nationality', 'phicMemberName', 'complaints', 'history', 'diagnosis', 'order'];
+  // const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  //   const isName = ['familyName', 'firstName', 'middleName'];
+  //   const ucFields = ['nationality', 'phicMemberName', 'complaints', 'history', 'diagnosis', 'order'];
 
+  //   setFormData({
+  //     ...formData,
+  //     [e.target.id]: (isName.includes(e.target.id)) ? ucwords(e.target.value)
+  //       : (ucFields.includes(e.target.id)) ? ucfirst(e.target.value)
+  //       : (e.target.id) == 'address' ? ucwords(e.target.value, true)
+  //       : e.target.value,
+  //   });
+  // };
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     setFormData({
       ...formData,
-      [e.target.id]: (isName.includes(e.target.id)) ? ucwords(e.target.value)
-        : (ucFields.includes(e.target.id)) ? ucfirst(e.target.value)
-        : (e.target.id) == 'address' ? ucwords(e.target.value, true)
-        : e.target.value,
+      [e.target.id]: e.target.value,
     });
   };
 
-  const handleSubmit = async () => {
+  const handleBlur = (
+    e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const isName = ["familyName", "firstName", "middleName"];
+    const ucFields = [
+      "nationality",
+      "phicMemberName",
+      "complaints",
+      "history",
+      "diagnosis",
+      "order",
+    ];
 
+    setFormData((prevData) => ({
+      ...prevData,
+      [e.target.id]: isName.includes(e.target.id)
+        ? ucwords(e.target.value) // Capitalizes each word for name fields
+        : ucFields.includes(e.target.id)
+        ? ucfirst(e.target.value) // Capitalizes the first letter for certain fields
+        : e.target.id === "address"
+        ? ucwords(e.target.value, true) // Capitalizes each word for address
+        : e.target.value,
+    }));
+  };
+
+  // Usage example for ucwords and ucfirst:
+  const ucwords = (str: string, capitalizeAll: boolean = false): string => {
+    return str.replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
+  const ucfirst = (str: string): string => {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
+
+  const handleSubmit = async () => {
     const isConfirmed = await confirm({
-      title: 'Confirm Submission',
-      message: `Are you sure you want to ${isEdit ? 'update' : 'add'} this ITR?`,
+      title: "Confirm Submission",
+      message: `Are you sure you want to ${
+        isEdit ? "update" : "add"
+      } this ITR?`,
     });
 
-    if(!isConfirmed) return;
+    if (!isConfirmed) return;
 
     const cleanedFormData = Object.fromEntries(
       Object.entries(formData).filter(
@@ -114,10 +161,23 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
     cleanedFormData.updated_at = dateToday;
     cleanedFormData.rhuOrBarangay = userBarangay;
 
-    const requiredFields = ['familyName', 'firstName', 'middleName', 'sex', 'status', 'nationality', 'age', 'mobileno', 'dateOfBirth', 'address'];
+    const requiredFields = [
+      "familyName",
+      "firstName",
+      "middleName",
+      "sex",
+      "status",
+      "nationality",
+      "age",
+      "mobileno",
+      "dateOfBirth",
+      "address",
+    ];
 
-    const missingFields = requiredFields.filter((field) => !cleanedFormData[field]);
-    if(missingFields.length) {
+    const missingFields = requiredFields.filter(
+      (field) => !cleanedFormData[field]
+    );
+    if (missingFields.length) {
       setError(missingFields.length ? missingFields : []);
       return Swal.fire({
         position: "center",
@@ -129,25 +189,23 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
     }
 
     try {
-      if(!isEdit) {
+      if (!isEdit) {
         cleanedFormData.created_at = dateToday;
 
         await addDoc(
           collection(db, "IndividualTreatmentRecord"),
           cleanedFormData
         );
-
       } else {
-
         const id = editForm.id;
-        
+
         const docRef = doc(db, "IndividualTreatmentRecord", id);
         await updateDoc(docRef, cleanedFormData);
       }
       Swal.fire({
         position: "center",
         icon: "success",
-        title: `ITR ${isEdit ? 'updated' : 'created'} successfully`,
+        title: `ITR ${isEdit ? "updated" : "created"} successfully`,
         showConfirmButton: false,
         timer: 1000,
       });
@@ -177,7 +235,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                 <div className="sm:flex sm:items-start">
                   <div className="mt-3 text-center sm:mt-0 sm:text-center">
                     <h3 className="text-xl p-2 leading-6 font-medium text-gray-900">
-                      {isEdit ? 'Update' : 'Add'} Patient Record
+                      {isEdit ? "Update" : "Add"} Patient Record
                     </h3>
                     <div>
                       <div className="grid grid-cols-3 gap-4 mt-4">
@@ -195,7 +253,11 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             value={formData.familyName}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           />
-                          {error.includes('familyName') && <p className="text-red-500 text-sm ">Family Name is required</p>}
+                          {error.includes("familyName") && (
+                            <p className="text-red-500 text-sm ">
+                              Family Name is required
+                            </p>
+                          )}
                         </div>
                         <div className="w-full">
                           <label
@@ -211,7 +273,11 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             id="firstName"
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           />
-                          {error.includes('firstName') && <p className="text-red-500 text-sm ">First Name is required</p>}
+                          {error.includes("firstName") && (
+                            <p className="text-red-500 text-sm ">
+                              First Name is required
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label
@@ -227,7 +293,11 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             value={formData.middleName}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           />
-                          {error.includes('middleName') && <p className="text-red-500 text-sm ">Middle Name is required</p>}
+                          {error.includes("middleName") && (
+                            <p className="text-red-500 text-sm ">
+                              Middle Name is required
+                            </p>
+                          )}
                         </div>
                         <div>
                           <div className="dropdown w-48 relative">
@@ -272,7 +342,11 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                                 </li>
                               </ul>
                             )}
-                            {error.includes('sex') && <p className="text-red-500 text-sm ">Sex is required</p>}
+                            {error.includes("sex") && (
+                              <p className="text-red-500 text-sm ">
+                                Sex is required
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div>
@@ -342,7 +416,11 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                                 </li>
                               </ul>
                             )}
-                            {error.includes('status') && <p className="text-red-500 text-sm ">Status is required</p>}
+                            {error.includes("status") && (
+                              <p className="text-red-500 text-sm ">
+                                Status is required
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div>
@@ -359,7 +437,11 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             value={formData.nationality}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           />
-                          {error.includes('nationality') && <p className="text-red-500 text-sm ">Nationality is required</p>}
+                          {error.includes("nationality") && (
+                            <p className="text-red-500 text-sm ">
+                              Nationality is required
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label
@@ -375,7 +457,11 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             value={formData.age}
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           />
-                          {error.includes('age') && <p className="text-red-500 text-sm ">Age is required</p>}
+                          {error.includes("age") && (
+                            <p className="text-red-500 text-sm ">
+                              Age is required
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label
@@ -391,7 +477,11 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             id="mobileno"
                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
                           />
-                          {error.includes('mobileno') && <p className="text-red-500 text-sm ">Mobile No is required</p>}
+                          {error.includes("mobileno") && (
+                            <p className="text-red-500 text-sm ">
+                              Mobile No is required
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label
@@ -407,7 +497,11 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                             id="dateOfBirth"
                             className="mt-1 block w-full p-2 text-center border border-gray-300 rounded-md"
                           />
-                          {error.includes('dateOfBirth') && <p className="text-red-500 text-sm ">Date of Birth is required</p>}
+                          {error.includes("dateOfBirth") && (
+                            <p className="text-red-500 text-sm ">
+                              Date of Birth is required
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div>
@@ -425,80 +519,90 @@ const AddPatient: React.FC<AddPatientProps> = ({ showModal, closeModal, editForm
                           value={formData.address}
                           className="w-full p-2 border border-gray-300 rounded-md mt-1"
                         ></textarea>
-                        {error.includes('address') && <p className="text-red-500 text-sm ">Address is required</p>}
+                        {error.includes("address") && (
+                          <p className="text-red-500 text-sm ">
+                            Address is required
+                          </p>
+                        )}
                       </div>
                       <div className="grid grid-cols-3 gap-4 mt-4">
-                      <div>
-                        <div className="dropdown w-48 relative">
-                          <label
-                            htmlFor="brought"
-                            className="block text-sm font-medium text-gray-700"
-                          >
-                            Brought By
-                          </label>
-                          <div
-                            role="button"
-                            id="brought"
-                            tabIndex={0}
-                            onClick={handleBroughtDropdown}
-                            className="border border-gray-300 text-sm rounded-lg py-3 mb-2 text-center text-gray-700 font-bold bg-base"
-                          >
-                            {brought}
-                          </div>
-                          {broughtByDropdown && (
-                            <ul
-                              className="dropdown-content menu rounded-box absolute w-52 p-2 shadow-lg bg-white z-[100] top-[-220px]" // Increased z-index
-                              tabIndex={0}
+                        <div>
+                          <div className="dropdown w-48 relative">
+                            <label
+                              htmlFor="brought"
+                              className="block text-sm font-medium text-gray-700"
                             >
-                              <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                <a
-                                  onClick={() =>
-                                    handleBroughtOption("Choose Brought By")
-                                  }
-                                >
-                                  Choose Brought By
-                                </a>
-                              </li>
-                              <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                <a
-                                  onClick={() => handleBroughtOption("Self")}
-                                >
-                                  Self
-                                </a>
-                              </li>
-                              <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                <a
-                                  onClick={() => handleBroughtOption("Police")}
-                                >
-                                  Police
-                                </a>
-                              </li>
-                              <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                <a
-                                  onClick={() => handleBroughtOption("Ambulance")}
-                                >
-                                  Ambulance
-                                </a>
-                              </li>
-                              <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                <a
-                                  onClick={() => handleBroughtOption("Relative")}
-                                >
-                                  Relatives
-                                </a>
-                              </li>
-                              <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                                <a
-                                  onClick={() => handleBroughtOption("Other")}
-                                >
-                                  Other
-                                </a>
-                              </li>
-                            </ul>
-                          )}
+                              Brought By
+                            </label>
+                            <div
+                              role="button"
+                              id="brought"
+                              tabIndex={0}
+                              onClick={handleBroughtDropdown}
+                              className="border border-gray-300 text-sm rounded-lg py-3 mb-2 text-center text-gray-700 font-bold bg-base"
+                            >
+                              {brought}
+                            </div>
+                            {broughtByDropdown && (
+                              <ul
+                                className="dropdown-content menu rounded-box absolute w-52 p-2 shadow-lg bg-white z-[100] top-[-220px]" // Increased z-index
+                                tabIndex={0}
+                              >
+                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                  <a
+                                    onClick={() =>
+                                      handleBroughtOption("Choose Brought By")
+                                    }
+                                  >
+                                    Choose Brought By
+                                  </a>
+                                </li>
+                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                  <a
+                                    onClick={() => handleBroughtOption("Self")}
+                                  >
+                                    Self
+                                  </a>
+                                </li>
+                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                  <a
+                                    onClick={() =>
+                                      handleBroughtOption("Police")
+                                    }
+                                  >
+                                    Police
+                                  </a>
+                                </li>
+                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                  <a
+                                    onClick={() =>
+                                      handleBroughtOption("Ambulance")
+                                    }
+                                  >
+                                    Ambulance
+                                  </a>
+                                </li>
+                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                  <a
+                                    onClick={() =>
+                                      handleBroughtOption("Relative")
+                                    }
+                                  >
+                                    Relatives
+                                  </a>
+                                </li>
+                                <li className="hover:bg-base-100 rounded-lg hover:text-black">
+                                  <a
+                                    onClick={() => handleBroughtOption("Other")}
+                                  >
+                                    Other
+                                  </a>
+                                </li>
+                              </ul>
+                            )}
+                          </div>
+                          {/* {error.includes('broughtBy') && <p className="text-red-500 text-sm ">Brought By is required</p>} */}
                         </div>
-                        {/* {error.includes('broughtBy') && <p className="text-red-500 text-sm ">Brought By is required</p>} */}
-                      </div>
 
                         <div>
                           <label

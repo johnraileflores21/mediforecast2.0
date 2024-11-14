@@ -22,7 +22,11 @@ import Sulipan from "../../assets/images/sulipan2.png";
 import Tabuyuc from "../../assets/images/tabuyuc.jpg";
 import Sucad from "../../assets/images/sucad.png";
 import { FaUsers } from "react-icons/fa";
-import { RiLockPasswordFill, RiLockPasswordLine, RiSettings4Line } from "react-icons/ri";
+import {
+  RiLockPasswordFill,
+  RiLockPasswordLine,
+  RiSettings4Line,
+} from "react-icons/ri";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 
@@ -145,7 +149,7 @@ const AdminSidebar = () => {
       dropdownItems: [
         // { name: "Profile", link: "/administrator/settings/profile" },
         { name: "Account", link: "/administrator/settings/account" },
-        { name: "Privacy", link: "/administrator/settings/privacy" },
+        // { name: "Privacy", link: "/administrator/settings/privacy" },
       ] as DropdownItem[],
     },
     { name: "Logout", link: "Logout", icon: IoLogOut },

@@ -12,7 +12,18 @@ import "react-toastify/dist/ReactToastify.css";
 import { useUser } from "./User";
 import notificationService from "../utils/notificationService";
 import { RHUs } from "../assets/common/constants";
-
+import Balucuc from "../assets/images/balucuc.jpg";
+import Calantipe from "../assets/images/calantipe.jpg";
+import Cansinala from "../assets/images/cansinala.jpg";
+import Capalangan from "../assets/images/capalangan.jpg";
+import Colgante from "../assets/images/colgante.png";
+import Paligui from "../assets/images/paligui.jpg";
+import Sampaloc from "../assets/images/sampaloc2.png";
+import SanJuan from "../assets/images/sanjuan.jpg";
+import SanVicente from "../assets/images/sanvicente.jpg";
+import Sulipan from "../assets/images/sulipan2.png";
+import Tabuyuc from "../assets/images/tabuyuc.jpg";
+import Sucad from "../assets/images/sucad.png";
 interface PostProps {
   isVisible: boolean;
   closeModal: () => void;
@@ -64,10 +75,10 @@ const Post: React.FC<PostProps> = ({ isVisible, closeModal }) => {
     };
   }, [preview]);
   const onSubmit = async () => {
-
+    setLoading(true);
     const userQuery = query(
       collection(db, "Users"),
-      where("acc_status", "==", 'approved')
+      where("acc_status", "==", "approved")
     );
 
     const userSnap = await getDocs(userQuery);
@@ -76,22 +87,22 @@ const Post: React.FC<PostProps> = ({ isVisible, closeModal }) => {
       id: doc.id,
       ...doc.data(),
     }));
-    
-    const users = userData.map(x => x.rhuOrBarangay);
-    const rmv = [...new Set(users)]
-      .filter((rm: string) => rm != user?.rhuOrBarangay);
 
-    for(let i = 0; i < rmv.length; i++) {
+    const users = userData.map((x) => x.rhuOrBarangay);
+    const rmv = [...new Set(users)].filter(
+      (rm: string) => rm != user?.rhuOrBarangay
+    );
+
+    for (let i = 0; i < rmv.length; i++) {
       await notificationService.createNotification({
-        action: 'community-post',
+        action: "community-post",
         description: `New Post`,
-        performedBy: user?.uid || '',
-        sentBy: user?.rhuOrBarangay || '',
+        performedBy: user?.uid || "",
+        sentBy: user?.rhuOrBarangay || "",
         sentTo: rmv[i],
       });
     }
 
-    setLoading(true);
     const now = new Date();
     const dateToday = now.toISOString();
     try {
@@ -134,6 +145,30 @@ const Post: React.FC<PostProps> = ({ isVisible, closeModal }) => {
       return "/images/2.jpg";
     } else if (rhu === "3") {
       return "/images/3.jpg";
+    } else if (rhu === "Balucuc") {
+      return Balucuc;
+    } else if (rhu === "Calantipe") {
+      return Calantipe;
+    } else if (rhu === "Cansinala") {
+      return Cansinala;
+    } else if (rhu === "Capalangan") {
+      return Capalangan;
+    } else if (rhu === "Colgante") {
+      return Colgante;
+    } else if (rhu === "Paligui") {
+      return Paligui;
+    } else if (rhu === "Sampaloc") {
+      return Sampaloc;
+    } else if (rhu === "San Juan") {
+      return SanJuan;
+    } else if (rhu === "San Vicente") {
+      return SanVicente;
+    } else if (rhu === "Sucad") {
+      return Sucad;
+    } else if (rhu === "Sulipan") {
+      return Sulipan;
+    } else if (rhu === "Tabuyuc") {
+      return Tabuyuc;
     } else {
       return "/images/finalelogo.jpg";
     }
@@ -173,13 +208,36 @@ const Post: React.FC<PostProps> = ({ isVisible, closeModal }) => {
                     className="w-14 h-14 ml-3 mt-3 mr-3"
                   />
                   <h2 className="mt-7 font-semibold">
-                    Rural Health{" "}
                     {user?.rhuOrBarangay === "1" ? (
-                      <span>I</span>
+                      <span>RURAL HEALTH UNIT I</span>
                     ) : user?.rhuOrBarangay === "2" ? (
                       <span>II</span>
                     ) : user?.rhuOrBarangay === "3" ? (
                       <span>III</span>
+                    ) : user?.rhuOrBarangay === "Balucuc" ? (
+                      <span>Balucuc Health Center</span>
+                    ) : user?.rhuOrBarangay === "Calantipe" ? (
+                      <span>Calantipe Health Center</span>
+                    ) : user?.rhuOrBarangay === "Cansinala" ? (
+                      <span>Cansinala Health Center</span>
+                    ) : user?.rhuOrBarangay === "Capalangan" ? (
+                      <span>Capalangan Health Center</span>
+                    ) : user?.rhuOrBarangay === "Colgante" ? (
+                      <span>Colgante Health Center</span>
+                    ) : user?.rhuOrBarangay === "Paligui" ? (
+                      <span>Paligui Health Center</span>
+                    ) : user?.rhuOrBarangay === "Sampaloc" ? (
+                      <span>Sampaloc Health Center</span>
+                    ) : user?.rhuOrBarangay === "San Juan" ? (
+                      <span>San Juan Health Center</span>
+                    ) : user?.rhuOrBarangay === "San Vicente" ? (
+                      <span>San Vicente Health Center</span>
+                    ) : user?.rhuOrBarangay === "Sulipan" ? (
+                      <span>Sulipan Health Center</span>
+                    ) : user?.rhuOrBarangay === "Sucad" ? (
+                      <span>Sucad Health Center</span>
+                    ) : user?.rhuOrBarangay === "Tabuyuc" ? (
+                      <span>Tabuyuc Health Center</span>
                     ) : null}
                   </h2>
                   <div></div>

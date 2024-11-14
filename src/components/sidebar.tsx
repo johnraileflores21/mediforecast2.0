@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { MdOutlineDashboard } from "react-icons/md";
+import { MdOutlineDashboard, MdDashboard } from "react-icons/md";
 import { RiSettings4Line, RiUser5Line, RiUserLine } from "react-icons/ri";
 import { MdInventory } from "react-icons/md";
 import { FaQuestionCircle } from "react-icons/fa";
 import { SiGooglemessages } from "react-icons/si";
 import { FaFileShield } from "react-icons/fa6";
-import { IoLogOut } from "react-icons/io5";
+import { IoLogOut, IoSettings } from "react-icons/io5";
 import { GiHamburgerMenu } from "react-icons/gi";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "./User";
@@ -31,7 +31,7 @@ const Sidebar = () => {
   const closeModal = () => setShowDeleteModal(false);
 
   const menus = [
-    { name: "Dashboard", link: "/dashboard", icon: MdOutlineDashboard },
+    { name: "Dashboard", link: "/dashboard", icon: MdDashboard },
     { name: "Inventory", link: "/inventory", icon: MdInventory },
     // { name: "Inventory2", link: "/inventory2", icon: MdInventory },
     { name: "Request", link: "/request", icon: FaQuestionCircle },
@@ -44,8 +44,8 @@ const Sidebar = () => {
     {
       name: "Setting",
       link: "#",
-      icon: RiSettings4Line,
-      margin: true, 
+      icon: IoSettings,
+      margin: true,
       hasDropdown: true,
       dropdownItems: [
         {
@@ -87,8 +87,8 @@ const Sidebar = () => {
   };
 
   const handleClick = (link: string) => {
-    if(link === "#") return;
-    if(link === "Logout") {
+    if (link === "#") return;
+    if (link === "Logout") {
       setShowDeleteModal(true);
     } else {
       navigate(link);
@@ -143,62 +143,61 @@ const Sidebar = () => {
           <div className="mt-4 flex flex-col gap-4 relative">
             {menus.map((menu, i) => (
               <div key={i}>
-
-              <div
-                className={`${
-                  menu.margin && "mt-5"
-                } group flex items-center text-sm gap-3.5 font-medium p-2 rounded-md cursor-pointer ${
-                  isActive(menu.link)
-                    ? "bg-blue-gray-900 text-white"
-                    : "hover:bg-blue-gray-900 text-gray-100"
-                }`}
-                onClick={() =>
-                  handleMenuClick(menu.name, menu.link, !!menu.hasDropdown)
-                }
-              >
-                <div>{React.createElement(menu.icon, { size: "20" })}</div>
-                <h2
-                  style={{
-                    transitionDelay: `${i + 3}00ms`,
-                  }}
-                  className={`whitespace-pre duration-500 ${
-                    !open && "opacity-0 translate-x-28 overflow-hidden"
-                  }`}
-                >
-                  {menu.name}
-                </h2>
-                <h2
+                <div
                   className={`${
-                    open && "hidden"
-                  } absolute left-48 bg-white font-semibold whitespace-pre text-gray-900 rounded-md drop-shadow-lg px-0 py-0 w-0 overflow-hidden group-hover:px-2 group-hover:py-1 group-hover:left-14 group-hover:duration-300 group-hover:w-fit`}
+                    menu.margin && "mt-5"
+                  } group flex items-center text-sm gap-3.5 font-medium p-2 rounded-md cursor-pointer ${
+                    isActive(menu.link)
+                      ? "bg-blue-gray-900 text-white"
+                      : "hover:bg-blue-gray-900 text-gray-100"
+                  }`}
+                  onClick={() =>
+                    handleMenuClick(menu.name, menu.link, !!menu.hasDropdown)
+                  }
                 >
-                  {menu.name}
-                </h2>
-              </div>
-              {menu.hasDropdown && activeDropdown === menu.name && open && (
-                <div className="pl-8">
-                  {menu.dropdownItems?.map((dropdownItem, index) => (
-                    <div
-                      key={index}
-                      className={`flex items-center text-sm gap-3.5 font-medium p-2 rounded-md cursor-pointer mt-2 ${
-                        isActive(dropdownItem.link)
-                          ? "bg-blue-gray-800 text-white"
-                          : "hover:bg-blue-gray-800 text-gray-100"
-                      }`}
-                      onClick={() => handleClick(dropdownItem.link)}
-                    >
-                      {dropdownItem.icon && (
-                        <img
-                          src={dropdownItem.icon}
-                          alt={dropdownItem.name}
-                          className="w-5 h-5 rounded-full"
-                        />
-                      )}
-                      <span>{dropdownItem.name}</span>
-                    </div>
-                  ))}
+                  <div>{React.createElement(menu.icon, { size: "20" })}</div>
+                  <h2
+                    style={{
+                      transitionDelay: `${i + 3}00ms`,
+                    }}
+                    className={`whitespace-pre duration-500 ${
+                      !open && "opacity-0 translate-x-28 overflow-hidden"
+                    }`}
+                  >
+                    {menu.name}
+                  </h2>
+                  <h2
+                    className={`${
+                      open && "hidden"
+                    } absolute left-48 bg-white font-semibold whitespace-pre text-gray-900 rounded-md drop-shadow-lg px-0 py-0 w-0 overflow-hidden group-hover:px-2 group-hover:py-1 group-hover:left-14 group-hover:duration-300 group-hover:w-fit`}
+                  >
+                    {menu.name}
+                  </h2>
                 </div>
-              )}
+                {menu.hasDropdown && activeDropdown === menu.name && open && (
+                  <div className="pl-8">
+                    {menu.dropdownItems?.map((dropdownItem, index) => (
+                      <div
+                        key={index}
+                        className={`flex items-center text-sm gap-3.5 font-medium p-2 rounded-md cursor-pointer mt-2 ${
+                          isActive(dropdownItem.link)
+                            ? "bg-blue-gray-800 text-white"
+                            : "hover:bg-blue-gray-800 text-gray-100"
+                        }`}
+                        onClick={() => handleClick(dropdownItem.link)}
+                      >
+                        {dropdownItem.icon && (
+                          <img
+                            src={dropdownItem.icon}
+                            alt={dropdownItem.name}
+                            className="w-5 h-5 rounded-full"
+                          />
+                        )}
+                        <span>{dropdownItem.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>

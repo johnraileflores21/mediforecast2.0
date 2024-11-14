@@ -8,9 +8,21 @@ import {
   ref as storageRef,
   uploadBytes,
   getDownloadURL,
-  getMetadata
+  getMetadata,
 } from "firebase/storage";
 import { useUser } from "./User";
+import Balucuc from "../assets/images/balucuc.jpg";
+import Calantipe from "../assets/images/calantipe.jpg";
+import Cansinala from "../assets/images/cansinala.jpg";
+import Capalangan from "../assets/images/capalangan.jpg";
+import Colgante from "../assets/images/colgante.png";
+import Paligui from "../assets/images/paligui.jpg";
+import Sampaloc from "../assets/images/sampaloc2.png";
+import SanJuan from "../assets/images/sanjuan.jpg";
+import SanVicente from "../assets/images/sanvicente.jpg";
+import Sulipan from "../assets/images/sulipan2.png";
+import Tabuyuc from "../assets/images/tabuyuc.jpg";
+import Sucad from "../assets/images/sucad.png";
 
 interface EditPostProps {
   editId: string | null;
@@ -40,28 +52,27 @@ const EditPost: React.FC<EditPostProps> = ({
       return;
     }
 
-    console.log('editId :>> ', editId);
+    console.log("editId :>> ", editId);
 
     const docRef = doc(db, "CommunityPost", editId); // Make sure editId is a string here
     try {
       const docSnap = await getDoc(docRef);
-      if(docSnap.exists()) {
+      if (docSnap.exists()) {
         const data = docSnap.data();
         setFormData({
           postMessage: data.postMessage || "",
           rhu: data.rhu || "",
         });
-        if(data.postImg) {
-          console.log('data :>> ', data);
+        if (data.postImg) {
+          console.log("data :>> ", data);
           setOpenUpload(true);
           setPreview(data.postImg);
 
-          if(data.postImg.includes("firebasestorage.googleapis.com")) {
+          if (data.postImg.includes("firebasestorage.googleapis.com")) {
             const ref = storageRef(storage, data.postImg);
             const md = await getMetadata(ref);
             setFileType(md.contentType);
           }
-
         }
       } else {
         console.log("No such document!");
@@ -119,16 +130,16 @@ const EditPost: React.FC<EditPostProps> = ({
       if (selectedFile) {
         console.log("Selected file:", selectedFile);
         console.log("File type:", selectedFile.type);
-  
+
         const objectUrl = URL.createObjectURL(selectedFile);
         setFile(selectedFile);
-        console.log('objectUrl :>> ', objectUrl);
+        console.log("objectUrl :>> ", objectUrl);
         setPreview(objectUrl);
 
         // const ref = storageRef(storage, objectUrl);
         // const md = await getMetadata(ref);
         // setFileType(md.contentType);
-  
+
         return () => URL.revokeObjectURL(objectUrl);
       }
     } else {
@@ -138,7 +149,6 @@ const EditPost: React.FC<EditPostProps> = ({
       });
     }
   };
-  
 
   const openUploadImg = () => {
     setOpenUpload(true);
@@ -163,6 +173,30 @@ const EditPost: React.FC<EditPostProps> = ({
       return "/images/2.jpg";
     } else if (rhuOrBarangay === "3") {
       return "/images/3.jpg";
+    } else if (rhuOrBarangay === "Balucuc") {
+      return Balucuc;
+    } else if (rhuOrBarangay === "Calantipe") {
+      return Calantipe;
+    } else if (rhuOrBarangay === "Cansinala") {
+      return Cansinala;
+    } else if (rhuOrBarangay === "Capalangan") {
+      return Capalangan;
+    } else if (rhuOrBarangay === "Colgante") {
+      return Colgante;
+    } else if (rhuOrBarangay === "Paligui") {
+      return Paligui;
+    } else if (rhuOrBarangay === "Sampaloc") {
+      return Sampaloc;
+    } else if (rhuOrBarangay === "San Juan") {
+      return SanJuan;
+    } else if (rhuOrBarangay === "San Vicente") {
+      return SanVicente;
+    } else if (rhuOrBarangay === "Sucad") {
+      return Sucad;
+    } else if (rhuOrBarangay === "Sulipan") {
+      return Sulipan;
+    } else if (rhuOrBarangay === "Tabuyuc") {
+      return Tabuyuc;
     } else {
       return "/images/finalelogo.jpg";
     }
@@ -231,12 +265,15 @@ const EditPost: React.FC<EditPostProps> = ({
                       <div className="w-full border p-2 flex justify-center items-center h-3/6 rounded-lg">
                         <div className="relative flex justify-center items-center bg-gray-100 hover:bg-gray-300 w-full h-48 rounded-lg bg-cover bg-center">
                           {preview ? (
-                            file?.type.includes('video') || (fileType || '').includes('video') ? (
+                            file?.type.includes("video") ||
+                            (fileType || "").includes("video") ? (
                               <video
-                                src={preview} 
+                                src={preview}
                                 controls
                                 className="rounded-lg max-h-full w-full"
-                                onError={() => console.error("Error loading video")}
+                                onError={() =>
+                                  console.error("Error loading video")
+                                }
                               >
                                 Your browser does not support the video tag.
                               </video>
@@ -245,7 +282,9 @@ const EditPost: React.FC<EditPostProps> = ({
                                 src={preview}
                                 alt="Selected preview"
                                 className="rounded-lg max-h-full max-w-full"
-                                onError={() => console.error("Error loading image")}
+                                onError={() =>
+                                  console.error("Error loading image")
+                                }
                               />
                             )
                           ) : (

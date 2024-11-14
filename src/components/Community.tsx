@@ -11,9 +11,22 @@ import { doc, deleteDoc } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import EditPost from "./EditPost";
 import ScrollToTop from "./ScrollToTop";
+import Balucuc from "../assets/images/balucuc.jpg";
+import Calantipe from "../assets/images/calantipe.jpg";
+import Cansinala from "../assets/images/cansinala.jpg";
+import Capalangan from "../assets/images/capalangan.jpg";
+import Colgante from "../assets/images/colgante.png";
+import Paligui from "../assets/images/paligui.jpg";
+import Sampaloc from "../assets/images/sampaloc2.png";
+import SanJuan from "../assets/images/sanjuan.jpg";
+import SanVicente from "../assets/images/sanvicente.jpg";
+import Sulipan from "../assets/images/sulipan2.png";
+import Tabuyuc from "../assets/images/tabuyuc.jpg";
+import Sucad from "../assets/images/sucad.png";
 
 interface CommunityPost {
   id: string;
+  rhu: string;
   created_by: string;
   postMessage: string;
   postImg?: string;
@@ -66,17 +79,20 @@ const Community = () => {
         ...(doc.data() as Omit<CommunityPost, "id">),
       }));
 
-      itemsData.sort(
+      // Filter items based on user's rhuOrBarangay matching item.rhu
+      const filteredItems = itemsData.filter(
+        (item) => item.rhu === user?.rhuOrBarangay
+      );
+
+      filteredItems.sort(
         (a, b) =>
           new Date(b.created_by).getTime() - new Date(a.created_by).getTime()
       );
 
-      setItems(itemsData);
+      setItems(filteredItems);
     });
     return () => unsub();
-  }, []);
-
-  useEffect(() => {}, [user]);
+  }, [user]); // Make sure to re-run this when user data changes
 
   let inventory = "";
 
@@ -95,6 +111,30 @@ const Community = () => {
       return "/images/2.jpg";
     } else if (rhuOrBarangay === "3") {
       return "/images/3.jpg";
+    } else if (rhuOrBarangay === "Balucuc") {
+      return Balucuc;
+    } else if (rhuOrBarangay === "Calantipe") {
+      return Calantipe;
+    } else if (rhuOrBarangay === "Cansinala") {
+      return Cansinala;
+    } else if (rhuOrBarangay === "Capalangan") {
+      return Capalangan;
+    } else if (rhuOrBarangay === "Colgante") {
+      return Colgante;
+    } else if (rhuOrBarangay === "Paligui") {
+      return Paligui;
+    } else if (rhuOrBarangay === "Sampaloc") {
+      return Sampaloc;
+    } else if (rhuOrBarangay === "San Juan") {
+      return SanJuan;
+    } else if (rhuOrBarangay === "San Vicente") {
+      return SanVicente;
+    } else if (rhuOrBarangay === "Sucad") {
+      return Sucad;
+    } else if (rhuOrBarangay === "Sulipan") {
+      return Sulipan;
+    } else if (rhuOrBarangay === "Tabuyuc") {
+      return Tabuyuc;
     } else {
       return "/images/finalelogo.jpg";
     }
@@ -220,16 +260,37 @@ const Community = () => {
                     />
                     <div>
                       <h2 className="font-semibold ml-4">
-                        RURAL HEALTH UNIT{" "}
                         {user?.rhuOrBarangay === "1" ? (
-                          <span>I</span>
+                          <span>RURAL HEALTH UNIT I</span>
                         ) : user?.rhuOrBarangay === "2" ? (
                           <span>II</span>
                         ) : user?.rhuOrBarangay === "3" ? (
                           <span>III</span>
-                        ) : (
-                          <span>I</span>
-                        )}
+                        ) : user?.rhuOrBarangay === "Balucuc" ? (
+                          <span>Balucuc Health Center</span>
+                        ) : user?.rhuOrBarangay === "Calantipe" ? (
+                          <span>Calantipe Health Center</span>
+                        ) : user?.rhuOrBarangay === "Cansinala" ? (
+                          <span>Cansinala Health Center</span>
+                        ) : user?.rhuOrBarangay === "Capalangan" ? (
+                          <span>Capalangan Health Center</span>
+                        ) : user?.rhuOrBarangay === "Colgante" ? (
+                          <span>Colgante Health Center</span>
+                        ) : user?.rhuOrBarangay === "Paligui" ? (
+                          <span>Paligui Health Center</span>
+                        ) : user?.rhuOrBarangay === "Sampaloc" ? (
+                          <span>Sampaloc Health Center</span>
+                        ) : user?.rhuOrBarangay === "San Juan" ? (
+                          <span>San Juan Health Center</span>
+                        ) : user?.rhuOrBarangay === "San Vicente" ? (
+                          <span>San Vicente Health Center</span>
+                        ) : user?.rhuOrBarangay === "Sulipan" ? (
+                          <span>Sulipan Health Center</span>
+                        ) : user?.rhuOrBarangay === "Sucad" ? (
+                          <span>Sucad Health Center</span>
+                        ) : user?.rhuOrBarangay === "Tabuyuc" ? (
+                          <span>Tabuyuc Health Center</span>
+                        ) : null}
                       </h2>
                       <h3 className="text-sm text-gray-500 ml-4">
                         {formatDateTime(item.created_by)}

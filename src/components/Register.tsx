@@ -1,6 +1,15 @@
 import React, { useState, ChangeEvent, useRef, useCallback } from "react";
 import { auth, db, storage } from "../firebase";
-import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
+} from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
 import { v4 } from "uuid";
@@ -86,8 +95,18 @@ const Register: React.FC = () => {
   const [otpModal, setOtpModal] = useState(false);
   const [otpID, setOtpID] = useState<string>("");
   const [modalVerification, setModalVerification] = useState(false);
-  
+
   const Navigate = useNavigate();
+
+  // Calculate the maximum date (18 years ago)
+  const today = new Date();
+  const maxDate = new Date(
+    today.getFullYear() - 18,
+    today.getMonth(),
+    today.getDate()
+  )
+    .toISOString()
+    .split("T")[0];
 
   const determineRhu = (barangay: string, role: string): string => {
     if (role === "RHU Staff") {
@@ -185,6 +204,21 @@ const Register: React.FC = () => {
         return updatedFormData;
       });
     }
+
+    // Validate age
+    const selectedDate = new Date(e.target.value);
+    const age = today.getFullYear() - selectedDate.getFullYear();
+    const monthDiff = today.getMonth() - selectedDate.getMonth();
+    const dayDiff = today.getDate() - selectedDate.getDate();
+
+    if (
+      age < 18 ||
+      (age === 18 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)))
+    ) {
+      setError({ dateOfBirth: "You must be at least 21 years old." });
+    } else {
+      setError({ dateOfBirth: "" });
+    }
   };
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -218,7 +252,9 @@ const Register: React.FC = () => {
       const imageUrl = file ? await uploadImage(file, "Image") : "";
       const idFrontUrl = idFront ? await uploadImage(idFront, "ID/Front") : "";
       const idBackUrl = idBack ? await uploadImage(idBack, "ID/Back") : "";
-      const selfieIDUrl = idSelfie ? await uploadImage(idSelfie, "ID/Selfie") : "";
+      const selfieIDUrl = idSelfie
+        ? await uploadImage(idSelfie, "ID/Selfie")
+        : "";
 
       // Determine RHU based on barangay
       const rhuOrBarangay = determineRhu(formData.barangay, formData.role);
@@ -242,7 +278,7 @@ const Register: React.FC = () => {
         idBack: idBackUrl,
         selfieID: selfieIDUrl,
         rhuOrBarangay,
-        acc_status: "for_verification", 
+        acc_status: "for_verification",
         created_at: dateToday,
         updated_at: dateToday,
       };
@@ -260,18 +296,22 @@ const Register: React.FC = () => {
 
       const newOtpDocRef = doc(collection(db, "OtpVerifications"));
       await setDoc(newOtpDocRef, {
-          created_at: serverTimestamp(),
-          isValid: true,
-          otp: newOtp,
-          userId: user.uid
+        created_at: serverTimestamp(),
+        isValid: true,
+        otp: newOtp,
+        userId: user.uid,
       });
 
-      await axios.post(`${baseUrl}/forgot-password/registration-otp`, {
-        to: userData?.email,
-        subject: '[Mediforecast] - Account Verification | OTP',
-        firstName: userData?.firstname,
-        code: newOtp
-    }, { headers: {'token': 's3cretKey'} });
+      await axios.post(
+        `${baseUrl}/forgot-password/registration-otp`,
+        {
+          to: userData?.email,
+          subject: "[Mediforecast] - Account Verification | OTP",
+          firstName: userData?.firstname,
+          code: newOtp,
+        },
+        { headers: { token: "s3cretKey" } }
+      );
 
       setOtpID(user.uid);
       setModalVerification(true);
@@ -279,10 +319,8 @@ const Register: React.FC = () => {
       // Show success toast and reset the form
       // toast.success("User Registered Successfully! Please Verify your account");
       // resetForm();
-
-
     } catch (error: any) {
-      console.log('catch!');
+      console.log("catch!");
       if (error.code === "auth/email-already-in-use") {
         toast.error("The email address is already in use by another account.", {
           position: "top-right",
@@ -322,17 +360,44 @@ const Register: React.FC = () => {
     if (!formData.firstname) newErrors.firstname = "First Name is required";
     if (!formData.middlename) newErrors.middlename = "Middle Name is required";
     if (!formData.lastname) newErrors.lastname = "Last Name is required";
+    if (!formData.email) newErrors.email = "Email Address is required";
+    if (!formData.password) newErrors.password = "Password is required";
+    if (!formData.confirmPassword)
+      newErrors.confirmPassword = "Confirm Password is required";
     if (!formData.dateOfBirth)
       newErrors.dateOfBirth = "Date of Birth is required";
     if (!formData.gender) newErrors.gender = "Gender is required";
     if (!formData.phone) newErrors.phone = "Phone Number is required";
     if (!formData.password) newErrors.password = "Password is required";
-    if (!formData.housenoandstreetname) newErrors.phone = "Address is required";
+    if (!formData.housenoandstreetname)
+      newErrors.housenoandstreetname = "Address is required";
     if (!formData.barangay) newErrors.barangay = "Barangay is required";
     if (!file) newErrors.imageUrl = "Image is required";
-    if (!idFrontInputRef) newErrors.idFront = "Front ID is required";
-    if (!idBackInputRef) newErrors.idBack = "Back ID is required";
-    if (!selfieInputRef) newErrors.selfieID = "Selfie with your ID is required";
+    // Validate file uploads
+    if (!file) {
+      newErrors.imageUrl = "Profile Image is required";
+    }
+    if (
+      !idFrontInputRef.current ||
+      !idFrontInputRef.current.files ||
+      idFrontInputRef.current.files.length === 0
+    ) {
+      newErrors.idFront = "Front ID is required";
+    }
+    if (
+      !idBackInputRef.current ||
+      !idBackInputRef.current.files ||
+      idBackInputRef.current.files.length === 0
+    ) {
+      newErrors.idBack = "Back ID is required";
+    }
+    if (
+      !selfieInputRef.current ||
+      !selfieInputRef.current.files ||
+      selfieInputRef.current.files.length === 0
+    ) {
+      newErrors.selfieID = "Selfie with your ID is required";
+    }
     if (!formData.role) newErrors.role = "Role is required";
 
     setError(newErrors);
@@ -421,7 +486,9 @@ const Register: React.FC = () => {
                       onChange={handleChange}
                       placeholder="Enter Firstname"
                     />
-                    {error?.firstname && <CommonError message={error?.firstname || ''} />}
+                    {error?.firstname && (
+                      <CommonError message={error?.firstname || ""} />
+                    )}
                   </div>
                   <div className="form-control">
                     <label className="label" htmlFor="middlename">
@@ -435,7 +502,9 @@ const Register: React.FC = () => {
                       onChange={handleChange}
                       placeholder="Enter Middlename"
                     />
-                    {error?.middlename && <CommonError message={error?.middlename || ''} />}
+                    {error?.middlename && (
+                      <CommonError message={error?.middlename || ""} />
+                    )}
                   </div>
                   <div className="form-control">
                     <label className="label" htmlFor="lastname">
@@ -449,7 +518,9 @@ const Register: React.FC = () => {
                       onChange={handleChange}
                       placeholder="Enter Lastname"
                     />
-                    {error?.lastname && <CommonError message={error?.lastname || ''} />}
+                    {error?.lastname && (
+                      <CommonError message={error?.lastname || ""} />
+                    )}
                   </div>
 
                   <div className="form-control">
@@ -464,6 +535,9 @@ const Register: React.FC = () => {
                       onChange={handleChange}
                       placeholder="Enter Email Address"
                     />
+                    {error?.email && (
+                      <CommonError message={error?.email || ""} />
+                    )}
                   </div>
                   <div className="form-control">
                     <label className="label" htmlFor="dateOfBirth">
@@ -475,8 +549,11 @@ const Register: React.FC = () => {
                       className="input input-bordered w-full md:w-80 ml-1 border border-gray-300 rounded-md"
                       value={formData.dateOfBirth}
                       onChange={handleChange}
+                      max={maxDate}
                     />
-                    {error?.dateOfBirth && <CommonError message={error?.dateOfBirth || ''} />}
+                    {error?.dateOfBirth && (
+                      <CommonError message={error?.dateOfBirth || ""} />
+                    )}
                   </div>
 
                   <div className="form-control">
@@ -506,7 +583,9 @@ const Register: React.FC = () => {
                           clipRule="evenodd"
                         />
                       </svg>
-                      {error?.gender && <CommonError message={error?.gender || ''} />}
+                      {error?.gender && (
+                        <CommonError message={error?.gender || ""} />
+                      )}
                     </div>
                   </div>
                   <div className="form-control">
@@ -521,7 +600,9 @@ const Register: React.FC = () => {
                       onChange={handleChange}
                       placeholder="Enter Phone Number"
                     />
-                    {error?.phone && <CommonError message={error?.phone || ''} />}
+                    {error?.phone && (
+                      <CommonError message={error?.phone || ""} />
+                    )}
                   </div>
                   <div className="form-control">
                     <label htmlFor="address" className="label">
@@ -545,7 +626,11 @@ const Register: React.FC = () => {
                       className="input input-bordered w-full md:w-80 p-2 ml-1 mt-2 border border-gray-300 rounded-md capitalize"
                       placeholder="House No. & Street Name"
                     />
-                    {error?.housenoandstreetname && <CommonError message={error?.housenoandstreetname || ''} />}
+                    {error?.housenoandstreetname && (
+                      <CommonError
+                        message={error?.housenoandstreetname || ""}
+                      />
+                    )}
                   </div>
                   <div className="form-control">
                     <div className="relative">
@@ -583,11 +668,13 @@ const Register: React.FC = () => {
                         />
                       </svg>
                     </div>
-                    {error?.barangay && <CommonError message={error?.barangay || ''} />}
+                    {error?.barangay && (
+                      <CommonError message={error?.barangay || ""} />
+                    )}
                   </div>
                   <div>
                     <label className="label" htmlFor="image">
-                      <span className="label-text">Upload Image</span>
+                      <span className="label-text">Upload Profile Image</span>
                     </label>
                     <div className="form-control flex items-center mt-2">
                       {preview && (
@@ -608,7 +695,9 @@ const Register: React.FC = () => {
                           className="input input-bordered w-full p-2 border mb-5  border-gray-300 rounded-md"
                           onChange={handleChange}
                         />
-                        {error?.imageUrl && <CommonError message={error?.imageUrl || ''} />}
+                        {error?.imageUrl && (
+                          <CommonError message={error?.imageUrl || ""} />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -642,7 +731,9 @@ const Register: React.FC = () => {
                         />
                       </div>
                     </div>
-                    {error?.idFront && <CommonError message={error?.idFront || ''} />}
+                    {error?.idFront && (
+                      <CommonError message={error?.idFront || ""} />
+                    )}
                   </div>
                   <div>
                     <label className="text-center" htmlFor="id">
@@ -671,7 +762,9 @@ const Register: React.FC = () => {
                         />
                       </div>
                     </div>
-                    {error?.idBack && <CommonError message={error?.idBack || ''} />}
+                    {error?.idBack && (
+                      <CommonError message={error?.idBack || ""} />
+                    )}
                   </div>
                   <br />
                   <div>
@@ -701,7 +794,9 @@ const Register: React.FC = () => {
                         />
                       </div>
                     </div>
-                    {error?.selfieID && <CommonError message={error?.selfieID || ''} />}
+                    {error?.selfieID && (
+                      <CommonError message={error?.selfieID || ""} />
+                    )}
                   </div>
                   <div className="form-control">
                     <label className="label" htmlFor="role">
@@ -735,7 +830,7 @@ const Register: React.FC = () => {
                         />
                       </svg>
                     </div>
-                    {error?.role && <CommonError message={error?.role || ''} />}
+                    {error?.role && <CommonError message={error?.role || ""} />}
                   </div>
                   <div className="form-control">
                     <label className="label" htmlFor="password">
@@ -754,6 +849,9 @@ const Register: React.FC = () => {
                         {errorPassword}
                       </span>
                     )}
+                    {error?.password && (
+                      <CommonError message={error?.password || ""} />
+                    )}
                   </div>
                   <div className="form-control">
                     <label className="label" htmlFor="password">
@@ -763,7 +861,7 @@ const Register: React.FC = () => {
                       type="password"
                       // {...register("confirmPassword")}
                       id="confirmPassword"
-                      className="input input-bordered w-full md:w-80 p-2 ml-1 border border-gray-300 rounded-md mb-4"
+                      className="input input-bordered w-full md:w-80 p-2 ml-1 border border-gray-300 rounded-md"
                       placeholder="Enter Confirm Password"
                       value={formData.confirmPassword}
                       onChange={handleChange}
@@ -772,6 +870,12 @@ const Register: React.FC = () => {
                       <span className="text-red-500 text-sm">
                         {errorConfirmPassword}
                       </span>
+                    )}
+                    {error?.confirmPassword && (
+                      <CommonError
+                        className="mb-10"
+                        message={error?.confirmPassword || ""}
+                      />
                     )}
                     {/* {errors.confirmPassword && (
                       <span className="text-red-600 mt-1">
@@ -838,7 +942,11 @@ const Register: React.FC = () => {
           </div>
         </form>
 
-        <OtpVerification showModal={modalVerification} userId={otpID} closeModal={() => setModalVerification(false)} />
+        <OtpVerification
+          showModal={modalVerification}
+          userId={otpID}
+          closeModal={() => setModalVerification(false)}
+        />
       </div>
     </>
   );

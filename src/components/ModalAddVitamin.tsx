@@ -15,10 +15,13 @@ import { MdCancel } from "react-icons/md";
 import { FaCaretDown } from "react-icons/fa";
 import { FaUpload } from "react-icons/fa";
 import { useUser } from "./User";
-import { dosage_forms, medical_packaging, vitaminFormData } from "../assets/common/constants";
+import {
+  dosage_forms,
+  medical_packaging,
+  vitaminFormData,
+} from "../assets/common/constants";
 import { createHistoryLog } from "../utils/historyService";
-import { useConfirmation } from '../hooks/useConfirmation';
-
+import { useConfirmation } from "../hooks/useConfirmation";
 
 interface ModalAddVitaminProps {
   showModal: boolean;
@@ -30,12 +33,12 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
 }) => {
   const confirm = useConfirmation();
 
-
   const [showModalSuccess, setShowModalSucces] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [selectedOption, setSelectedOption] = useState<string>("Dosage Form");
-  const [selectedPackaging, setSelectedPackaging] = useState<string>("Medical Packaging");
+  const [selectedPackaging, setSelectedPackaging] =
+    useState<string>("Medical Packaging");
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(vitaminFormData);
   const [errors, setErrors] = useState<any>({});
@@ -86,8 +89,8 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
 
   const handleSubmit = async () => {
     const isConfirmed = await confirm({
-      title: 'Confirm Submission',
-      message: 'Are you sure you want to add this vitamin?',
+      title: "Confirm Submission",
+      message: "Are you sure you want to add this vitamin?",
     });
 
     if (isConfirmed) {
@@ -119,10 +122,13 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
         created_at: dateToday,
         updated_at: dateToday,
         userId: user?.uid,
-        created_by_unit: user?.rhuOrBarangay
+        created_by_unit: user?.rhuOrBarangay,
       };
 
-      const docRef = await addDoc(collection(db, "Inventory"), formDataWithImage);
+      const docRef = await addDoc(
+        collection(db, "Inventory"),
+        formDataWithImage
+      );
       console.log("Document written with ID: ", docRef.id);
 
       setFormData(vitaminFormData);
@@ -134,19 +140,19 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
         closeModal(true);
       }, 1000);
 
-      const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
+      const formatFullName = `${user?.firstname}${
+        user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ""
+      } ${user?.lastname}`;
 
       await createHistoryLog({
-        actionType: 'create',
+        actionType: "create",
         itemId: docRef.id,
         itemName: formData.vitaminBrandName,
         fullName: formatFullName,
-        barangay: '',
-        performedBy: user?.uid || '',
+        barangay: "",
+        performedBy: user?.uid || "",
         remarks: `Vitamin ${formData.vitaminBrandName} has been added to the inventory`,
-      })
-
-
+      });
     } catch (error) {
       console.error("Error adding document: ", error);
     } finally {
@@ -351,19 +357,22 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
             <div className="w-[1/2] flex justify-center items-center">
               <details className="dropdown dropdown-end ">
                 <summary
-                  className="btn m-1 bg-black text-white w-52 flex justify-between"
+                  className="btn  bg-white text-gray-700 w-52 flex justify-between"
                   tabIndex={0}
                   role="button"
                 >
                   {selectedOption}
-                  <FaCaretDown className="w-4 h-4 text-white ml-1" />
+                  <FaCaretDown className="w-4 h-4 text-gray-700 ml-1" />
                 </summary>
                 <ul
-                  className="menu dropdown-content  bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
+                  className="menu dropdown-content  bg-white text-black rounded-box z-[1] w-52 p-2 shadow"
                   tabIndex={0}
                 >
                   {dosage_forms.map((label: string) => (
-                    <li key={label} className="hover:text-black hover:bg-white rounded-lg">
+                    <li
+                      key={label}
+                      className="hover:text-black hover:bg-white rounded-lg"
+                    >
                       <a
                         onClick={() => {
                           setSelectedOption(label);
@@ -379,19 +388,22 @@ const ModalAddVitamin: React.FC<ModalAddVitaminProps> = ({
             <div className="w-[1/2] flex justify-center items-center">
               <details className="dropdown dropdown-end ">
                 <summary
-                  className="btn m-1 bg-black text-white w-52 flex justify-between"
+                  className="btn ml-1 bg-white text-gray-700 w-52 flex justify-between"
                   tabIndex={0}
                   role="button"
                 >
                   {selectedPackaging}
-                  <FaCaretDown className="w-4 h-4 text-white ml-1" />
+                  <FaCaretDown className="w-4 h-4 text-gray-700 ml-1" />
                 </summary>
                 <ul
-                  className="menu dropdown-content  bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
+                  className="menu dropdown-content  bg-white text-black rounded-box z-[1] w-52 p-2 shadow"
                   tabIndex={0}
                 >
                   {medical_packaging.map((label: string) => (
-                    <li key={label} className="hover:text-black hover:bg-white rounded-lg">
+                    <li
+                      key={label}
+                      className="hover:text-black hover:bg-white rounded-lg"
+                    >
                       <a
                         onClick={() => {
                           setSelectedPackaging(label);

@@ -1,12 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Pie } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  Title,
-} from "chart.js";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from "chart.js";
 
 import { FaExclamationCircle } from "react-icons/fa";
 
@@ -33,7 +27,7 @@ interface PieChartProps {
 const PieChart: React.FC<PieChartProps> = ({
   data,
   size = 10,
-  limit = 50,
+  limit = 100,
 }) => {
   const [chartData, setChartData] = useState<any>({
     labels: [],
@@ -54,13 +48,13 @@ const PieChart: React.FC<PieChartProps> = ({
             typeof item.medicineStock === "number"
               ? item.medicineStock
               : parseInt(item.medicineStock as string) || 0;
-          name = item.medicineGenericName || "Unknown Medicine";
+          name = item.medicineBrandName || "Unknown Medicine";
         } else if (item.type === "Vitamin") {
           stock =
             typeof item.vitaminStock === "number"
               ? item.vitaminStock
               : parseInt(item.vitaminStock as string) || 0;
-          name = item.vitaminGenericName || "Unknown Vitamin";
+          name = item.vitaminBrandName || "Unknown Vitamin";
         } else if (item.type === "Vaccine") {
           stock =
             typeof item.vaccineStock === "number"
@@ -134,22 +128,24 @@ const PieChart: React.FC<PieChartProps> = ({
   };
 
   const hasData =
-  chartData.datasets.length > 0 &&
-  chartData.datasets[0].data &&
-  chartData.datasets[0].data.length > 0;
+    chartData.datasets.length > 0 &&
+    chartData.datasets[0].data &&
+    chartData.datasets[0].data.length > 0;
 
-return hasData ? (
-  <Pie data={chartData} options={pieOptions} />
-) : (
-  <div className="flex flex-col items-center justify-between rounded-lg h-[250px]">
-    <div className="text-[12px] text-gray-700 font-bold">Top Low Stock Items</div>
-    <div className="flex flex-col items-center">
-      <FaExclamationCircle className="text-4xl text-red-500 mb-4 mt-4" />
-      <p className="text-lg text-gray-700">No items to display.</p>
+  return hasData ? (
+    <Pie data={chartData} options={pieOptions} />
+  ) : (
+    <div className="flex flex-col items-center justify-between rounded-lg h-[250px]">
+      <div className="text-[12px] text-gray-700 font-bold">
+        Top Low Stock Items
+      </div>
+      <div className="flex flex-col items-center">
+        <FaExclamationCircle className="text-4xl text-red-500 mb-4 mt-4" />
+        <p className="text-lg text-gray-700">No items to display.</p>
+      </div>
+      <div className="invisible">1</div>
     </div>
-    <div className="invisible">1</div>
-  </div>
-);
+  );
 };
 
 export default PieChart;

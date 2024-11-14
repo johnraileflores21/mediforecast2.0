@@ -7,9 +7,13 @@ import { MdCancel } from "react-icons/md";
 import { FaCaretDown, FaUpload } from "react-icons/fa";
 import { useUser } from "./User";
 import { useForm, SubmitHandler } from "react-hook-form";
-import { dosage_forms, medical_packaging, vaccineFormData } from "../assets/common/constants";
+import {
+  dosage_forms,
+  medical_packaging,
+  vaccineFormData,
+} from "../assets/common/constants";
 import { createHistoryLog } from "../utils/historyService";
-import { useConfirmation } from '../hooks/useConfirmation';
+import { useConfirmation } from "../hooks/useConfirmation";
 
 interface ModalAddVaccineProps {
   showModal: boolean;
@@ -46,7 +50,8 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string>("Vaccine Form");
-  const [selectedPackaging, setSelectedPackaging] = useState<string>("Medical Packaging");
+  const [selectedPackaging, setSelectedPackaging] =
+    useState<string>("Medical Packaging");
   const [file, setFile] = useState<any>(null);
   const { user } = useUser();
 
@@ -72,8 +77,8 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     const isConfirmed = await confirm({
-      title: 'Confirm Submission',
-      message: 'Are you sure you want to add this vaccine?',
+      title: "Confirm Submission",
+      message: "Are you sure you want to add this vaccine?",
     });
 
     if (!isConfirmed) return;
@@ -81,8 +86,8 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
     data.vaccineDosageForm = selectedOption;
     data.vaccinePackaging = selectedPackaging;
 
-    console.log('data :>> ', data);
-    console.log('file :>> ', file);
+    console.log("data :>> ", data);
+    console.log("file :>> ", file);
     const now = new Date();
     const dateToday = now.toISOString();
     setLoading(true);
@@ -90,13 +95,10 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
     try {
       let vaccineImg = "";
       if (file) {
-        const imageRef = ref(
-          storage,
-          `Vaccines/${file.name + v4()}`
-        );
+        const imageRef = ref(storage, `Vaccines/${file.name + v4()}`);
         await uploadBytes(imageRef, file);
         vaccineImg = await getDownloadURL(imageRef);
-        console.log('vaccineImg :>> ', vaccineImg);
+        console.log("vaccineImg :>> ", vaccineImg);
       }
 
       const formDataWithImage = {
@@ -109,7 +111,10 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
         type: "Vaccine",
       };
 
-      const docRef = await addDoc(collection(db, "Inventory"), formDataWithImage);
+      const docRef = await addDoc(
+        collection(db, "Inventory"),
+        formDataWithImage
+      );
       console.log("Document written with ID: ", docRef.id);
 
       reset();
@@ -119,18 +124,19 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
         closeModal(true);
       }, 1000);
 
-      const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
+      const formatFullName = `${user?.firstname}${
+        user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ""
+      } ${user?.lastname}`;
 
       await createHistoryLog({
-        actionType: 'create',
+        actionType: "create",
         itemId: docRef.id,
         itemName: data.vaccineName,
         fullName: formatFullName,
-        barangay: '',
-        performedBy: user?.uid || '',
+        barangay: "",
+        performedBy: user?.uid || "",
         remarks: `Vaccine ${data.vaccineName} has been added to the inventory`,
-      })
-
+      });
     } catch (error) {
       console.error("Error adding document: ", error);
     } finally {
@@ -251,63 +257,69 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
           </div>
         </div>
         <div className="flex flex-row">
-            <div className="w-[1/2] flex justify-center items-center">
-              <details className="dropdown dropdown-end ">
-                <summary
-                  className="btn m-1 bg-black text-white w-52 flex justify-between"
-                  tabIndex={0}
-                  role="button"
-                >
-                  {selectedOption}
-                  <FaCaretDown className="w-4 h-4 text-white ml-1" />
-                </summary>
-                <ul
-                  className="menu dropdown-content  bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
-                  tabIndex={0}
-                >
-                  {dosage_forms.map((label: string) => (
-                    <li key={label} className="hover:text-black hover:bg-white rounded-lg">
-                      <a
-                        onClick={() => {
-                          setSelectedOption(label);
-                        }}
-                      >
-                        {label}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            </div>
-            <div className="w-[1/2] flex justify-center items-center">
-              <details className="dropdown dropdown-end ">
-                <summary
-                  className="btn m-1 bg-black text-white w-52 flex justify-between"
-                  tabIndex={0}
-                  role="button"
-                >
-                  {selectedPackaging}
-                  <FaCaretDown className="w-4 h-4 text-white ml-1" />
-                </summary>
-                <ul
-                  className="menu dropdown-content  bg-black text-white rounded-box z-[1] w-52 p-2 shadow"
-                  tabIndex={0}
-                >
-                  {medical_packaging.map((label: string) => (
-                    <li key={label} className="hover:text-black hover:bg-white rounded-lg">
-                      <a
-                        onClick={() => {
-                          setSelectedPackaging(label);
-                        }}
-                      >
-                        {label}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            </div>
+          <div className="w-[1/2] flex justify-center items-center">
+            <details className="dropdown dropdown-end ">
+              <summary
+                className="btn mr-1 bg-white text-gray-700 w-52 flex justify-between"
+                tabIndex={0}
+                role="button"
+              >
+                {selectedOption}
+                <FaCaretDown className="w-4 h-4 text-gray-700 ml-1" />
+              </summary>
+              <ul
+                className="menu dropdown-content  bg-white text-black rounded-box z-[1] w-52 p-2 shadow"
+                tabIndex={0}
+              >
+                {dosage_forms.map((label: string) => (
+                  <li
+                    key={label}
+                    className="hover:text-black hover:bg-white rounded-lg"
+                  >
+                    <a
+                      onClick={() => {
+                        setSelectedOption(label);
+                      }}
+                    >
+                      {label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </details>
           </div>
+          <div className="w-[1/2] flex justify-center items-center">
+            <details className="dropdown dropdown-end ">
+              <summary
+                className="btn bg-white text-gray-700 w-52 flex justify-between"
+                tabIndex={0}
+                role="button"
+              >
+                {selectedPackaging}
+                <FaCaretDown className="w-4 h-4 text-gray-700 ml-1" />
+              </summary>
+              <ul
+                className="menu dropdown-content  bg-white text-black rounded-box z-[1] w-52 p-2 shadow"
+                tabIndex={0}
+              >
+                {medical_packaging.map((label: string) => (
+                  <li
+                    key={label}
+                    className="hover:text-black hover:bg-white rounded-lg"
+                  >
+                    <a
+                      onClick={() => {
+                        setSelectedPackaging(label);
+                      }}
+                    >
+                      {label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </div>
+        </div>
         <div className="flex flex-row">
           <div className="w-full">
             <label
@@ -357,10 +369,10 @@ const ModalAddVaccine: React.FC<ModalAddVaccineProps> = ({
                 <svg
                   width="800px"
                   height="800px"
-                  viewBox="0 0 24 24"
+                  viewBox="0 0 16 16"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
-                  className="animate-spin h-5 w-5 mr-3 text-white"
+                  className="animate-spin h-5 w-5 text-white"
                   clipRule="evenodd"
                 >
                   <g fill="#000000" fillRule="evenodd" clipRule="evenodd">

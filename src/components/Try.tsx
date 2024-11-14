@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { db, storage } from "../firebase";
-import { collection, onSnapshot, deleteDoc, doc, query, where, getDocs, getDoc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  deleteDoc,
+  doc,
+  query,
+  where,
+  getDocs,
+  getDoc,
+  updateDoc,
+} from "firebase/firestore";
 import DashboardLayout from "./DashboardLayout";
 import { IoMdAddCircle, IoMdTime } from "react-icons/io";
 import ModalAdd from "./ModalAdd";
@@ -24,9 +34,9 @@ import DistributeVaccine from "./DistributeVaccine";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { getAddress, getTypes, RHUs } from "../assets/common/constants";
-import { createHistoryLog }  from '../utils/historyService';
-import notificationService from '../utils/notificationService';
-import { useConfirmation } from '../hooks/useConfirmation';
+import { createHistoryLog } from "../utils/historyService";
+import notificationService from "../utils/notificationService";
+import { useConfirmation } from "../hooks/useConfirmation";
 import { PDFViewer } from "@react-pdf/renderer";
 import HistoryPDF from "./HistoryPDF";
 
@@ -66,20 +76,26 @@ const Try: React.FC = () => {
 
   const fetchData = async () => {
     try {
-
-      const unit = RHUs.findIndex((x: any) => x['barangays'].includes(user?.barangay)) + 1;
-      console.log('unit :>> ', unit);
+      const unit =
+        RHUs.findIndex((x: any) => x["barangays"].includes(user?.barangay)) + 1;
+      console.log("unit :>> ", unit);
 
       const inventoryQuery = query(
         collection(db, isBarangay ? "BarangayInventory" : "Inventory"),
-        where("created_by_unit", "==", isBarangay ? unit.toString() : user?.rhuOrBarangay)
+        where(
+          "created_by_unit",
+          "==",
+          isBarangay ? unit.toString() : user?.rhuOrBarangay
+        )
       );
 
       const inventorySnap = await getDocs(inventoryQuery);
-      const inventoryItems = inventorySnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })).filter((x) => x[`${getTypes(x)}Stock`] > 0);
+      const inventoryItems = inventorySnap.docs
+        .map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+        .filter((x) => x[`${getTypes(x)}Stock`] > 0);
       setItems(inventoryItems);
       console.log("inventoryItems :>> ", inventoryItems);
     } catch (error) {
@@ -89,15 +105,20 @@ const Try: React.FC = () => {
 
   const fetchPending = async () => {
     try {
-      const unit = RHUs.findIndex((x: any) => x['barangays'].includes(user?.barangay)) + 1;
+      const unit =
+        RHUs.findIndex((x: any) => x["barangays"].includes(user?.barangay)) + 1;
 
       const inventoryQuery = query(
         collection(db, "BarangayInventory"),
-        where("created_by_unit", "==", isBarangay ? unit.toString() : user?.rhuOrBarangay)
+        where(
+          "created_by_unit",
+          "==",
+          isBarangay ? unit.toString() : user?.rhuOrBarangay
+        )
       );
 
       const inventorySnap = await getDocs(inventoryQuery);
-      const inventoryItems = inventorySnap.docs.map(doc => ({
+      const inventoryItems = inventorySnap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
@@ -106,7 +127,7 @@ const Try: React.FC = () => {
     } catch (error) {
       console.error("Error fetching pending :>> ", error);
     }
-  }
+  };
 
   const fetchHistoryData = async () => {
     try {
@@ -117,22 +138,22 @@ const Try: React.FC = () => {
       );
 
       const hSnap = await getDocs(hQuery);
-      const hItems = hSnap.docs.map(doc => ({
+      const hItems = hSnap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      console.log('hItems :>> ', hItems);
+      console.log("hItems :>> ", hItems);
 
       setHistoryData(hItems);
     } catch (error) {
-      console.log('error :>> ', error);
+      console.log("error :>> ", error);
     } finally {
       setHistoryLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    console.log('user :>> ', user);
+    console.log("user :>> ", user);
     fetchData();
     fetchPending();
     fetchHistoryData();
@@ -140,7 +161,7 @@ const Try: React.FC = () => {
 
   const handleAdd = () => setModalAdd(true);
   const closeModalAdd = (bool: any) => {
-    if(bool) {
+    if (bool) {
       fetchData();
       fetchPending();
     }
@@ -167,16 +188,18 @@ const Try: React.FC = () => {
             icon: "success",
           });
 
-          const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
+          const formatFullName = `${user?.firstname}${
+            user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ""
+          } ${user?.lastname}`;
           await createHistoryLog({
-            actionType: 'delete',
+            actionType: "delete",
             itemId: id,
-            itemName: '',
+            itemName: "",
             fullName: formatFullName,
-            barangay: '',
-            performedBy: user?.uid || '',
+            barangay: "",
+            performedBy: user?.uid || "",
             remarks: `Deleted item with id ${id}`,
-          })
+          });
 
           fetchData();
         } catch (error) {
@@ -184,11 +207,10 @@ const Try: React.FC = () => {
         }
       }
     });
-
   };
 
   const handleView = (item: any) => {
-    console.log("item :>> ", item)
+    console.log("item :>> ", item);
     setForm(item);
     if (item.type === "Medicine") {
       setModalView(true);
@@ -197,7 +219,7 @@ const Try: React.FC = () => {
     } else if (item.type === "Vitamin") {
       setModalViewVitamin(true);
     }
-    console.log("modalView :>> ", modalView)
+    console.log("modalView :>> ", modalView);
   };
 
   const closeModalView = () => setModalView(false);
@@ -205,7 +227,7 @@ const Try: React.FC = () => {
   const closeModalViewVitamin = () => setModalViewVitamin(false);
 
   const handleEdit = (item: any) => {
-    console.log("edit item :>> ", item)
+    console.log("edit item :>> ", item);
     setForm(item);
     if (item.type === "Medicine") {
       setModalEdit(true);
@@ -217,18 +239,18 @@ const Try: React.FC = () => {
   };
 
   const closeModalEdit = (bool: any) => {
-    if(bool) fetchData();
+    if (bool) fetchData();
     setModalEdit(false);
   };
   const closeModalEditVaccine = () => setModalEditVaccine(false);
   const closeModalEditVitamin = (bool: any) => {
-    if(bool) fetchData();
+    if (bool) fetchData();
     setModalEditVitamin(false);
-  }
+  };
 
   const handleDistribute = async (item: any) => {
     setForm(item);
-    if(item.type === "Medicine") {
+    if (item.type === "Medicine") {
       setModalDistribute(true);
       setDistributeVaccine(false);
       setDistributeVitamin(false);
@@ -244,123 +266,126 @@ const Try: React.FC = () => {
   };
 
   const closeDistribute = (bool: any) => {
-    if(bool) fetchData();
+    if (bool) fetchData();
     setModalDistribute(false);
     setDistributeVitamin(false);
     setForm(null);
   };
-
-
-
-
-
 
   /**
    * @description todo: update inventory (deduct stock), add to brgy inventory and update status to approved
    * @param data
    */
 
-
   const handleApprove = async (data: any) => {
     const isConfirmed = await confirm({
-      title: 'Confirm Submission',
-      message: 'Are you sure you want to receive this item?',
+      title: "Confirm Submission",
+      message: "Are you sure you want to receive this item?",
     });
 
-    if(!isConfirmed) return;
+    if (!isConfirmed) return;
 
     try {
-
-      const barangayInventoryRef = doc(db, 'BarangayInventory', data.id);
+      const barangayInventoryRef = doc(db, "BarangayInventory", data.id);
       const distributionBarangayId = barangayInventoryRef.id;
-      console.log('distributionBarangayId :>> ', distributionBarangayId);
+      console.log("distributionBarangayId :>> ", distributionBarangayId);
 
       const distributionsQuery = query(
-        collection(db, 'Distributions'),
-        where('barangayInventoryId', '==', distributionBarangayId)
+        collection(db, "Distributions"),
+        where("barangayInventoryId", "==", distributionBarangayId)
       );
 
       const querySnapshot = await getDocs(distributionsQuery);
 
-
       if (!querySnapshot.empty) {
-          querySnapshot.forEach(async (docSnapshot) => {
-              const distributionDocRef = doc(db, 'Distributions', docSnapshot.id);
-              await updateDoc(distributionDocRef, { isDistributed: true });
+        querySnapshot.forEach(async (docSnapshot) => {
+          const distributionDocRef = doc(db, "Distributions", docSnapshot.id);
+          await updateDoc(distributionDocRef, { isDistributed: true });
 
+          // get the index of the barangay where the user belongs
+          const sentTo =
+            RHUs.findIndex((x: any) =>
+              x["barangays"].includes(user?.barangay)
+            ) + 1;
 
-              // get the index of the barangay where the user belongs
-              const sentTo = RHUs.findIndex((x: any) => x['barangays'].includes(user?.barangay)) + 1;
-
-              await notificationService.createNotification({
-                action: 'receive',
-                barangayItemId: distributionBarangayId,
-                itemId: data.itemId,
-                itemName: data.medicineBrandName || data.vaccineName || data.vitaminBrandName,
-                itemType: data.type,
-                quantity: data.pendingQuantity,
-                description: `Received ${data.pendingQuantity} ${data.medicineBrandName || data.vaccineName || data.vitaminBrandName} by ${user?.barangay || ''}`,
-                performedBy: user?.uid || '',
-                sentBy: user?.uid || '',
-                sentTo: sentTo.toString(),
-              });
-
-
-              console.log(`Updated document ${docSnapshot.id} with isDistributed: true`);
+          await notificationService.createNotification({
+            action: "receive",
+            barangayItemId: distributionBarangayId,
+            itemId: data.itemId,
+            itemName:
+              data.medicineBrandName ||
+              data.vaccineName ||
+              data.vitaminBrandName,
+            itemType: data.type,
+            quantity: data.pendingQuantity,
+            description: `Received ${data.pendingQuantity} ${
+              data.medicineBrandName ||
+              data.vaccineName ||
+              data.vitaminBrandName
+            } by ${user?.barangay || ""}`,
+            performedBy: user?.uid || "",
+            sentBy: user?.uid || "",
+            sentTo: sentTo.toString(),
           });
+
+          console.log(
+            `Updated document ${docSnapshot.id} with isDistributed: true`
+          );
+        });
       } else {
-          console.log('No matching distribution found with barangayInventoryId:', distributionBarangayId);
+        console.log(
+          "No matching distribution found with barangayInventoryId:",
+          distributionBarangayId
+        );
       }
-
-
 
       // Check if the document exists
       const barangayInventoryDoc = await getDoc(barangayInventoryRef);
-      console.log('data.id :>> ', data.id);
+      console.log("data.id :>> ", data.id);
 
-      if(!barangayInventoryDoc.exists()) {
+      if (!barangayInventoryDoc.exists()) {
         throw new Error(`No document found to update: ${data.id}`);
       }
-        await updateDoc(barangayInventoryRef, {
-          status: 'approved',
-        });
-        console.log('Document approved.');
+      await updateDoc(barangayInventoryRef, {
+        status: "approved",
+      });
+      console.log("Document approved.");
 
+      console.log("data.itemId :>> ", data.itemId);
 
-      console.log('data.itemId :>> ', data.itemId);
-
-      const inventoryRef = doc(db, 'Inventory', data.itemId);
+      const inventoryRef = doc(db, "Inventory", data.itemId);
       const inventoryDoc = await getDoc(inventoryRef);
 
-
-
-
-      if(inventoryDoc.exists()) {
-
+      if (inventoryDoc.exists()) {
         const stockData = inventoryDoc.data();
 
         const typeVal = getTypes(stockData);
-        console.log('typeVal :>> ', typeVal);
+        console.log("typeVal :>> ", typeVal);
 
-        const currentStock = stockData[`${typeVal}Stock`] || 0
+        const currentStock = stockData[`${typeVal}Stock`] || 0;
 
-        console.log('currentStock :>> ', currentStock);
+        console.log("currentStock :>> ", currentStock);
         const newStock = currentStock - data.pendingQuantity;
 
-        const formatFullName = `${user?.firstname}${user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ''} ${user?.lastname}`;
-        const itemName = typeVal == 'vaccine' ? data[`${typeVal}Name`] : data[`${typeVal}BrandName`];
-        if(newStock >= 0) {
+        const formatFullName = `${user?.firstname}${
+          user?.middlename ? ` ${user?.middlename.charAt(0)}.` : ""
+        } ${user?.lastname}`;
+        const itemName =
+          typeVal == "vaccine"
+            ? data[`${typeVal}Name`]
+            : data[`${typeVal}BrandName`];
+        if (newStock >= 0) {
           await createHistoryLog({
-            actionType: 'receive',
+            actionType: "receive",
             itemId: data.itemId,
             itemName: itemName,
             fullName: formatFullName,
-            barangay: user?.barangay || '',
-            performedBy: user?.uid || '',
+            barangay: user?.barangay || "",
+            performedBy: user?.uid || "",
             remarks: `Received ${data.pendingQuantity} ${itemName}`,
             quantity: data.pendingQuantity,
             rhuOrBarangay: user?.rhuOrBarangay,
-          })
+          });
 
           await updateDoc(inventoryRef, {
             [`${typeVal}Stock`]: newStock,
@@ -376,7 +401,7 @@ const Try: React.FC = () => {
           Swal.fire({
             position: "center",
             icon: "error",
-            title: 'Insufficient stock.',
+            title: "Insufficient stock.",
             showConfirmButton: false,
             timer: 1500,
           });
@@ -385,18 +410,17 @@ const Try: React.FC = () => {
         Swal.fire({
           position: "center",
           icon: "error",
-          title: 'Item doesn\'t exist.',
+          title: "Item doesn't exist.",
           showConfirmButton: false,
           timer: 1500,
         });
       }
-
     } catch (error) {
       console.error("Error approving item: ", error);
       Swal.fire({
         position: "center",
         icon: "error",
-        title: 'Error receiving item',
+        title: "Error receiving item",
         showConfirmButton: false,
         timer: 1500,
       });
@@ -404,15 +428,12 @@ const Try: React.FC = () => {
       fetchData();
       fetchPending();
     }
-  }
+  };
 
   const handleDecline = async (id: string) => {
     try {
-
-    } catch (error) {
-
-    }
-  }
+    } catch (error) {}
+  };
 
   const handleSearchInputChange = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -447,63 +468,86 @@ const Try: React.FC = () => {
           .includes(searchQuery.toLowerCase()) ||
         item.medicineGenericName
           ?.toLowerCase()
-          .includes(searchQuery.toLowerCase()) || 
+          .includes(searchQuery.toLowerCase()) ||
         item.vaccineName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.vitaminBrandName?.toLowerCase().includes(searchQuery.toLowerCase())
-    ).sort((a, b) => {
-      const aName = a.medicineBrandName || a.vaccineName || a.vitaminBrandName || '';
-      const bName = b.medicineBrandName || b.vaccineName || b.vitaminBrandName || '';
-      
+    )
+    .sort((a, b) => {
+      const aName =
+        a.medicineBrandName || a.vaccineName || a.vitaminBrandName || "";
+      const bName =
+        b.medicineBrandName || b.vaccineName || b.vitaminBrandName || "";
+
       return aName.toLowerCase().localeCompare(bName.toLowerCase());
     });
 
-    const handleShowHistory = () => {
-      setShowHistoryModal(true);
-    }
+  const handleShowHistory = () => {
+    setShowHistoryModal(true);
+  };
 
-    const filteredPdfHeader = () => {
+  const filteredPdfHeader = () => {
+    const userBarangay = user?.rhuOrBarangay || "";
+    const rhuIndex =
+      RHUs.findIndex((rhu) => rhu.barangays.includes(userBarangay)) + 1;
 
-      const userBarangay = user?.rhuOrBarangay || "";
-      const rhuIndex = RHUs.findIndex(rhu => rhu.barangays.includes(userBarangay)) + 1;
+    const romanNumerals = [
+      "I",
+      "II",
+      "III",
+      "IV",
+      "V",
+      "VI",
+      "VII",
+      "VIII",
+      "IX",
+      "X",
+    ];
+    const rhuRomanNumeral =
+      romanNumerals[(rhuIndex == 0 ? parseInt(userBarangay) : rhuIndex) - 1];
 
-      const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
-      const rhuRomanNumeral = romanNumerals[(rhuIndex == 0 ? parseInt(userBarangay): rhuIndex) - 1];
+    console.log("rhuIndex :>>", rhuIndex);
+    console.log("rhuRomanNumeral :>>", rhuRomanNumeral);
 
-      console.log('rhuIndex :>>', rhuIndex);
-      console.log('rhuRomanNumeral :>>', rhuRomanNumeral);
+    console.log("getAddress() :>> ", getAddress(userBarangay));
 
-      console.log('getAddress() :>> ', getAddress(userBarangay));
-
-      return {
-          h1: rhuIndex == 0 ?   `Rural Health Unit ${rhuRomanNumeral}`: `${user?.rhuOrBarangay} Health Center`,
-          h2: rhuIndex == 0 ? '' :  `Rural Health Unit ${rhuRomanNumeral}`,
-          h3: getAddress(userBarangay).address,
-          title: "Distribution History",
-          unit: userBarangay.length == 1 ? userBarangay : rhuIndex.toString(),
-          barangay: getAddress(userBarangay).barangay
-      };
-    }
-    const pdfHeader = filteredPdfHeader();
+    return {
+      h1:
+        rhuIndex == 0
+          ? `Rural Health Unit ${rhuRomanNumeral}`
+          : `${user?.rhuOrBarangay} Health Center`,
+      h2: rhuIndex == 0 ? "" : `Rural Health Unit ${rhuRomanNumeral}`,
+      h3: getAddress(userBarangay).address,
+      title: "Distribution History",
+      unit: userBarangay.length == 1 ? userBarangay : rhuIndex.toString(),
+      barangay: getAddress(userBarangay).barangay,
+    };
+  };
+  const pdfHeader = filteredPdfHeader();
 
   return (
     <DashboardLayout>
       <ToastContainer />
       <h1 className="text-3xl font-bold mb-4">Inventory Management</h1>
       <div className="flex mb-6">
-          <button
-            className={`px-4 py-2 ${selectedTab === 0 ? "bg-gray-300" : "bg-gray-200"}`}
-            onClick={() => setSelectedTab(0)}
-          >
-            Inventory
-          </button>
-          <button
-            className={`px-4 py-2 ${selectedTab === 1 ? "bg-gray-300" : "bg-gray-200"}`}
-            onClick={() => setSelectedTab(1)}
-          >
-            Pending Distributions
-          </button>
-        </div>
-        {selectedTab === 0 ?   <>
+        <button
+          className={`px-4 py-2 ${
+            selectedTab === 0 ? "bg-gray-300" : "bg-gray-200"
+          }`}
+          onClick={() => setSelectedTab(0)}
+        >
+          Inventory
+        </button>
+        <button
+          className={`px-4 py-2 ${
+            selectedTab === 1 ? "bg-gray-300" : "bg-gray-200"
+          }`}
+          onClick={() => setSelectedTab(1)}
+        >
+          Pending Distributions
+        </button>
+      </div>
+      {selectedTab === 0 ? (
+        <>
           <div className="flex justify-between mb-4">
             <div className="flex gap-2">
               <div className="relative shadow-md">
@@ -528,15 +572,17 @@ const Try: React.FC = () => {
               </div>
             </div>
 
-            {!isBarangay && <button
-              onClick={handleAdd}
-              className="bg-green-500 text-white p-2 hover:bg-green-700 rounded-md font-bold flex items-center space-x-1"
-            >
-              <IoMdAddCircle className="w-5 h-5" />
-              <span>Add</span>
-            </button>}
-            </div>
-            <div className="dropdown w-28 relative">
+            {!isBarangay && (
+              <button
+                onClick={handleAdd}
+                className="bg-green-500 text-white p-2 hover:bg-green-700 rounded-md font-bold flex items-center space-x-1"
+              >
+                <IoMdAddCircle className="w-5 h-5" />
+                <span>Add</span>
+              </button>
+            )}
+          </div>
+          <div className="dropdown w-28 relative">
             <div
               tabIndex={0}
               role="button"
@@ -556,7 +602,9 @@ const Try: React.FC = () => {
                   <a onClick={() => handleOptionSelect("All")}>All</a>
                 </li>
                 <li className="hover:bg-base-100 rounded-lg hover:text-black">
-                  <a onClick={() => handleOptionSelect("Medicines")}>Medicines</a>
+                  <a onClick={() => handleOptionSelect("Medicines")}>
+                    Medicines
+                  </a>
                 </li>
                 <li className="hover:bg-base-100 rounded-lg hover:text-black">
                   <a onClick={() => handleOptionSelect("Vaccines")}>Vaccines</a>
@@ -566,253 +614,314 @@ const Try: React.FC = () => {
                 </li>
               </ul>
             )}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-            {(filteredAndSortedItems).filter(x => x.status == 'approved' || x.status == null).map((item) => (
-              <div
-                key={item.id}
-                className="block rounded-lg bg-white shadow-lg dark:bg-neutral-700 text-left"
-              >
-                <a href="#">
-                  <img
-                    className="rounded-t-lg w-full h-32 object-cover shadow-md flex justify-center items-center"
-                    src={item.medicineImg || item.vaccineImg || item.vitaminImg}
-                    alt={
-                      item.medicineBrandName ||
-                      item.vaccineName ||
-                      item.vaccineBrandName
-                    }
-                  />
-                </a>
-                <div className="overflow-auto">
-                  <button className="border-b-2 border-neutral-100 px-6 py-4 dark:border-neutral-500 w-full">
-                    {/* <div className="flex justify-center items-center mt-1">
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+            {filteredAndSortedItems
+              .filter((x) => x.status == "approved" || x.status == null)
+              .map((item) => (
+                <div
+                  key={item.id}
+                  className="block rounded-lg bg-white shadow-lg dark:bg-neutral-700 text-left"
+                >
+                  <a href="#">
+                    <img
+                      className="rounded-t-lg w-full h-32 object-cover shadow-md flex justify-center items-center"
+                      src={
+                        item.medicineImg || item.vaccineImg || item.vitaminImg
+                      }
+                      alt={
+                        item.medicineBrandName ||
+                        item.vaccineName ||
+                        item.vaccineBrandName
+                      }
+                    />
+                  </a>
+                  <div className="overflow-auto">
+                    <button className="border-b-2 border-neutral-100 px-6 py-4 dark:border-neutral-500 w-full">
+                      {/* <div className="flex justify-center items-center mt-1">
                                         {" "}
                                         <h3 className="font-extrabold">
                                             {item.type}
                                         </h3>
                                     </div> */}
-                    <h5 className="text-center text-neutral-500 dark:text-neutral-300">
-                      <span className="text-black font-bold">
-                        {item.medicineBrandName ||
-                          item.vaccineName ||
-                          item.vitaminBrandName}
-                      </span>
-                      <div>
-                        {/* <div className="inline-block whitespace-nowrap rounded-[0.27rem] bg-gray-100 px-[0.65em] pb-[0.25em] pt-[0.35em] text-center align-baseline text-[0.75em] font-bold leading-none text-gray-700">
+                      <h5 className="text-center text-neutral-500 dark:text-neutral-300">
+                        <span className="text-black font-bold">
+                          {item.medicineBrandName ||
+                            item.vaccineName ||
+                            item.vitaminBrandName}
+                        </span>
+                        <div>
+                          {/* <div className="inline-block whitespace-nowrap rounded-[0.27rem] bg-gray-100 px-[0.65em] pb-[0.25em] pt-[0.35em] text-center align-baseline text-[0.75em] font-bold leading-none text-gray-700">
                                                 {item.medicineStock ||
                                                     item.vaccineStock ||
                                                     item.vitaminStock}
                                             </div> */}
-                        {(item.medicineStock !== null ||
-                          item.vaccineStock  !== null ||
-                          item.vitaminStock  !== null) && (
-                          <div>
-                              <span>Stock: {(item.medicineStock || 0) || (item.vitaminStock || 0) || (item.vaccineStock || 0)}</span>
-                              {/* {item.id} */}
+                          {(item.medicineStock !== null ||
+                            item.vaccineStock !== null ||
+                            item.vitaminStock !== null) && (
                             <div>
                               <span>
-                                {
-                                  (item.medicineClassification)
-                                    ? (item.medicineClassification.includes('ml')
+                                Stock:{" "}
+                                {item.medicineStock ||
+                                  0 ||
+                                  item.vitaminStock ||
+                                  0 ||
+                                  item.vaccineStock ||
+                                  0}
+                              </span>
+                              {/* {item.id} */}
+                              <div>
+                                <span>
+                                  {
+                                    item.medicineClassification
+                                      ? item.medicineClassification.includes(
+                                          "ml"
+                                        )
                                         ? `${item.medicinePiecesPerItem} per ${item.medicinePackaging}`
                                         : `${item.medicinePiecesPerItem}
-                                          ${(item.medicineDosageForm || "").toLowerCase()}${parseInt(item.medicinePiecesPerItem) > 1 ? "s" : ""}
-                                          per ${item.medicinePackaging}`)
-
-                                    : (item.vitaminClassification)
-                                      ? (item.vitaminClassification.includes('ml')
-                                          ? `${item.vitaminPiecesPerItem} per ${item.vitaminPackaging}`
-                                          : `${item.vitaminPiecesPerItem}
-                                            ${(item.vitaminDosageForm || "").toLowerCase()}${parseInt(item.vitaminClassification) > 1 && "/s"}
-                                            per ${item.vitaminPackaging}`)
-
-                                    : ""
+                                          ${(
+                                            item.medicineDosageForm || ""
+                                          ).toLowerCase()}${
+                                            parseInt(
+                                              item.medicinePiecesPerItem
+                                            ) > 1
+                                              ? "s"
+                                              : ""
+                                          }
+                                          per ${item.medicinePackaging}`
+                                      : item.vitaminClassification
+                                      ? item.vitaminClassification.includes(
+                                          "ml"
+                                        )
+                                        ? `${item.vitaminPiecesPerItem} per ${item.vitaminPackaging}`
+                                        : `${item.vitaminPiecesPerItem}
+                                            ${(
+                                              item.vitaminDosageForm || ""
+                                            ).toLowerCase()}${
+                                            parseInt(
+                                              item.vitaminClassification
+                                            ) > 1 && "/s"
+                                          }
+                                            per ${item.vitaminPackaging}`
+                                      : ""
                                     // (item.vaccineClassification.includes('ml')
                                     //   ? `${item.vaccineClassification} per ${item.vaccinePackaging}`
                                     //   : `${item.vaccineClassification}
                                     //     ${(item.vaccineDosageForm || "").toLowerCase()}${parseInt(item.vaccineClassification) > 1 && "s"}
                                     //     per ${item.vaccinePackaging}`)
-                                }
-                                {/* {item.medicineClassification && item.vaccineClassification.includes('ml') &&
+                                  }
+                                  {/* {item.medicineClassification && item.vaccineClassification.includes('ml') &&
                                   `${item.medicineClassification}
                                   ${(item.medicineDosageForm || "").toLowerCase()}${parseInt(item.medicineClassification) > 1 && "s"}
                                   per ${item.medicinePackaging}`
                                 } */}
-                              </span>
-                            </div>
-                            {/* Add similar conditions for vaccineStock and vitaminStock if needed */}
-                            {item.vaccineStock && (
-                              <>
-                                {/* {
+                                </span>
+                              </div>
+                              {/* Add similar conditions for vaccineStock and vitaminStock if needed */}
+                              {item.vaccineStock && (
+                                <>
+                                  {/* {
                                     item.vaccineClassification.includes('ml') ?
                                     <>{item.vaccinePiecesPerItem} per ${item.vaccinePackaging}</> :
                                     <>
                                       {item.vaccinePiecesPerItem} {`${item.vaccineDosageForm.toLowerCase()}${parseInt(item.vaccinePiecesPerItem) > 1 && "s"} per ${item.vaccinePackaging}`}
                                     </>
                                   } */}
-                              </>
-                            )}
-                          </div>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <span className="">
+                          Expiration:{" "}
+                          {formatDate(
+                            item.medicineExpiration ||
+                              item.vaccineExpiration ||
+                              item.vitaminExpiration
+                          )}
+                        </span>
+                      </h5>
+                      {(parseInt(item.medicineStock) ||
+                        parseInt(item.vitaminStock) ||
+                        parseInt(item.vaccineStock)) <= 100 && (
+                        <span className="text-red-500">Low Stock</span>
+                      )}
+                    </button>
+
+                    <div className="border-t-1 border-neutral-500 px-6 py-4 dark:border-neutral-900">
+                      <div className="flex items-center justify-center">
+                        <button
+                          onClick={() => handleDistribute(item)}
+                          className="bg-green-800 rounded-md text-white p-2 hover:bg-green-600 mr-4"
+                        >
+                          <FaTruck className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleView(item)}
+                          className="bg-blue-600 rounded-md text-white p-2 hover:bg-blue-800 mr-4 flex items-center space-x-1"
+                        >
+                          <FaEye className="w-5 h-5 text-white" />
+                        </button>
+                        {!user?.role.includes("Barangay") && (
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="bg-yellow-800 rounded-md text-white p-2 hover:bg-yellow-600 mr-4"
+                          >
+                            <MdEdit className="w-5 h-5" />
+                          </button>
+                        )}
+
+                        {!user?.role.includes("Barangay") && (
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="bg-red-600 rounded-md text-white p-2 hover:bg-red-800 mr-4"
+                          >
+                            <MdDelete className="w-5 h-5" />
+                          </button>
                         )}
                       </div>
-                      <span className="">
-                        Expiration: {formatDate(
-                          item.medicineExpiration ||
-                            item.vaccineExpiration ||
-                            item.vitaminExpiration
-                        )}
-                      </span>
-                    </h5>
-                    {((parseInt(item.medicineStock) || parseInt(item.vitaminStock) || parseInt(item.vaccineStock)) <= 100) && <span className="text-red-500">
-                      Low Stock
-                    </span>}
-                  </button>
-
-                  <div className="border-t-1 border-neutral-500 px-6 py-4 dark:border-neutral-900">
-                    <div className="flex items-center justify-center">
-                      <button
-                        onClick={() => handleDistribute(item)}
-                        className="bg-green-800 rounded-md text-white p-2 hover:bg-green-600 mr-4"
-                      >
-                        <FaTruck className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleView(item)}
-                        className="bg-blue-600 rounded-md text-white p-2 hover:bg-blue-800 mr-4 flex items-center space-x-1"
-                      >
-                        <FaEye className="w-5 h-5 text-white" />
-                      </button>
-                      {!user?.role.includes('Barangay') && <button
-                        onClick={() => handleEdit(item)}
-                        className="bg-yellow-800 rounded-md text-white p-2 hover:bg-yellow-600 mr-4"
-                      >
-                        <MdEdit className="w-5 h-5" />
-                      </button>}
-
-                      {!user?.role.includes('Barangay') && <button
-                        onClick={() => handleDelete(item.id)}
-                        className="bg-red-600 rounded-md text-white p-2 hover:bg-red-800 mr-4"
-                      >
-                        <MdDelete className="w-5 h-5" />
-              </button>}
-            </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
           </div>
-        </div>
-      </div>
-    ))}
-    </div>
-        </> : <>
-        <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-          <thead className="text-xs text-gray-700 uppercase bg-gray-300 dark:bg-gray-700 dark:text-gray-400">
+        </>
+      ) : (
+        <>
+          <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+            <thead className="text-xs text-gray-700 uppercase bg-gray-300 dark:bg-gray-700 dark:text-gray-400">
               <tr>
+                <th
+                  scope="col"
+                  className="px-6 py-3 border text-xs font-bold text-black"
+                >
+                  Item Name
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 border text-xs font-bold text-black"
+                >
+                  Quantity
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 border text-xs font-bold text-black"
+                >
+                  Created Date
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 border text-xs font-bold text-black"
+                >
+                  Status
+                </th>
+                {user?.role?.includes("Barangay") && (
                   <th
-                      scope="col"
-                      className="px-6 py-3 border text-xs font-bold text-black"
+                    scope="col"
+                    className="px-6 py-3 border text-xs font-bold text-black"
                   >
-                      Item Name
+                    Action
                   </th>
-                  <th
-                      scope="col"
-                      className="px-6 py-3 border text-xs font-bold text-black"
-                  >
-                      Quantity
-                  </th>
-                  <th
-                      scope="col"
-                      className="px-6 py-3 border text-xs font-bold text-black"
-                  >
-                      Created Date
-                  </th>
-                  <th
-                      scope="col"
-                      className="px-6 py-3 border text-xs font-bold text-black"
-                  >
-                      Status
-                  </th>
-                  {user?.role?.includes('Barangay') && <th
-                      scope="col"
-                      className="px-6 py-3 border text-xs font-bold text-black"
-                  >
-                      Action
-                  </th>}
+                )}
               </tr>
-          </thead>
-          <tbody>
-            {pendingItems.map((itemData, index) => (
-              <tr
+            </thead>
+            <tbody>
+              {pendingItems.map((itemData, index) => (
+                <tr
                   key={index}
                   className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-              >
-                 <td className="px-6 py-4 text-gray-900">
-                    {`${itemData.medicineBrandName || itemData.vitaminBrandName || itemData.vaccineName}`}
-                    {itemData.type.toLowerCase() !== 'vaccine' && (
+                >
+                  <td className="px-6 py-4 text-gray-900">
+                    {`${
+                      itemData.medicineBrandName ||
+                      itemData.vitaminBrandName ||
+                      itemData.vaccineName
+                    }`}
+                    {itemData.type.toLowerCase() !== "vaccine" && (
                       <>
-                        {` (${itemData.medicineGenericName || itemData.vitaminGenericName})`}
+                        {` (${
+                          itemData.medicineGenericName ||
+                          itemData.vitaminGenericName
+                        })`}
                       </>
                     )}
                   </td>
                   <td className="px-6 py-4 text-gray-900">
-                      {itemData.pendingQuantity}
+                    {itemData.pendingQuantity}
                   </td>
                   <td className="px-6 py-4 text-gray-900">
-                      {formatDate(itemData.created_at)}
+                    {formatDate(itemData.created_at)}
                   </td>
                   <td className="px-6 py-2">
-                      <span
-                          className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
-                              itemData.status === 'approved'
-                                  ? 'bg-green-100 text-green-800'
-                                  : itemData.status === 'pending'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : itemData.status === 'rejected'
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-gray-100 text-gray-800'
-                          }`}
-                      >
-                          {itemData?.status ? itemData.status.replace("_", " ").toUpperCase() : ''}
-                      </span>
+                    <span
+                      className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
+                        itemData.status === "approved"
+                          ? "bg-green-100 text-green-800"
+                          : itemData.status === "pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : itemData.status === "rejected"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {itemData?.status
+                        ? itemData.status.replace("_", " ").toUpperCase()
+                        : ""}
+                    </span>
                   </td>
-                  {user?.role.includes('Barangay') && <td className="px-6 py-4">
+                  {user?.role.includes("Barangay") && (
+                    <td className="px-6 py-4">
                       <div className="flex items-center">
+                        <button
+                          className={`bg-green-500 rounded-md text-white p-2 hover:bg-green-700 mr-2 flex items-center ${
+                            (loading || itemData.status !== "pending") &&
+                            "opacity-[0.5]"
+                          }`}
+                          onClick={() => handleApprove(itemData)}
+                          disabled={loading || itemData.status !== "pending"}
+                        >
+                          <img
+                            src="/images/check.png"
+                            alt="Approve Icon"
+                            className="w-5 h-5"
+                          />
+                          <span className="mx-2">
+                            {itemData.status === "pending"
+                              ? "Receive Item"
+                              : "Received"}
+                          </span>
+                        </button>
+                        {itemData.status != "pending" && (
                           <button
-                              className={`bg-green-500 rounded-md text-white p-2 hover:bg-green-700 mr-2 flex items-center ${(loading || itemData.status !== 'pending') && 'opacity-[0.5]'}`}
-                              onClick={() => handleApprove(itemData)}
-                              disabled={loading || itemData.status !== 'pending'}
+                            className={`bg-red-500 rounded-md text-white p-2 hover:bg-red-700 mr-2 flex items-center ${
+                              (loading || itemData.status !== "pending") &&
+                              "opacity-[0.5]"
+                            }`}
+                            onClick={() => handleDecline(itemData.id)}
+                            disabled={loading || itemData.status !== "pending"}
                           >
-                              <img
-                                  src="/images/check.png"
-                                  alt="Approve Icon"
-                                  className="w-5 h-5"
-                              />
-                              <span className="mx-2">{itemData.status === 'pending' ? 'Receive Item' : 'Received'}</span>
+                            <img
+                              src="/images/wrong.png"
+                              alt="Decline Icon"
+                              className="w-5 h-5"
+                            />
+                            <span className="mr-5">Decline</span>
                           </button>
-                          {itemData.status != 'pending' && <button
-                              className={`bg-red-500 rounded-md text-white p-2 hover:bg-red-700 mr-2 flex items-center ${(loading || itemData.status !== 'pending') && 'opacity-[0.5]'}`}
-                              onClick={() => handleDecline(itemData.id)}
-                              disabled={loading || itemData.status !== 'pending'}
-                          >
-                              <img
-                                  src="/images/wrong.png"
-                                  alt="Decline Icon"
-                                  className="w-5 h-5"
-                              />
-                              <span className="mr-5">Decline</span>
-                          </button>}
+                        )}
                       </div>
-                  </td>
-                  }
-              </tr>
-          ))}
-          </tbody>
-      </table>
-        </>}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
 
       {showHistoryModal === true && (
         <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-[900px]">
-
-            <PDFViewer style={{ width: '100%', height: '500px' }}>
+            <PDFViewer style={{ width: "100%", height: "500px" }}>
               <HistoryPDF data={historyData} user={user} header={pdfHeader} />
             </PDFViewer>
 
@@ -827,7 +936,7 @@ const Try: React.FC = () => {
             </div>
           </div>
         </div>
-        )}
+      )}
 
       {modalAdd && <ModalAdd showModal={modalAdd} closeModal={closeModalAdd} />}
 

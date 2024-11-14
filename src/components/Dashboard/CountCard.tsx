@@ -15,14 +15,13 @@ const CountCard: React.FC<CountCardProps> = ({
   count,
   icon: Icon,
   backgroundColor,
-  path
+  path,
 }) => {
-
   const navigate = useNavigate();
 
   return (
     <div
-      className={`w-full h-36 rounded-lg p-6 shadow-md mb-4`}
+      className={`w-full h-36 rounded-lg p-6 shadow-md mb-4 cursor-pointer hover:shadow-xl`}
       style={{ backgroundColor }}
       onClick={() => navigate(path)}
     >
