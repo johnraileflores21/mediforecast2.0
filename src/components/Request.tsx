@@ -370,6 +370,7 @@ const Request = () => {
         totalQuantity: requestedQuantity,
         created_at: new Date().toISOString(),
         userId: barangayId,
+        barangay: user?.barangay,
         last_modified: new Date().toISOString(),
       };
 

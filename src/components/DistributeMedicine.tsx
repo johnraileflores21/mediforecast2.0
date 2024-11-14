@@ -311,6 +311,8 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
 
               const _user = filteredUser[0];
 
+              console.log('_user :>> ', _user);
+
               const barangayInventoryRef = doc(db, "BarangayInventory", payload.id);
               const barangayInventorySnap = await getDoc(barangayInventoryRef);
               const existingData = barangayInventorySnap.data();
@@ -325,6 +327,7 @@ export default function ModalDistribute({ showModal, closeModal, data }: ModalDi
                 pendingQuantity: payload.medicineStock,
                 created_at: new Date().toISOString(),
                 userId: _user?.id,
+                barangay: payload.barangay,
                 totalPieces: newStock * payload.medicinePiecesPerItem,
                 status: 'pending',
                 itemId: payload?.id

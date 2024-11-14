@@ -264,6 +264,7 @@ const DistributeVaccine: React.FC<DistributeVaccineProps> = ({
                 pendingQuantity: payload.vaccineStock,
                 created_at: new Date().toISOString(),
                 userId: _user?.id,
+                barangay: payload.barangay,
                 totalPieces: newStock * payload.vaccinePiecesPerItem,
                 status: 'pending',
                 itemId: payload?.id

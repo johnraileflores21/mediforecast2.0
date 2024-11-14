@@ -262,6 +262,7 @@ const DistributeVitamin: React.FC<DistributeVitaminProps> = ({
                 pendingQuantity: payload.vitaminStock,
                 created_at: new Date().toISOString(),
                 userId: _user?.id,
+                barangay: payload.barangay,
                 totalPieces: newStock * payload.vitaminPiecesPerItem,
                 status: 'pending',
                 itemId: payload?.id

@@ -82,11 +82,7 @@ const Try: React.FC = () => {
 
       const inventoryQuery = query(
         collection(db, isBarangay ? "BarangayInventory" : "Inventory"),
-        where(
-          "created_by_unit",
-          "==",
-          isBarangay ? unit.toString() : user?.rhuOrBarangay
-        )
+        where(isBarangay ? "barangay" : "created_by_unit", "==", isBarangay ? user?.barangay : unit.toString())
       );
 
       const inventorySnap = await getDocs(inventoryQuery);
