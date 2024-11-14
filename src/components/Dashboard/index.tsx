@@ -80,6 +80,10 @@ const Dashboard: React.FC = () => {
   const [requestsCount, setRequestsCount] = useState<number>(0);
   const [itrRecordsCount, setItrRecordsCount] = useState<number>(0);
 
+  const unit =
+          RHUs.findIndex((x: any) => x["barangays"].includes(user?.barangay)) +
+          1;
+
   useEffect(() => {
     const fetchData = async () => {
       auth.onAuthStateChanged(async (user) => {
@@ -147,19 +151,14 @@ const Dashboard: React.FC = () => {
     };
     const fetchCounts = async () => {
       try {
-        // Fetch Inventory count
-
-        const unit =
-          RHUs.findIndex((x: any) => x["barangays"].includes(user?.barangay)) +
-          1;
         const inventoryCollection = isBarangay
           ? "BarangayInventory"
           : "Inventory";
         const inventoryQueries = [
           where(
-            "created_by_unit",
+            isBarangay ? "barangay" : "created_by_unit",
             "==",
-            isBarangay ? unit.toString() : user?.rhuOrBarangay
+            isBarangay ? user?.barangay : unit?.toString()
           ),
           // ...(isBarangay ? [where("status", "==", "approved")] : [])
         ];
@@ -177,7 +176,7 @@ const Dashboard: React.FC = () => {
             id: doc.id,
             ...doc.data(),
           }))
-          .filter((x: any) => !x.status);
+          .filter((x: any) => !x.status || x.status == 'approved');
 
         setInventoryCount(inventoryList.length);
         setInventoryList(inventoryList);
@@ -214,8 +213,8 @@ const Dashboard: React.FC = () => {
     const fetchDataForBarGraph = async () => {
       try {
         let q = {
-          clause: isBarangay ? "userId" : "created_by_unit",
-          val: isBarangay ? user?.uid : user?.rhuOrBarangay.toString(),
+          clause: isBarangay ? "barangay" : "created_by_unit",
+          val: isBarangay ? user?.barangay : unit?.toString(),
         };
 
         const inventoryQueries = [where(q.clause, "==", q.val)];
@@ -232,7 +231,7 @@ const Dashboard: React.FC = () => {
             id: doc.id,
             ...doc.data(),
           }))
-          .filter((data: any) => !data.status);
+          .filter((data: any) => !data.status || data.status == 'approved');
 
         const barangayData: any = {};
         let userList: any = [];
