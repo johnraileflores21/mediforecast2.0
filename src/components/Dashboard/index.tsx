@@ -249,24 +249,31 @@ const Dashboard: React.FC = () => {
 
         console.log("_list :>> ", _list);
 
+        const mappedList = _list.map(l => ({ name: l[`${getTypes(l)}BrandName`], stock: l[`${getTypes(l)}Stock`], id: l.id }))
+          .filter(l => l.name);
+
+        console.log('mappedList :>> ', mappedList);
+
         _list.forEach((item: any) => {
           const stockType = getTypes(item);
           const stock = item[`${stockType}Stock`] || 0;
           const itemName = item[`${stockType}BrandName`];
           const userId = item.userId;
 
-          const user = userList.find((user: any) => user.id === userId);
-          const barangay = user ? user.barangay : "Unknown Barangay";
+          if(itemName) {
+            const user = userList.find((user: any) => user.id === userId);
+            const barangay = user ? user.barangay : "Unknown Barangay";
 
-          console.log("user :>> ", user);
+            console.log("user :>> ", user);
 
-          const key = isBarangay ? itemName : barangay;
+            const key = isBarangay ? itemName : barangay;
 
-          if (!barangayData[key]) {
-            barangayData[key] = [];
+            if (!barangayData[key]) {
+              barangayData[key] = [];
+            }
+
+            barangayData[key].push({ itemName, stock });
           }
-
-          barangayData[key].push({ itemName, stock });
         });
 
         Object.keys(barangayData).forEach((key) => {
