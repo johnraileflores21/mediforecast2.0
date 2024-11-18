@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
@@ -21,6 +21,14 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     // console.log("Submitting login with:", { email, password });
+
+    useEffect(() => {
+      const logOutOnFetch = async () => {
+        await signOut(auth);
+      }
+
+      logOutOnFetch();
+    }, []);
 
     try {
       const userCredential = await signInWithEmailAndPassword(
