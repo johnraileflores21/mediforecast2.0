@@ -343,16 +343,13 @@ const Dashboard: React.FC = () => {
             const aggregatedItems = barangayData[barangay].reduce((acc: any, item: any) => {
               const existingItem = acc.find((i: any) => i.itemName === item.itemName);
               if (existingItem) {
-                // If item exists, add its stock
                 existingItem.stock += item.stock;
               } else {
-                // Otherwise, add the item to the accumulator
                 acc.push({ ...item });
               }
               return acc;
             }, []);
             
-            // Add aggregated data to `data` using series mapping
             aggregatedItems.forEach((item: any) => {
               const matchedSeries = _s.find((series: any) => series.yName === item.itemName);
               data[matchedSeries?.yKey || ""] = item.stock;
@@ -364,23 +361,18 @@ const Dashboard: React.FC = () => {
 
         let finalData = [];
 
-        for (let i = 0; i < _d.length; i++) {
-          // Exclude the 'barangay' key for sorting and processing
+        for(let i = 0; i < _d.length; i++) {
           const { barangay, ...items } = _d[i];
-        
-          // Get the top 4 lowest items by stock
           const lowestItems = Object.entries(items)
-            .sort((a, b) => a[1] - b[1])  // Sort by stock value (ascending)
-            .slice(0, 4)  // Get the first 4 lowest items
-            .reduce((acc, [key, value]) => {
+            .sort((a, b) => a[1] - b[1])
+            .slice(0, 4)
+            .reduce((acc: any, [key, value]) => {
               acc[key] = value;
               return acc;
             }, {});
-        
-          // Add the 'barangay' key back and push to finalData
           finalData.push({
-            barangay,  // Keep the barangay field
-            ...lowestItems  // Add the lowest items
+            barangay,
+            ...lowestItems
           });
         }
         
