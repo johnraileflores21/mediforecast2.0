@@ -260,7 +260,7 @@ const Dashboard: React.FC = () => {
           const itemName = item[`${stockType}BrandName`] || item[`${stockType}Name`];
           const userId = item.userId;
 
-          if(itemName) {
+          if(itemName && stock > 0) {
             const user = userList.find((user: any) => user.id === userId);
             const barangay = user ? user.barangay : "Unknown Barangay";
 
@@ -278,7 +278,7 @@ const Dashboard: React.FC = () => {
 
         Object.keys(barangayData).forEach((key) => {
           barangayData[key].sort((a: any, b: any) => a.stock - b.stock);
-          barangayData[key] = barangayData[key].slice(0, 4);
+          // barangayData[key] = barangayData[key].slice(0, 4);
         });
 
         console.log('barangayData :>> ', barangayData);
@@ -340,8 +340,21 @@ const Dashboard: React.FC = () => {
             });
           } else {
             console.log('barangayData :>> ', barangayData);
-            barangayData[barangay].forEach((item: any, idx: number) => {
-              const matchedSeries = _s.find((series: any) => series.yName == item.itemName);
+            const aggregatedItems = barangayData[barangay].reduce((acc: any, item: any) => {
+              const existingItem = acc.find((i: any) => i.itemName === item.itemName);
+              if (existingItem) {
+                // If item exists, add its stock
+                existingItem.stock += item.stock;
+              } else {
+                // Otherwise, add the item to the accumulator
+                acc.push({ ...item });
+              }
+              return acc;
+            }, []);
+            
+            // Add aggregated data to `data` using series mapping
+            aggregatedItems.forEach((item: any) => {
+              const matchedSeries = _s.find((series: any) => series.yName === item.itemName);
               data[matchedSeries?.yKey || ""] = item.stock;
             });
           }
@@ -349,7 +362,30 @@ const Dashboard: React.FC = () => {
           return data;
         });
 
-        console.log('_d :>> ', _d);
+        let finalData = [];
+
+        for (let i = 0; i < _d.length; i++) {
+          // Exclude the 'barangay' key for sorting and processing
+          const { barangay, ...items } = _d[i];
+        
+          // Get the top 4 lowest items by stock
+          const lowestItems = Object.entries(items)
+            .sort((a, b) => a[1] - b[1])  // Sort by stock value (ascending)
+            .slice(0, 4)  // Get the first 4 lowest items
+            .reduce((acc, [key, value]) => {
+              acc[key] = value;
+              return acc;
+            }, {});
+        
+          // Add the 'barangay' key back and push to finalData
+          finalData.push({
+            barangay,  // Keep the barangay field
+            ...lowestItems  // Add the lowest items
+          });
+        }
+        
+        console.log('finalData :>> ', finalData);
+        
 
         const chartOptions = {
           title: {
@@ -362,7 +398,7 @@ const Dashboard: React.FC = () => {
               ? "Stock quantity by Item"
               : "Stock quantity by Barangay",
           },
-          data: _d,
+          data: finalData,
           series: _s,
           axes: [
             {
