@@ -22,13 +22,13 @@ const Login = () => {
     setLoading(true);
     // console.log("Submitting login with:", { email, password });
 
-    useEffect(() => {
-      const logOutOnFetch = async () => {
-        await signOut(auth);
-      }
+    // useEffect(() => {
+    //   const logOutOnFetch = async () => {
+    //     await signOut(auth);
+    //   }
 
-      logOutOnFetch();
-    }, []);
+    //   logOutOnFetch();
+    // }, []);
 
     try {
       const userCredential = await signInWithEmailAndPassword(

@@ -233,7 +233,7 @@ const Dashboard: React.FC = () => {
           }))
           .filter((data: any) => !data.status || data.status == 'approved');
 
-        const barangayData: any = {};
+        let barangayData: any = {};
         let userList: any = [];
 
         const userRef = collection(db, "Users");
@@ -249,7 +249,7 @@ const Dashboard: React.FC = () => {
 
         console.log("_list :>> ", _list);
 
-        const mappedList = _list.map(l => ({ name: l[`${getTypes(l)}BrandName`], stock: l[`${getTypes(l)}Stock`], id: l.id }))
+        const mappedList = _list.map(l => ({ name: l[`${getTypes(l)}BrandName`] || l[`${getTypes(l)}Name`], stock: l[`${getTypes(l)}Stock`], id: l.id }))
           .filter(l => l.name);
 
         console.log('mappedList :>> ', mappedList);
@@ -257,7 +257,7 @@ const Dashboard: React.FC = () => {
         _list.forEach((item: any) => {
           const stockType = getTypes(item);
           const stock = item[`${stockType}Stock`] || 0;
-          const itemName = item[`${stockType}BrandName`];
+          const itemName = item[`${stockType}BrandName`] || item[`${stockType}Name`];
           const userId = item.userId;
 
           if(itemName) {
@@ -281,6 +281,8 @@ const Dashboard: React.FC = () => {
           barangayData[key] = barangayData[key].slice(0, 4);
         });
 
+        console.log('barangayData :>> ', barangayData);
+
         const chartLabels: string[] = [];
 
         Object.keys(barangayData).forEach((key) => {
@@ -303,6 +305,8 @@ const Dashboard: React.FC = () => {
           };
         });
 
+        console.log('seriesData :>> ', seriesData);
+
         const _s = seriesData.map((dataset: any, idx: number) => ({
           type: "bar",
           xKey: "barangay",
@@ -312,6 +316,8 @@ const Dashboard: React.FC = () => {
           borderColor: generateRandomColor(),
           borderWidth: 1,
         }));
+
+        console.log('_s :>> ', _s);
 
         let _d = Object.keys(barangayData).map((barangay) => {
           const data: { [key: string]: any } = { barangay };
@@ -332,13 +338,18 @@ const Dashboard: React.FC = () => {
               const key = _s.find((x) => x.yName === item.itemName);
               if (key) data[key.yKey] = item.stock;
             });
-          } else
+          } else {
+            console.log('barangayData :>> ', barangayData);
             barangayData[barangay].forEach((item: any, idx: number) => {
-              data[`item${idx + 1}`] = item.stock;
+              const matchedSeries = _s.find((series: any) => series.yName == item.itemName);
+              data[matchedSeries?.yKey || ""] = item.stock;
             });
+          }
 
           return data;
         });
+
+        console.log('_d :>> ', _d);
 
         const chartOptions = {
           title: {
