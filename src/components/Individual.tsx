@@ -507,7 +507,7 @@ const Individual = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filteredData.map((item) => (
+                  {currentItems.map((item) => (
                     <tr key={item.id} className="hover:bg-gray-100">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 max-w-xs truncate">
                         <input
@@ -591,7 +591,7 @@ const Individual = () => {
                 </tbody>
               </table>
             </div>
-            <div className="flex justify-center mt-4">
+            <div className="flex justify-end mt-4">
               <nav className="block">
                 <ul className="flex pl-0 rounded list-none flex-wrap">
                   {/* Previous button */}

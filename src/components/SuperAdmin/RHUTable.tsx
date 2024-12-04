@@ -22,6 +22,7 @@ interface TableProps {
 const Table: React.FC<TableProps> = ({ rhu }) => {
   const [users, setUsers] = useState<any[]>([]);
   const [viewInfo, setViewInfo] = useState(false);
+  const [viewApproving, setViewApproving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const MySwal = withReactContent(Swal);
 
@@ -50,35 +51,12 @@ const Table: React.FC<TableProps> = ({ rhu }) => {
   const closeModal = () => {
     setUserId(null);
     setViewInfo(false);
+    setViewApproving(false);
   };
-  const handleApprovingUser = async (userId: string) => {
-    try {
-      const result = await MySwal.fire({
-        title: "Are you sure?",
-        text: "Are you sure you want to approve this user?",
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Yes, approve it!",
-      });
-      if (result.isConfirmed) {
-        const userRef = doc(db, "Users", userId);
-        await updateDoc(userRef, { acc_status: "approved" });
-        MySwal.fire({
-          title: "Approve!",
-          text: "User has been approved successfully.",
-          icon: "success",
-        });
-      }
-    } catch (error) {
-      console.error("Error updating user status:", error);
-      await MySwal.fire({
-        title: "Error!",
-        text: "There was an error approving the user. Please try again.",
-        icon: "error",
-      });
-    }
+  const handleApprovingUser = (user: any) => {
+    setViewApproving(true);
+    setUserId(user.id);
+    setViewInfo(true);
   };
   const handleDecliningUser = async (userId: string) => {
     try {
@@ -153,10 +131,10 @@ const Table: React.FC<TableProps> = ({ rhu }) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
-                      onClick={() => handleApprovingUser(user.id)}
-                      className="bg-yellow-500 p-2 font-semibold rounded-md space-x-1 text-white mr-2"
+                      onClick={() => handleApprovingUser(user)}
+                      className="bg-green-500 p-2 font-semibold rounded-md space-x-1 text-white mr-2"
                     >
-                      Pending
+                      Approve
                     </button>
                     <button
                       onClick={() => handleDecliningUser(user.id)}
@@ -176,6 +154,7 @@ const Table: React.FC<TableProps> = ({ rhu }) => {
           showModal={viewInfo}
           closeModal={closeModal}
           userId={userId}
+          viewApproving={viewApproving}
         />
       )}
     </>

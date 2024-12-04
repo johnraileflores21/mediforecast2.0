@@ -1,24 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { HiInformationCircle } from "react-icons/hi2";
 import { IoMdClose } from "react-icons/io";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import ClipLoader from "react-spinners/ClipLoader";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
 
 interface UserInfoProps {
   showModal: boolean;
   closeModal: () => void;
   userId: string | null;
+  viewApproving: boolean;
 }
 const UserInfo: React.FC<UserInfoProps> = ({
   showModal,
   closeModal,
   userId,
+  viewApproving,
 }) => {
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
+  const MySwal = withReactContent(Swal);
+  const [canApprove, setCanApprove] = useState<boolean>(viewApproving);
+  const [loadingButton, setLoadingButton] = useState<boolean>(false);
   useEffect(() => {
     if (!userId) return;
 
@@ -43,6 +49,42 @@ const UserInfo: React.FC<UserInfoProps> = ({
     fetchUser();
   }, [userId]);
 
+  useEffect(() => {
+    setCanApprove(viewApproving);
+  }, [viewApproving, showModal]);
+
+  const handleApprovingUser = async () => {
+    if (!userId) return;
+    try {
+      const result = await MySwal.fire({
+        title: "Are you sure?",
+        text: "Are you sure you want to approve this user?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Yes, approve it!",
+      });
+      if (result.isConfirmed) {
+        setLoadingButton(true);
+        const userRef = doc(db, "Users", userId);
+        await updateDoc(userRef, { acc_status: "approved" });
+        MySwal.fire({
+          title: "Approve!",
+          text: "User has been approved successfully.",
+          icon: "success",
+        });
+        closeModal();
+      }
+    } catch (error) {
+      console.error("Error updating user status:", error);
+      await MySwal.fire({
+        title: "Error!",
+        text: "There was an error approving the user. Please try again.",
+        icon: "error",
+      });
+    }
+  };
   if (!showModal) return null;
 
   const formatDate = (dateString: string) => {
@@ -166,33 +208,79 @@ const UserInfo: React.FC<UserInfoProps> = ({
                 <div className="mb-4">
                   <h1 className="font-bold">Front ID</h1>
                   <div>
-                    {user?.idFront ? <img
-                      src={user?.idFront}
-                      className="w-[100%] h-[250px] object-contain border-3 border-gray-100 rounded-lg shadow-md hover:shadow-lg"
-                      style={{boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'}}
-                    /> : <i>No ID available.</i>}
+                    {user?.idFront ? (
+                      <img
+                        src={user?.idFront}
+                        className="w-[100%] h-[250px] object-contain border-3 border-gray-100 rounded-lg shadow-md hover:shadow-lg"
+                        style={{ boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)" }}
+                      />
+                    ) : (
+                      <i>No ID available.</i>
+                    )}
                   </div>
                 </div>
                 <div className="mb-4">
                   <h1 className="font-bold">Back ID</h1>
                   <div>
-                    {user?.idBack ? <img
-                      src={user?.idBack}
-                      className="w-[100%] h-[250px] object-contain border-3 border-gray-100 rounded-lg shadow-md hover:shadow-lg"
-                      style={{boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'}}
-                    /> : <i>No ID available.</i>}
+                    {user?.idBack ? (
+                      <img
+                        src={user?.idBack}
+                        className="w-[100%] h-[250px] object-contain border-3 border-gray-100 rounded-lg shadow-md hover:shadow-lg"
+                        style={{ boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)" }}
+                      />
+                    ) : (
+                      <i>No ID available.</i>
+                    )}
                   </div>
                 </div>
                 <div className="mb-4">
                   <h1 className="font-bold">Selfie with ID</h1>
                   <div>
-                    {user?.idSelfie || user?.selfieID ? <img
-                      src={user?.idSelfie || user?.selfieID}
-                      className="w-[100%] h-[250px] object-contain border-3 border-gray-100 rounded-lg shadow-md hover:shadow-lg"
-                      style={{boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'}}
-                    /> : <i>No ID available.</i>}
+                    {user?.idSelfie || user?.selfieID ? (
+                      <img
+                        src={user?.idSelfie || user?.selfieID}
+                        className="w-[100%] h-[250px] object-contain border-3 border-gray-100 rounded-lg shadow-md hover:shadow-lg"
+                        style={{ boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)" }}
+                      />
+                    ) : (
+                      <i>No ID available.</i>
+                    )}
                   </div>
                 </div>
+                {canApprove && (
+                  <button
+                    onClick={handleApprovingUser}
+                    className="bg-green-500 w-full p-2 text-white rounded-lg text-md mb-3"
+                    disabled={loadingButton}
+                  >
+                    {loadingButton ? (
+                      <div className="flex items-center justify-center">
+                        <svg
+                          width="800px"
+                          height="800px"
+                          viewBox="0 0 16 16"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          className="animate-spin h-5 w-5 text-white"
+                        >
+                          <g
+                            fill="#000000"
+                            fillRule="evenodd"
+                            clipRule="evenodd"
+                          >
+                            <path
+                              d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z"
+                              opacity=".2"
+                            />
+                            <path d="M7.25.75A.75.75 0 018 0a8 8 0 018 8 .75.75 0 01-1.5 0A6.5 6.5 0 008 1.5a.75.75 0 01-.75-.75z" />
+                          </g>
+                        </svg>
+                      </div>
+                    ) : (
+                      "Approve"
+                    )}
+                  </button>
+                )}
                 <button
                   onClick={closeModal}
                   className="bg-red-800 w-full p-2 text-white rounded-lg text-md"

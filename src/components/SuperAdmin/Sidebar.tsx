@@ -22,6 +22,7 @@ import Sulipan from "../../assets/images/sulipan2.png";
 import Tabuyuc from "../../assets/images/tabuyuc.jpg";
 import Sucad from "../../assets/images/sucad.png";
 import { FaUsers } from "react-icons/fa";
+import { GiHamburgerMenu } from "react-icons/gi";
 import {
   RiLockPasswordFill,
   RiLockPasswordLine,
@@ -207,7 +208,7 @@ const AdminSidebar = () => {
         } duration-500 text-gray-100 px-4`}
       >
         <div className="py-3 flex justify-end">
-          <HiMenuAlt3
+          <GiHamburgerMenu
             size={26}
             className="cursor-pointer"
             onClick={() => setOpen(!open)}

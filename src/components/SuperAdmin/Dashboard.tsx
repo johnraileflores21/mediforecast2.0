@@ -4,12 +4,19 @@ import { doc, onSnapshot, collection, query, where } from "firebase/firestore";
 import { db } from "../../firebase";
 import { FaEye } from "react-icons/fa";
 import UserInfo from "./UserInfo";
+import { IoSearchOutline } from "react-icons/io5";
+import { MdDownload, MdArrowBackIos, MdArrowForwardIos } from "react-icons/md";
 
 const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [viewInfo, setViewInfo] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 5;
 
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
   //Get real-time update of Collection Users
   useEffect(() => {
     const usersQuery = query(
@@ -22,12 +29,41 @@ const AdminDashboard: React.FC = () => {
         ...doc.data(),
       }));
 
-      const filteredUsers = fetch.filter((user: any) => user.status != 'for_verification');
+      const filtered = fetch.filter(
+        (user: any) => user.status != "for_verification"
+      );
 
-      setUsers(filteredUsers);
+      setUsers(filtered);
+      setFilteredUsers(filtered);
     });
     return () => unsub();
   }, []);
+  // Handle search
+  useEffect(() => {
+    if (searchQuery) {
+      const filtered = users.filter(
+        (user) =>
+          user.firstname.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          user.lastname.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          user.acc_status.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+    } else {
+      setFilteredUsers(users); // Reset if search query is cleared
+    }
+    setCurrentPage(1); // Reset to the first page after search
+  }, [searchQuery, users]);
+
+  // Paginate the filtered users
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handleSearchInputChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => setSearchQuery(event.target.value);
 
   //view UserInfo
   const handleViewUserInfo = (user: any) => {
@@ -55,10 +91,20 @@ const AdminDashboard: React.FC = () => {
     Sulipan: "Sulipan Health Center",
     Tabuyuc: "Tabuyuc Health Center",
   };
-
+  // const handleSearchInputChange = (event: React:ChangeEvent<HTMLInputElement>) => setSearchQuery(event.target.value);
   return (
     <DashboardLayout>
       <h1 className="text-3xl font-bold mb-4">All Users</h1>
+      <div className="relative">
+        <input
+          className="border border-gray-300 rounded-md p-2 pl-8 shadow-md"
+          type="text"
+          placeholder="Search..."
+          value={searchQuery}
+          onChange={handleSearchInputChange}
+        />
+        <IoSearchOutline className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+      </div>
       <div className="border p-2 m-10 rounded-md shadow-lg">
         <div className="overflow-x-auto shadow-lg rounded-lg">
           <table className=" min-w-full divide-y divide-gray-300">
@@ -75,7 +121,7 @@ const AdminDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divided-y">
-              {users.map((user) => (
+              {paginatedUsers.map((user) => (
                 <tr key={user.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
                     {user.firstname}
@@ -114,6 +160,55 @@ const AdminDashboard: React.FC = () => {
               ))}
             </tbody>
           </table>
+        </div>
+        {/* Pagination */}
+        <div className="flex justify-end mt-4">
+          <nav className="block">
+            <ul className="flex pl-0 rounded list-none flex-wrap">
+              <li>
+                <button
+                  onClick={() => setCurrentPage((prev) => prev - 1)}
+                  disabled={currentPage === 1}
+                  className={`${
+                    currentPage === 1
+                      ? "bg-gray-300 text-gray-600"
+                      : "bg-white text-blue-600 hover:bg-gray-200"
+                  } font-semibold py-2.5 px-4 border border-gray-300 rounded-l`}
+                >
+                  <MdArrowBackIos />
+                </button>
+              </li>
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+                (page) => (
+                  <li key={page}>
+                    <button
+                      onClick={() => setCurrentPage(page)}
+                      className={`${
+                        currentPage === page
+                          ? "bg-blue-600 text-white"
+                          : "bg-white text-blue-600 hover:bg-gray-200"
+                      } font-semibold py-2 px-4 border border-gray-300`}
+                    >
+                      {page}
+                    </button>
+                  </li>
+                )
+              )}
+              <li>
+                <button
+                  onClick={() => setCurrentPage((prev) => prev + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`${
+                    currentPage === totalPages
+                      ? "bg-gray-300 text-gray-600"
+                      : "bg-white text-blue-600 hover:bg-gray-200"
+                  } font-semibold py-2.5 px-4 border border-gray-300 rounded-r`}
+                >
+                  <MdArrowForwardIos />
+                </button>
+              </li>
+            </ul>
+          </nav>
         </div>
       </div>
       {/* <div className="border p-2 m-10 rounded-md shadow-lg">

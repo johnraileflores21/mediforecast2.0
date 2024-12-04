@@ -821,7 +821,7 @@ const Request = () => {
         </div>
         {/* //added for pagination */}
         {/* Pagination UI */}
-        <div className="flex justify-center mt-4">
+        <div className="flex justify-end mt-4">
           <nav className="block">
             <ul className="flex pl-0 rounded list-none flex-wrap">
               {/* Previous button */}

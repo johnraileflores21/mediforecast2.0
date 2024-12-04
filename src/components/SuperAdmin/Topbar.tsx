@@ -13,7 +13,7 @@ const AdminTopBar = () => {
       <h1 className="text-3xl font-extrabold xl:ml-[33%]">
         Welcome Super Admin!
       </h1>
-      <div className="relative">
+      {/* <div className="relative">
         <button
           onClick={toggleDropdown}
           className="relative z-10 block rounded-md focus:outline-none"
@@ -44,7 +44,7 @@ const AdminTopBar = () => {
             </div>
           </div>
         )}
-      </div>
+      </div> */}
     </div>
   );
 };
