@@ -69,6 +69,7 @@ const Individual = () => {
   const [selectedOption, setSelectedOption] = useState<string>("All");
   const [sortOrder, setSortOrder] = useState<string>("asc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [pendingPage, setPendingPage] = useState(1);
   const [selectedPatients, setSelectedPatients] = useState<PatientRecord[]>([]);
   const [isSelectedAll, setIsSelectedAll] = useState<boolean>(false);
   const [selectedTab, setSelectedTab] = useState<number>(0);
@@ -265,6 +266,44 @@ const Individual = () => {
         ...pageNumbers.slice(
           currentPage - halfVisible - 1,
           currentPage + halfVisible
+        ),
+      ];
+    }
+  }
+
+  const _indexOfLastItem = pendingPage * itemsPerPage;
+  const _indexOfFirstItem = _indexOfLastItem - itemsPerPage;
+  const _currentItems = filteredApprovals.slice(_indexOfFirstItem, _indexOfLastItem);
+
+  // Change page
+  const _paginate = (pageNumber: any) => setPendingPage(pageNumber);
+
+  // Pagination display logic
+  const _pageNumbers: number[] = [];
+  for (let i = 1; i <= Math.ceil(filteredApprovals.length / itemsPerPage); i++) {
+    _pageNumbers.push(i);
+  }
+
+  // Determine visible page numbers
+  let _visiblePages: number[] = [];
+  const _maxVisiblePages = 3;
+  const _totalPages = _pageNumbers.length;
+
+  if (_totalPages <= _maxVisiblePages) {
+    _visiblePages = _pageNumbers;
+  } else {
+    const _halfVisible = Math.floor(_maxVisiblePages / 2);
+    const _leftOffset = pendingPage - 1;
+    const _rightOffset = _totalPages - pendingPage;
+    if (_leftOffset < _halfVisible) {
+      _visiblePages = [...pageNumbers.slice(0, _maxVisiblePages)];
+    } else if (_rightOffset < _halfVisible) {
+      _visiblePages = [..._pageNumbers.slice(totalPages - _maxVisiblePages)];
+    } else {
+      _visiblePages = [
+        ..._pageNumbers.slice(
+          pendingPage - _halfVisible - 1,
+          pendingPage + _halfVisible
         ),
       ];
     }
@@ -891,12 +930,12 @@ const Individual = () => {
                     </button>
                   </li>
                   {/* Page buttons */}
-                  {visiblePages.map((page, index) => (
+                  {_visiblePages.map((page, index) => (
                     <li key={index}>
                       <button
-                        onClick={() => paginate(page)}
+                        onClick={() => _paginate(page)}
                         className={`${
-                          currentPage === page
+                          pendingPage === page
                             ? "bg-blue-600 text-white hover:bg-blue-700"
                             : "bg-white text-blue-600 hover:bg-gray-200"
                         } font-semibold py-2 px-4 border border-gray-300 focus:outline-none`}
@@ -908,10 +947,10 @@ const Individual = () => {
                   {/* Next button */}
                   <li>
                     <button
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                      disabled={currentPage === totalPages}
+                      onClick={() => setPendingPage(pendingPage + 1)}
+                      disabled={pendingPage === _totalPages}
                       className={`${
-                        currentPage === totalPages
+                        pendingPage === _totalPages
                           ? "bg-gray-300 text-gray-600"
                           : "bg-white text-blue-600 hover:bg-gray-200"
                       } font-semibold py-2.5 px-4 border border-gray-300 rounded-r focus:outline-none`}
