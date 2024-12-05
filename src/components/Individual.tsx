@@ -275,16 +275,13 @@ const Individual = () => {
   const _indexOfFirstItem = _indexOfLastItem - itemsPerPage;
   const _currentItems = filteredApprovals.slice(_indexOfFirstItem, _indexOfLastItem);
 
-  // Change page
   const _paginate = (pageNumber: any) => setPendingPage(pageNumber);
 
-  // Pagination display logic
   const _pageNumbers: number[] = [];
   for (let i = 1; i <= Math.ceil(filteredApprovals.length / itemsPerPage); i++) {
     _pageNumbers.push(i);
   }
 
-  // Determine visible page numbers
   let _visiblePages: number[] = [];
   const _maxVisiblePages = 3;
   const _totalPages = _pageNumbers.length;
